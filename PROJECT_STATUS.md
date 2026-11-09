@@ -50,6 +50,7 @@ See `ARCHITECTURE.md` §2 (D1–D14).
 ## Resolved decisions
 - 2026-11-09 — Hosting: Supabase Singapore + Vercel (ARCHITECTURE D15).
 - 2026-11-09 — Login: centre-created username + password for students and parents (D16).
-- 2026-11-09 — MVP first, easiest features first; story library / video deferred, hosting choice later
-  (see IMPLEMENTATION_PLAN "MVP scope").
+- 2026-11-09 — MVP includes stories (no video), vocabulary games and all 8 question types incl. picture
+  and listening; only video is deferred (see IMPLEMENTATION_PLAN "MVP scope"). Media bucket limited to
+  images/audio/PDF, 20 MB.
 - 2026-11-09 — Minimal personal data; `students.date_of_birth` removed from the schema (D17).

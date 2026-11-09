@@ -16,18 +16,27 @@ mostly UI on top of a tested data layer.
 | **7 Story library** | Story CRUD, video/audio player, WebVTT subtitles, transcript, listening exercises | playback on iOS/Android browsers |
 | **8 Production readiness** | Full test pass, performance review, error handling, monitoring/alerts, backup restore drill, deployment & recovery docs | owner approval → production deploy |
 
-## MVP scope (owner decision, 2026-11-09: "MVP first, easy features first")
-**MVP = M1 → M2 → M3-lite → M4-lite → M5-lite → M6.** The database already supports everything; the MVP only limits UI.
+## MVP scope (owner decisions, 2026-11-09)
+"MVP first, easy features first"; then the owner moved stories (without video), vocabulary games and all
+question types into the MVP. **Video is the only content type excluded** (storage/bandwidth).
+
+**MVP = M1 → M2 → M3 → M4 → M5-lite → M6 → M7-lite.** The database already supports all of it.
 
 | In MVP | Deferred to after MVP |
 |---|---|
-| Login (username/password), role dashboards | Story library, video & subtitles (M7) — video hosting decided later |
-| Admin: students, parents, teachers, classes, enrolment | Vocabulary games beyond flashcards |
-| Simple content: levels → units → lessons, vocabulary list + flashcards, grammar pages (text) | Matching / rearrange / picture-choice question editors |
-| Tests: multiple choice, true/false, fill-in-the-blank, short answer, written | Audio/listening uploads (add with media work) |
-| Assign to class or student, take test with timer, auto-grade | Progress charts (weekly/monthly) — M5 full |
-| Teacher review: per-question comments, manual grading, overall feedback, templates | CSV/Excel import |
+| Login (username/password), role dashboards | **Video** for stories/lessons (hosting decided later; `media_assets.provider` ready) |
+| Admin: students, parents, teachers, classes, enrolment | Subtitles (WebVTT) — only needed with video |
+| Content: levels → units → lessons, vocabulary with picture + pronunciation audio, grammar pages | Progress charts (weekly/monthly) — M5 full |
+| Vocabulary activities: flashcards, meaning quiz, picture selection, listen-and-choose, spelling, fill-in-the-blank, review | CSV/Excel import |
+| All 8 question types incl. matching, rearrange, picture choice; listening questions with audio | |
+| Story library **without video**: text + transcript, cover image, optional narration audio, target vocabulary/grammar, comprehension questions | |
+| Assign to class or student, take test with timer, auto-grade | |
+| Teacher review: per-question comments, manual grading, overall feedback, templates | |
 | Parent monthly + test report, preview, PNG/PDF export, parent portal | |
+
+Storage note: images (≤ 200 KB, WebP) and audio (≤ 1 MB, MP3 64–96 kbps) for ~2,000 words and ~100 stories
+≈ 1–3 GB — far inside the 100 GB / 250 GB egress included in Supabase Pro. Uploads are resized/compressed
+in the browser before upload; the bucket rejects video MIME types until video is enabled.
 
 ## "Students needing support" (proposed rule, M5)
 Flag a student when any of: average score < 60 % over the last 4 graded tests · ≥ 2 overdue assignments ·

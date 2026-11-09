@@ -7,9 +7,11 @@
 -- =============================================================================
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
-  ('learning-media', 'learning-media', false, 524288000,
+  -- MVP: images, audio and PDFs only (20 MB max). Video is out of MVP scope; enabling it later is a new
+  -- migration that widens this list (or uses an external provider via media_assets.provider).
+  ('learning-media', 'learning-media', false, 20971520,
    array['image/png','image/jpeg','image/webp','image/svg+xml','audio/mpeg','audio/mp4','audio/wav',
-         'video/mp4','video/webm','text/vtt','application/pdf']),
+         'application/pdf']),
   ('reports', 'reports', false, 10485760, array['application/pdf','image/png','image/jpeg'])
 on conflict (id) do nothing;
 
