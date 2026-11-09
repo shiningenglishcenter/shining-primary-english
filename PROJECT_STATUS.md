@@ -7,7 +7,7 @@ _Last updated: 2026-11-09_
 - Repository inspection: no existing repository or code was available (no GitHub account linked to this
   session); project initialised from scratch.
 - Architecture, schema, security model, plan, costs documented.
-- Database layer for Milestones 1–6 written ahead of the UI: 9 migrations (34 tables), RLS on every table,
+- Database layer for Milestones 1–6 written ahead of the UI: 9 migrations (40 tables), RLS on every table,
   server-side grading, assignment, review and report functions, private storage buckets.
 
 ## Current milestone
