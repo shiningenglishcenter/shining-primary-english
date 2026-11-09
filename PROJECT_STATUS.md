@@ -41,19 +41,21 @@ Still not run against a hosted Supabase project — required before production (
 ## Known limitations
 - Accounts sign in with a username **or** a real email, not both (ARCHITECTURE D16).
 - No generated Supabase TypeScript types yet (queries are typed by hand); add `supabase gen types` in M2.
-- Live preview links need a Supabase dev project + Vercel (see Outstanding questions).
+- Preview runs on Vercel Hobby with the repo temporarily **public** (Hobby cannot deploy private
+  organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
 See `ARCHITECTURE.md` §2 (D1–D20). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font).
 
 ## Outstanding questions (need owner)
-1. **Preview deployments**: create a free Supabase project (`shining-dev`, Singapore, sample data only) and
-   a free Vercel Hobby account linked to the GitHub repo, so every PR gets a preview link.
+1. **Before real students**: upgrade Vercel to Pro and make the repository private again.
 2. Before go-live (owner/legal, not blocking development): enrolment consent wording; transfer impact
    assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
 
 ## Resolved decisions
+- 2026-11-09 — Preview environment: Supabase `shining-dev` (Singapore, free, `[SAMPLE]` seed, sign-up
+  disabled) + Vercel Hobby; repository made public for the trial period (owner decision).
 - 2026-11-09 — GitHub repo `shiningenglishcenter/shining-primary-english`; work on branches + PRs.
 - 2026-11-09 — Hosting: Supabase Singapore + Vercel (ARCHITECTURE D15).
 - 2026-11-09 — Login: centre-created username + password for students and parents (D16).
