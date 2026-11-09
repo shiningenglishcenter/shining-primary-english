@@ -41,10 +41,13 @@ change a score because no code path outside the database is able to write one.
 | D13 | App-level rate limiting in Postgres (`private.check_rate_limit`) + Supabase Auth's built-in login limits. | No paid Redis/Upstash needed. |
 | D14 | Vietnam time (`Asia/Ho_Chi_Minh`) for report periods; timestamps stored as `timestamptz`. | Monthly boundaries match the centre's calendar. |
 | D15 | **Hosting abroad: Supabase Singapore (`ap-southeast-1`) + Vercel.** *Owner decision, 2026-11-09.* | Managed backups/security; no Vietnam region exists for Supabase. |
-| D16 | **Accounts created by the centre: username + password for students and parents** (no SMS/OTP, no self-sign-up). Supabase Auth needs an email, so a username maps to a non-deliverable internal address `<username>@users.shining.internal`; the login form accepts either a username or a real email (teachers/admins). Password resets are done by an admin. *Owner decision, 2026-11-09.* | Free; children need no email or phone. |
+| D16 | **Accounts created by the centre: username + password for students and parents** (no SMS/OTP, no self-sign-up). Supabase Auth needs an email, so a username maps to a non-deliverable internal address `<username>@users.shining.internal`; the login form accepts either a username or a real email (teachers/admins). Password resets are done by an admin. *Owner decision, 2026-11-09.* Each account signs in with **either** a username **or** a real email, never both (M2's account form enforces this; no username→email lookup on the login path). | Free; children need no email or phone. |
 | D17 | **Data minimisation**: no date of birth, no photos of children, no national ID, no home address. Student record = name, English name, student code, school/grade (optional). | Owner decision; less personal data = less risk. |
+| D18 | **Next.js 16 with Cache Components** (framework default). Every session read sits inside `<Suspense>`; role chrome prerenders as a static shell and user data streams in. `proxy.ts` (formerly middleware) refreshes the session and does *optimistic* role redirects from the JWT; every page and Server Action re-checks with `requireRole()`, which reads `profiles` (role, `is_active`) under RLS. | Fast first paint on phones; authorization never depends on the proxy alone. |
+| D19 | **Profile provisioning follows `app_metadata.role`** (migration 0011). A user row without it gets no profile and therefore no access; the profile is created when the role appears. After that, the role changes only through `profiles` (admin-only, audited). | The Auth Admin API writes `app_metadata` after inserting the user; the M0 insert-time check blocked all account creation. Found by the first real-stack e2e run. |
+| D20 | **Vietnamese UI** for all roles; English only in learning content and the student greeting. Self-hosted Be Vietnam Pro via `@fontsource`. | Parents and teachers read Vietnamese; no Google Fonts request. |
 
-## 3. Application structure (planned, Milestone 1)
+## 3. Application structure (built in Milestone 1; later modules follow the same layout)
 
 ```
 src/

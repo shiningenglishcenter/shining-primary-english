@@ -42,6 +42,10 @@ non-admins.
   media, 5 min for reports). Report files live at `reports/<student_id>/<report_id>.*`.
 - **Secrets**: `SUPABASE_SERVICE_ROLE_KEY` only in Vercel server env vars, imported only from a
   `server-only` module, used only for Auth admin tasks. `.env*` files are git-ignored.
+- **Session ending**: a session the Auth server rejects (revoked, expired) or that belongs to a deactivated
+  account is cleared by `/auth/end-session` before showing the login page, so a stale cookie can't loop.
+  Login errors are one generic message (no username probing); `next=` redirects only to same-origin paths in
+  the user's own area.
 - **Sessions**: Supabase SSR cookies (httpOnly, Secure, SameSite=Lax); server components re-validate the user
   with `auth.getUser()`; role redirects in middleware are UX only.
 

@@ -26,15 +26,21 @@ if (!["127.0.0.1", "localhost"].includes(host) && process.env.SEED_ALLOW_REMOTE 
 }
 
 type Role = "admin" | "teacher" | "student" | "parent";
-type SampleAccount = { username: string; email?: string; role: Role; fullName: string; active?: boolean };
+/**
+ * An account signs in EITHER with a centre username (mapped to
+ * <username>@users.shining.internal) OR with a real email — never both.
+ * `key` only identifies the sample here; it is stored as the profile
+ * username only for username accounts.
+ */
+type SampleAccount = { key: string; email?: string; role: Role; fullName: string; active?: boolean };
 
 const SAMPLE_ACCOUNTS: SampleAccount[] = [
-  { username: "admin.sample", email: "admin@example.com", role: "admin", fullName: "[SAMPLE] Quản trị viên" },
-  { username: "gv.lan", email: "lan.teacher@example.com", role: "teacher", fullName: "[SAMPLE] Cô Lan" },
-  { username: "gv.minh", role: "teacher", fullName: "[SAMPLE] Thầy Minh" },
-  { username: "hs.an", role: "student", fullName: "[SAMPLE] Nguyễn Minh An" },
-  { username: "hs.khoa", role: "student", fullName: "[SAMPLE] Trần Đăng Khoa", active: false },
-  { username: "ph.an", role: "parent", fullName: "[SAMPLE] Phụ huynh bé An" },
+  { key: "admin", email: "admin@example.com", role: "admin", fullName: "[SAMPLE] Quản trị viên" },
+  { key: "gv.lan", role: "teacher", fullName: "[SAMPLE] Cô Lan" },
+  { key: "gv.minh", role: "teacher", fullName: "[SAMPLE] Thầy Minh" },
+  { key: "hs.an", role: "student", fullName: "[SAMPLE] Nguyễn Minh An" },
+  { key: "hs.khoa", role: "student", fullName: "[SAMPLE] Trần Đăng Khoa", active: false },
+  { key: "ph.an", role: "parent", fullName: "[SAMPLE] Phụ huynh bé An" },
 ];
 
 const supabase: SupabaseClient = createClient(url, serviceKey, {
@@ -57,20 +63,20 @@ async function existingUsersByEmail(): Promise<Map<string, string>> {
 }
 
 async function ensureAccount(a: SampleAccount, existing: Map<string, string>): Promise<string> {
-  const email = a.email ?? `${a.username}@${INTERNAL_DOMAIN}`;
+  const email = a.email ?? `${a.key}@${INTERNAL_DOMAIN}`;
   let id = existing.get(email);
   if (!id) {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      app_metadata: { role: a.role, full_name: a.fullName, username: a.username },
+      app_metadata: { role: a.role, full_name: a.fullName, ...(a.email ? {} : { username: a.key }) },
     });
-    if (error || !data.user) throw new Error(`createUser ${a.username}: ${error?.message}`);
+    if (error || !data.user) throw new Error(`createUser ${a.key}: ${error?.message}`);
     id = data.user.id;
   }
   check(
-    `profile ${a.username}`,
+    `profile ${a.key}`,
     await supabase
       .from("profiles")
       .update({ is_active: a.active ?? true })
@@ -101,7 +107,7 @@ async function upsertOne(
 async function main() {
   const existing = await existingUsersByEmail();
   const ids: Record<string, string> = {};
-  for (const account of SAMPLE_ACCOUNTS) ids[account.username] = await ensureAccount(account, existing);
+  for (const account of SAMPLE_ACCOUNTS) ids[account.key] = await ensureAccount(account, existing);
 
   const teacherLan = await upsertOne(
     "teachers",

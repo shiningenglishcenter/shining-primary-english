@@ -4,53 +4,59 @@ _Last updated: 2026-11-09_
 
 ## Completed milestones
 **Milestone 0 — Discovery & architecture** ✅
-- Repository inspection: no existing repository or code was available (no GitHub account linked to this
-  session); project initialised from scratch.
 - Architecture, schema, security model, plan, costs documented.
-- Database layer for Milestones 1–6 written ahead of the UI: 9 migrations (40 tables), RLS on every table,
-  server-side grading, assignment, review and report functions, private storage buckets.
+- Database layer for Milestones 1–6: migrations (40 tables), RLS on every table, server-side grading,
+  assignment, review and report functions, private storage buckets.
+
+**Milestone 1 — Foundation** ✅ (PR #2, awaiting owner review)
+- Next.js 16 (App Router, Cache Components) · strict TypeScript · Tailwind v4 · shadcn/ui-style components
+  (`components.json` included) · ESLint (no-console, service-key import restriction) · Prettier · Vitest ·
+  Playwright.
+- Supabase SSR clients: user (server/browser) and a `server-only` service-role client (not used yet).
+- `proxy.ts` refreshes the session and redirects by role; `requireRole()` re-checks role and `is_active`
+  from the database in every page/action.
+- Login with centre username or email; one generic error for bad credentials; deactivated accounts refused;
+  logout; expired/revoked sessions cleared and explained; `next=` redirects restricted to the user's own area.
+- SHINING brand tokens, self-hosted Be Vietnam Pro, Vietnamese UI; dashboards for admin (centre figures),
+  teacher (assigned classes), student (greeting + assignments empty state), parent (linked children +
+  reports empty state); `/forbidden` page.
+- `/api/health` (status + version only) via new `health_check()` RPC (migration 0010).
+- **Bug fixed from M0** (migration 0011): account creation through the Supabase Auth Admin API was blocked by
+  the insert-time role check. Found by the first run against a real Supabase stack.
+- `[SAMPLE]` seed script; CI with lint, format, typecheck, unit, build, DB tests, e2e on a real local
+  Supabase stack, and a service-key-in-bundle check.
 
 ## Current milestone
-**Milestone 1 — Foundation** (blocked — see Outstanding questions 1–2)
-
-## Remaining tasks
-- M1: Next.js scaffold, Supabase SSR clients, login, role layouts, design system, dashboards, CI.
-- M2–M8 per `IMPLEMENTATION_PLAN.md`.
-- Development seed data (`supabase/seed.sql`, all rows labelled `[SAMPLE]`).
+**Milestone 2 — People & classes (admin)** — not started; begins after PR #2 is reviewed.
 
 ## Test status
 | Suite | Result |
 |---|---|
-| DB: auth & profiles | 15/15 |
-| DB: people & classes isolation | 26/26 |
-| DB: content visibility | 12/12 |
-| DB: test-taking, grading, manual grading | 45/45 |
-| DB: grading unit checks | 12/12 |
-| DB: reports, progress, storage | 30/30 |
-| **Total** | **140/140 passing** (PostgreSQL 16 + Supabase shim) |
-| Frontend unit / e2e | not started (M1) |
+| DB (migrations + RLS/grading/reports/health) | 149/149 |
+| Unit (Vitest) | 36/36 |
+| End-to-end (Playwright, real local Supabase in CI): login per role, wrong credentials, deactivated account, logout, session expiry (revoked + corrupted cookie), unauthorized access, safe redirects, health | see PR #2 CI |
 
-Not yet run against a real Supabase project — required before production.
+Still not run against a hosted Supabase project — required before production (M8).
 
-## Known bugs
-None open. Fixed during M0: `can_view_student()` could return NULL, which let an unrelated parent call
-`get_attempt_review`; profile-guard role detection inside `SECURITY DEFINER`; auto-submitted expired attempt
-being rolled back.
+## Known limitations
+- Accounts sign in with a username **or** a real email, not both (ARCHITECTURE D16).
+- No generated Supabase TypeScript types yet (queries are typed by hand); add `supabase gen types` in M2.
+- Live preview links need a Supabase dev project + Vercel (see Outstanding questions).
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D14).
+See `ARCHITECTURE.md` §2 (D1–D20). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+provisioning), D20 (Vietnamese UI, self-hosted font).
 
 ## Outstanding questions (need owner)
-1. **GitHub**: connect a GitHub account / give `owner/repo` so work happens on branches + PRs.
-2. **Package installs** are blocked in this environment, so the Next.js app can't be scaffolded or tested
-   here. Enable network for package registries, or run development in Claude Code on your computer.
-3. Before go-live (owner/legal, not blocking development): enrolment consent wording; transfer impact
+1. **Preview deployments**: create a free Supabase project (`shining-dev`, Singapore, sample data only) and
+   a free Vercel Hobby account linked to the GitHub repo, so every PR gets a preview link.
+2. Before go-live (owner/legal, not blocking development): enrolment consent wording; transfer impact
    assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
 
 ## Resolved decisions
+- 2026-11-09 — GitHub repo `shiningenglishcenter/shining-primary-english`; work on branches + PRs.
 - 2026-11-09 — Hosting: Supabase Singapore + Vercel (ARCHITECTURE D15).
 - 2026-11-09 — Login: centre-created username + password for students and parents (D16).
 - 2026-11-09 — MVP includes stories (no video), vocabulary games and all 8 question types incl. picture
-  and listening; only video is deferred (see IMPLEMENTATION_PLAN "MVP scope"). Media bucket limited to
-  images/audio/PDF, 20 MB.
+  and listening; only video is deferred. Media bucket limited to images/audio/PDF, 20 MB.
 - 2026-11-09 — Minimal personal data; `students.date_of_birth` removed from the schema (D17).
