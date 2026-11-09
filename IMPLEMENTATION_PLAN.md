@@ -17,7 +17,7 @@ mostly UI on top of a tested data layer.
 | **8 Production readiness** | Full test pass, performance review, error handling, monitoring/alerts, backup restore drill, deployment & recovery docs | owner approval → production deploy |
 
 ## MVP scope (owner decision, 2026-11-09: "MVP first, easy features first")
-**MVP = M1 → M2 → M4-lite → M5-lite → M6.** The database already supports everything; the MVP only limits UI.
+**MVP = M1 → M2 → M3-lite → M4-lite → M5-lite → M6.** The database already supports everything; the MVP only limits UI.
 
 | In MVP | Deferred to after MVP |
 |---|---|
