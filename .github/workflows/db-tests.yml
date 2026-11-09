@@ -1,0 +1,14 @@
+name: database tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  db:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL 16 server binaries
+        run: sudo apt-get update && sudo apt-get install -y postgresql-16
+      - name: Run migrations + RLS/grading/report tests
+        run: sudo -E bash scripts/test-db.sh
