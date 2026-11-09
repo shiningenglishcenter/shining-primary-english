@@ -35,7 +35,16 @@ async function UserMenu() {
  * Students and parents get a narrower, roomier column (mostly phones);
  * staff get a wide one for tables.
  */
-export function AppShell({ role, children }: { role: AppRole; children: React.ReactNode }) {
+export function AppShell({
+  role,
+  nav,
+  children,
+}: {
+  role: AppRole;
+  /** Section tabs under the header (admin). */
+  nav?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const wide = role === "admin" || role === "teacher";
   return (
     <div className="flex min-h-dvh flex-col">
@@ -53,6 +62,9 @@ export function AppShell({ role, children }: { role: AppRole; children: React.Re
             <UserMenu />
           </Suspense>
         </div>
+        {nav ? (
+          <div className={cn("mx-auto px-4 sm:px-6", wide ? "max-w-7xl" : "max-w-3xl")}>{nav}</div>
+        ) : null}
       </header>
       <main className={cn("mx-auto w-full flex-1 px-4 py-8 sm:px-6", wide ? "max-w-7xl" : "max-w-3xl")}>
         {children}
