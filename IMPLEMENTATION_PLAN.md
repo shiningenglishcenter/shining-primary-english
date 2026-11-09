@@ -16,6 +16,19 @@ mostly UI on top of a tested data layer.
 | **7 Story library** | Story CRUD, video/audio player, WebVTT subtitles, transcript, listening exercises | playback on iOS/Android browsers |
 | **8 Production readiness** | Full test pass, performance review, error handling, monitoring/alerts, backup restore drill, deployment & recovery docs | owner approval → production deploy |
 
+## MVP scope (owner decision, 2026-11-09: "MVP first, easy features first")
+**MVP = M1 → M2 → M4-lite → M5-lite → M6.** The database already supports everything; the MVP only limits UI.
+
+| In MVP | Deferred to after MVP |
+|---|---|
+| Login (username/password), role dashboards | Story library, video & subtitles (M7) — video hosting decided later |
+| Admin: students, parents, teachers, classes, enrolment | Vocabulary games beyond flashcards |
+| Simple content: levels → units → lessons, vocabulary list + flashcards, grammar pages (text) | Matching / rearrange / picture-choice question editors |
+| Tests: multiple choice, true/false, fill-in-the-blank, short answer, written | Audio/listening uploads (add with media work) |
+| Assign to class or student, take test with timer, auto-grade | Progress charts (weekly/monthly) — M5 full |
+| Teacher review: per-question comments, manual grading, overall feedback, templates | CSV/Excel import |
+| Parent monthly + test report, preview, PNG/PDF export, parent portal | |
+
 ## "Students needing support" (proposed rule, M5)
 Flag a student when any of: average score < 60 % over the last 4 graded tests · ≥ 2 overdue assignments ·
 a skill below 50 % with ≥ 10 questions answered this month · no activity for 14 days. Thresholds stored in a
