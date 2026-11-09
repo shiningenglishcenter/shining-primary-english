@@ -34,7 +34,7 @@ _Last updated: 2026-11-09_
 |---|---|
 | DB (migrations + RLS/grading/reports/health) | 149/149 |
 | Unit (Vitest) | 36/36 |
-| End-to-end (Playwright, real local Supabase in CI): login per role, wrong credentials, deactivated account, logout, session expiry (revoked + corrupted cookie), unauthorized access, safe redirects, health | see PR #2 CI |
+| End-to-end (Playwright, real local Supabase in CI): login per role, wrong credentials, deactivated account, logout, session expiry (revoked + corrupted cookie), unauthorized access, safe redirects, health | 27/27 (desktop + phone viewport) |
 
 Still not run against a hosted Supabase project — required before production (M8).
 
