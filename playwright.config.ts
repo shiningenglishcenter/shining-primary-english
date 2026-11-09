@@ -5,7 +5,7 @@ const baseURL = `http://127.0.0.1:${PORT}`;
 
 /**
  * End-to-end tests need a running Supabase stack with the sample seed
- * (`npx supabase start` then `node scripts/seed-dev.ts`). CI does this; see
+ * (`npx supabase start` then `node scripts/seed-dev.mts`). CI does this; see
  * .github/workflows/ci.yml.
  */
 export default defineConfig({

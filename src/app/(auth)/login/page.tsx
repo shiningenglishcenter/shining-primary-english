@@ -31,13 +31,14 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         aria-hidden="true"
         className="relative flex min-h-44 overflow-hidden bg-ink px-6 pt-8 text-white lg:min-h-dvh lg:px-12 lg:pt-14"
       >
-        <div className="relative z-10 max-w-sm">
+        <div className="relative z-10 max-w-[13.5rem] sm:max-w-sm">
           <p className="text-2xl leading-snug font-semibold lg:text-[2.441rem] lg:leading-[1.15]">
             Mỗi ngày một chút, tiếng Anh sáng lên.
           </p>
           <p className="mt-3 hidden text-white/75 lg:block">Starters, Movers, Flyers và Global Success</p>
         </div>
-        <div className="animate-sun-rise pointer-events-none absolute -bottom-[38%] -left-[12%] aspect-square w-[78%] min-w-64 lg:-bottom-[22%] lg:w-[115%]">
+        {/* Phones: sun rises at the right edge, clear of the headline. Desktop: fills the panel's base. */}
+        <div className="animate-sun-rise pointer-events-none absolute -right-20 -bottom-32 aspect-square w-64 lg:right-auto lg:-bottom-[22%] lg:-left-[12%] lg:w-[115%]">
           <div className="absolute inset-0 rounded-full bg-sun/15" />
           <div className="absolute inset-[11%] rounded-full bg-sun/25" />
           <div className="absolute inset-[22%] rounded-full bg-sun" />

@@ -6,7 +6,7 @@
  * Safe to run repeatedly. Refuses to touch a non-local project unless
  * SEED_ALLOW_REMOTE=1 is set — never run it against production.
  *
- *   NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-dev.ts
+ *   NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/seed-dev.mts
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

@@ -70,7 +70,7 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$SECRET"
           } >> "$GITHUB_ENV"
       - name: Seed [SAMPLE] data
-        run: node scripts/seed-dev.ts
+        run: node scripts/seed-dev.mts
       - name: Build
         run: npm run build
       - name: Service-role key must not reach the browser bundle
