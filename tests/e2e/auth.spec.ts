@@ -139,6 +139,7 @@ test.describe("unauthorized access", () => {
     await expect(page).toHaveURL(/\/learn$/);
 
     await page.getByTestId("sign-out").click();
+    await expect(page).toHaveURL(/\/login\?reason=signed_out/);
     await page.goto("/login?next=%2F%2Fevil.example%2F");
     await signInAs(page, "hs.an");
     await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/learn$/);
