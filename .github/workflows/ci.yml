@@ -1,0 +1,88 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: lint, typecheck, unit, build
+    runs-on: ubuntu-24.04
+    env:
+      # Placeholders: the build only needs syntactically valid public config.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key-not-a-secret
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  db:
+    name: database (migrations + RLS/grading tests)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL 16 server binaries
+        run: sudo apt-get update && sudo apt-get install -y postgresql-16
+      - name: Run migrations + RLS/grading/report tests
+        run: sudo -E bash scripts/test-db.sh
+
+  e2e:
+    name: end-to-end (real Supabase stack)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Start Supabase (applies every migration)
+        run: npx supabase start -x studio,realtime,edge-runtime,imgproxy,logflare,vector,postgres-meta,mailpit,supavisor
+      - name: Export local Supabase config
+        run: |
+          npx supabase status -o env > /tmp/sb.env
+          set -a; . /tmp/sb.env; set +a
+          ANON="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          SECRET="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          if [ -z "$ANON" ] || [ -z "$SECRET" ]; then
+            echo "missing keys; variables were: $(cut -d= -f1 /tmp/sb.env | tr '\n' ' ')"; exit 1
+          fi
+          echo "::add-mask::$SECRET"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SECRET"
+          } >> "$GITHUB_ENV"
+      - name: Seed [SAMPLE] data
+        run: node scripts/seed-dev.ts
+      - name: Build
+        run: npm run build
+      - name: Service-role key must not reach the browser bundle
+        run: |
+          if grep -rqF "$SUPABASE_SERVICE_ROLE_KEY" .next/static; then
+            echo "Service-role key found in client bundle"; exit 1
+          fi
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
