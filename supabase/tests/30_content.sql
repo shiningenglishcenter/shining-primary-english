@@ -3,7 +3,7 @@ begin;
 
 select tests.login('stu_an');   -- class A → Movers
 set local role authenticated;
-select tests.ok((select array_agg(code) from public.levels) = array['MOVERS'], 'student sees only levels of own class');
+select tests.ok((select array_agg(code) from public.levels) = array['T-MOVERS'], 'student sees only levels of own class');
 select tests.ok(tests.n('select * from public.lessons') = 1, 'student sees only published lessons of own level');
 select tests.ok((select array_agg(word) from public.vocabulary) = array['grandmother'], 'student sees published vocabulary of own level only');
 select tests.throws($$insert into public.vocabulary (level_id, word, meaning_vi) values ('10000000-0000-0000-0000-00000000000a', 'hack', 'x')$$,
@@ -17,7 +17,7 @@ reset role;
 
 select tests.login('parent_an');
 set local role authenticated;
-select tests.ok((select array_agg(code) from public.levels) = array['MOVERS'], 'parent sees content of child''s level');
+select tests.ok((select array_agg(code) from public.levels) = array['T-MOVERS'], 'parent sees content of child''s level');
 reset role;
 
 select tests.login('teacher_b');

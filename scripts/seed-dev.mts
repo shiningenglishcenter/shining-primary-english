@@ -145,10 +145,20 @@ async function main() {
       .upsert({ student_id: studentAn, parent_id: parentAn, relationship: "mother", is_primary: true }),
   );
 
+  // Standard levels come from migration 0012.
+  const movers = check(
+    "level MOVERS",
+    await supabase.from("levels").select("id").eq("code", "MOVERS").is("deleted_at", null).maybeSingle(),
+  ) as { id: string } | null;
   const classId = await upsertOne(
     "classes",
     { code: "SAMPLE-MOV-A" },
-    { code: "SAMPLE-MOV-A", name: "[SAMPLE] Movers A", schedule_note: "Thứ Ba và Thứ Năm, 17:30" },
+    {
+      code: "SAMPLE-MOV-A",
+      name: "[SAMPLE] Movers A",
+      schedule_note: "Thứ Ba và Thứ Năm, 17:30",
+      primary_level_id: movers?.id ?? null,
+    },
   );
   check(
     "teacher_classes",

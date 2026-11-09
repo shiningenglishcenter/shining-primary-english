@@ -4,7 +4,8 @@ Learning-management platform for SHINING English Center: Cambridge Starters/Move
 Success (grades 1–5) content, online tests with server-side grading, teacher feedback, student progress and
 parent reports shareable on Zalo.
 
-**Status:** Milestone 1 (foundation) — login, role dashboards, CI. See `PROJECT_STATUS.md`.
+**Status:** Milestone 2 (people & classes) — admins create student/teacher accounts, classes, enrolment and
+teacher assignment. See `PROJECT_STATUS.md`.
 
 ## Stack
 Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · shadcn/ui-style components ·
@@ -18,7 +19,7 @@ Supabase (Postgres + RLS, Auth, Storage) · Vitest · Playwright · Vercel.
 | `src/lib/auth/` | Username→email mapping, role rules, `requireRole()` guard |
 | `src/features/<module>/` | Server actions, schemas and components per feature |
 | `supabase/migrations/` | Database schema, RLS policies, grading/report functions (source of truth) |
-| `supabase/tests/` | 149 permission/grading/report assertions + local Supabase shim |
+| `supabase/tests/` | 169 permission/grading/report/account assertions + local Supabase shim |
 | `scripts/test-db.sh` | Runs migrations + DB tests on a throwaway PostgreSQL 15/16 server |
 | `scripts/seed-dev.mts` | `[SAMPLE]` accounts, class and links for local/preview (refuses non-local URLs) |
 | `tests/unit`, `tests/e2e` | Vitest and Playwright suites |
@@ -56,7 +57,7 @@ local Supabase stack and a check that the service-role key never reaches the bro
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | browser + server | no |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable key) | browser + server | no (RLS protects data) |
-| `SUPABASE_SERVICE_ROLE_KEY` (secret key) | **server only** (Vercel env, never `NEXT_PUBLIC_`) | **yes** |
+| `SUPABASE_SERVICE_ROLE_KEY` (secret key) | **server only** (Vercel env, never `NEXT_PUBLIC_`); needed from M2 for creating accounts and resetting passwords | **yes** |
 | `APP_BASE_URL` | server | no |
 
 Never commit `.env*` files (only `.env.example`).

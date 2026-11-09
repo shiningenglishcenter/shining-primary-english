@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { BookOpen, School, Users } from "lucide-react";
 import { EmptyState, PageHeading, SectionSkeleton } from "@/components/shell/empty-state";
 import { requireRole } from "@/lib/auth/session";
@@ -25,29 +26,45 @@ async function CentreOverview() {
   ]);
 
   const figures = [
-    { label: "Học sinh đang học", value: students.count ?? 0, icon: Users },
-    { label: "Lớp đang mở", value: classes.count ?? 0, icon: School },
-    { label: "Giáo viên", value: teachers.count ?? 0, icon: BookOpen },
+    { label: "Học sinh đang học", value: students.count ?? 0, icon: Users, href: "/admin/students" },
+    { label: "Lớp đang mở", value: classes.count ?? 0, icon: School, href: "/admin/classes" },
+    { label: "Giáo viên", value: teachers.count ?? 0, icon: BookOpen, href: "/admin/teachers" },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <dl className="grid gap-4 sm:grid-cols-3" data-testid="admin-figures">
-        {figures.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex items-center gap-4 rounded-lg border border-line bg-surface p-5">
-            <Icon className="size-6 text-sky" aria-hidden="true" />
-            <div>
-              <dt className="text-sm text-ink-soft">{label}</dt>
-              <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
-            </div>
-          </div>
+      <ul className="grid gap-4 sm:grid-cols-3" data-testid="admin-figures">
+        {figures.map(({ label, value, icon: Icon, href }) => (
+          <li key={label}>
+            <Link
+              href={href}
+              className="flex items-center gap-4 rounded-lg border border-line bg-surface p-5 transition-colors hover:border-sky"
+            >
+              <Icon className="size-6 text-sky" aria-hidden="true" />
+              <div>
+                <p className="text-sm text-ink-soft">{label}</p>
+                <p className="text-2xl font-semibold tabular-nums">{value}</p>
+              </div>
+            </Link>
+          </li>
         ))}
-      </dl>
+      </ul>
 
       {(students.count ?? 0) === 0 ? (
         <EmptyState icon={Users} title="Chưa có học sinh nào">
-          Bản cập nhật tiếp theo sẽ có phần tạo tài khoản học sinh, phụ huynh, giáo viên và xếp lớp. Khi đó số
-          liệu ở đây sẽ tự cập nhật.
+          Bắt đầu bằng cách{" "}
+          <Link href="/admin/classes/new" className="font-semibold text-sky hover:underline">
+            tạo lớp
+          </Link>
+          , rồi{" "}
+          <Link href="/admin/students/new" className="font-semibold text-sky hover:underline">
+            thêm học sinh
+          </Link>{" "}
+          và{" "}
+          <Link href="/admin/teachers/new" className="font-semibold text-sky hover:underline">
+            giáo viên
+          </Link>
+          .
         </EmptyState>
       ) : null}
     </div>

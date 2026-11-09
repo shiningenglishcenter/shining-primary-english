@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { publicEnv } from "@/lib/env";
 
@@ -10,6 +11,9 @@ import { publicEnv } from "@/lib/env";
  */
 export async function createClient() {
   const env = publicEnv();
+  // Supabase reads the clock (token expiry) and every query result is
+  // per-request: never let any of it run during a (runtime) prerender.
+  await connection();
   const cookieStore = await cookies();
 
   return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {

@@ -42,6 +42,13 @@ non-admins.
   media, 5 min for reports). Report files live at `reports/<student_id>/<report_id>.*`.
 - **Secrets**: `SUPABASE_SERVICE_ROLE_KEY` only in Vercel server env vars, imported only from a
   `server-only` module, used only for Auth admin tasks. `.env*` files are git-ignored.
+- **Account management (M2)**: only `src/features/people/accounts.ts` uses the service-role client, and only
+  for the Auth Admin API (create user, set password, delete a half-created user, read a teacher's login
+  email). Every caller is a Server Action that first runs `requireRole("admin")`; all table writes then use
+  the admin's own session, so RLS and triggers apply. Password reset and lock/unlock act only on student and
+  teacher accounts, never admin accounts or the admin themself. Generated passwords are shown once and never
+  stored or logged; account creation and password resets are recorded with `log_account_event()` (actor =
+  the admin), lock/unlock by the profile trigger.
 - **Session ending**: a session the Auth server rejects (revoked, expired) or that belongs to a deactivated
   account is cleared by `/auth/end-session` before showing the login page, so a stale cookie can't loop.
   Login errors are one generic message (no username probing); `next=` redirects only to same-origin paths in
@@ -51,7 +58,8 @@ non-admins.
 
 ## 3. Logging
 - `private.audit_log` stores actor id, action, entity id and numeric details only — **no names, answers,
-  comments or contact details**.
+  comments or contact details**. Account events also store the role and login name; passwords are
+  stripped by `log_account_event()` even if a caller passed one.
 - Application logs (Vercel) must never print request bodies, student names or report contents; errors are
   logged with an error id and route only. (Lint rule + code review checklist in Milestone 1.)
 

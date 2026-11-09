@@ -40,8 +40,8 @@ insert into public.student_parents (student_id, parent_id, relationship, is_prim
 
 -- Curriculum: Movers (class A) and Flyers (class B)
 insert into public.levels (id, code, name, program, status) values
-  ('10000000-0000-0000-0000-00000000000a', 'MOVERS', '[SAMPLE] Movers', 'cambridge', 'published'),
-  ('10000000-0000-0000-0000-00000000000b', 'FLYERS', '[SAMPLE] Flyers', 'cambridge', 'published');
+  ('10000000-0000-0000-0000-00000000000a', 'T-MOVERS', '[SAMPLE] Movers', 'cambridge', 'published'),
+  ('10000000-0000-0000-0000-00000000000b', 'T-FLYERS', '[SAMPLE] Flyers', 'cambridge', 'published');
 insert into public.grades (id, level_id, code, name, status) values
   ('20000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000a', 'M1', 'Movers Book 1', 'published'),
   ('20000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-00000000000b', 'F1', 'Flyers Book 1', 'published');

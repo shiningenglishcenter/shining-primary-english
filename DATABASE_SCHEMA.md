@@ -36,6 +36,9 @@ teacher_comments (student, attempt?, answer?)   feedback_templates   progress_re
 | 0007 rls | helper functions, grants, all policies |
 | 0008 rpc | grading + workflow functions |
 | 0009 storage | buckets `learning-media`, `reports` + object policies |
+| 0010 health | `health_check()` for `/api/health` |
+| 0011 provisioning fix | profile created when `app_metadata.role` appears (Auth Admin API) |
+| 0012 admin people | standard levels seeded; `students.student_code` defaults to `HSnnnn`; `log_account_event()`; lock/unlock audited |
 
 ### Notes on choices vs. the requested table list
 - **roles**: lookup table; `profiles.role` is an enum with an FK to it (one role per account; a person who is
