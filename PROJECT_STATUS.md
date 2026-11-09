@@ -44,8 +44,11 @@ See `ARCHITECTURE.md` §2 (D1–D14).
 1. **GitHub**: connect a GitHub account / give `owner/repo` so work happens on branches + PRs.
 2. **Package installs** are blocked in this environment, so the Next.js app can't be scaffolded or tested
    here. Enable network for package registries, or run development in Claude Code on your computer.
-3. **Student & parent login**: username + password created by admin (recommended, free) vs phone OTP
-   (needs a paid SMS provider).
-4. **Personal data**: consent wording on enrolment form; accept hosting in Supabase Singapore (cross-border
-   transfer obligations); whether to collect date of birth.
-5. **Video hosting** at launch: Supabase Storage (recommended, within quota) vs YouTube unlisted.
+3. **Video hosting** at launch: Supabase Storage (recommended, within quota) vs YouTube unlisted.
+4. Before go-live (owner/legal, not blocking development): enrolment consent wording; transfer impact
+   assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
+
+## Resolved decisions
+- 2026-11-09 — Hosting: Supabase Singapore + Vercel (ARCHITECTURE D15).
+- 2026-11-09 — Login: centre-created username + password for students and parents (D16).
+- 2026-11-09 — Minimal personal data; `students.date_of_birth` removed from the schema (D17).

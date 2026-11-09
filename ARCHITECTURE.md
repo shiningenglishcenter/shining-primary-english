@@ -40,6 +40,9 @@ change a score because no code path outside the database is able to write one.
 | D12 | Content editing is admin-only in the MVP; teachers assign, grade and report. | Matches the role spec; keeps the question bank consistent. |
 | D13 | App-level rate limiting in Postgres (`private.check_rate_limit`) + Supabase Auth's built-in login limits. | No paid Redis/Upstash needed. |
 | D14 | Vietnam time (`Asia/Ho_Chi_Minh`) for report periods; timestamps stored as `timestamptz`. | Monthly boundaries match the centre's calendar. |
+| D15 | **Hosting abroad: Supabase Singapore (`ap-southeast-1`) + Vercel.** *Owner decision, 2026-11-09.* | Managed backups/security; no Vietnam region exists for Supabase. |
+| D16 | **Accounts created by the centre: username + password for students and parents** (no SMS/OTP, no self-sign-up). Supabase Auth needs an email, so a username maps to a non-deliverable internal address `<username>@users.shining.internal`; the login form accepts either a username or a real email (teachers/admins). Password resets are done by an admin. *Owner decision, 2026-11-09.* | Free; children need no email or phone. |
+| D17 | **Data minimisation**: no date of birth, no photos of children, no national ID, no home address. Student record = name, English name, student code, school/grade (optional). | Owner decision; less personal data = less risk. |
 
 ## 3. Application structure (planned, Milestone 1)
 

@@ -51,7 +51,7 @@ non-admins.
 - Application logs (Vercel) must never print request bodies, student names or report contents; errors are
   logged with an error id and route only. (Lint rule + code review checklist in Milestone 1.)
 
-## 4. Vietnamese personal-data law — needs the owner's decision
+## 4. Vietnamese personal-data law — decisions and remaining obligations
 Vietnam's Law on Personal Data Protection took effect on 1 January 2026. Points relevant here (summary, not
 legal advice — please confirm with a lawyer or the relevant authority):
 - For children aged 7 and over, where processing reveals the child's private life, consent from both the
@@ -61,8 +61,15 @@ legal advice — please confirm with a lawyer or the relevant authority):
   transfer. Supabase/Vercel servers are outside Vietnam (nearest Supabase region: Singapore). Small
   enterprises have a grace period for some obligations, micro-enterprises are exempt from some — which
   category SHINING falls into is a business/legal question.
-- **Data minimisation**: date of birth and school name are optional fields; we recommend not collecting them
-  unless needed. No photos of children are stored by the MVP.
+- **Data minimisation (decided 2026-11-09)**: no date of birth, photos, ID numbers or addresses are collected.
+  Accounts are created by the centre with usernames; children have no email or phone on file.
+
+**Owner decision (2026-11-09): host in Supabase Singapore.** Note that student names, usernames, scores and
+teacher comments are still personal data, and Supabase Auth logs login IP addresses, so the overseas-transfer
+paperwork (transfer impact assessment) and the enrolment consent still apply — minimising data reduces risk
+but does not remove these obligations. Confirming whether SHINING falls under the Cybersecurity-law data
+localisation rules (Decree 333/2026) remains a legal check for the owner before go-live. Retention: export
+and delete a student's records on request or 12 months after they leave (admin tool in M2).
 
 ## 5. Pre-production checklist (Milestone 8)
 Self-sign-up disabled · email confirmations configured · leaked-password protection on · MFA for admins ·

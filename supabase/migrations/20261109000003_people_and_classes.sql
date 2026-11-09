@@ -36,7 +36,6 @@ create table public.students (
   student_code   text not null,
   full_name      text not null check (char_length(full_name) between 1 and 120),
   english_name   text check (english_name is null or char_length(english_name) <= 60),
-  date_of_birth  date check (date_of_birth is null or date_of_birth > date '2000-01-01'),
   school_name    text,
   school_grade   smallint check (school_grade is null or school_grade between 1 and 12),
   status         public.student_status not null default 'active',
