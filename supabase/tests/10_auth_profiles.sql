@@ -27,8 +27,28 @@ reset role;
 select tests.ok((select count(*) from public.profiles where display_name = 'x') = 0, 'updates to other profiles silently affect nothing');
 
 -- user metadata cannot grant a role; app_metadata must be set by an admin/service
-select tests.throws($$insert into auth.users (email, raw_user_meta_data) values ('evil@test.local', '{"role":"admin"}')$$,
-  'sign-up without app_metadata.role is rejected');
+-- (0011) A user row without app_metadata.role gets no profile, hence no role
+-- and no access; the Auth Admin API adds app_metadata in a second statement.
+insert into auth.users (email, raw_user_meta_data) values ('evil@test.local', '{"role":"admin"}');
+select tests.ok(not exists (select 1 from public.profiles p join auth.users u on u.id = p.id where u.email = 'evil@test.local'),
+  'role in user_metadata creates no profile');
+update auth.users set raw_user_meta_data = '{"role":"admin","full_name":"x"}' where email = 'evil@test.local';
+select tests.ok(not exists (select 1 from public.profiles p join auth.users u on u.id = p.id where u.email = 'evil@test.local'),
+  'editing user_metadata later still creates no profile');
+update auth.users set raw_app_meta_data = '{"role":"bogus"}' where email = 'evil@test.local';
+select tests.ok(not exists (select 1 from public.profiles p join auth.users u on u.id = p.id where u.email = 'evil@test.local'),
+  'invalid app_metadata role creates no profile');
+
+-- Admin API flow: insert first, then app_metadata with the role
+insert into auth.users (email) values ('two.step@test.local');
+update auth.users set raw_app_meta_data = '{"provider":"email","role":"student","full_name":"Two Step","username":"two.step"}'
+  where email = 'two.step@test.local';
+select tests.ok((select p.role = 'student' and p.username = 'two.step' and p.full_name = 'Two Step'
+                 from public.profiles p join auth.users u on u.id = p.id where u.email = 'two.step@test.local'),
+  'app_metadata role added after insert provisions the profile');
+update auth.users set raw_app_meta_data = '{"role":"admin"}' where email = 'two.step@test.local';
+select tests.ok((select p.role = 'student' from public.profiles p join auth.users u on u.id = p.id where u.email = 'two.step@test.local'),
+  'later app_metadata edits do not change an existing profile role');
 
 -- admin can change roles, and it is audited
 select tests.login('admin1');
