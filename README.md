@@ -4,8 +4,8 @@ Learning-management platform for SHINING English Center: Cambridge Starters/Move
 Success (grades 1–5) content, online tests with server-side grading, teacher feedback, student progress and
 parent reports shareable on Zalo.
 
-**Status:** Milestone 2 (people & classes) — admins create student/teacher accounts, classes, enrolment and
-teacher assignment. See `PROJECT_STATUS.md`.
+**Status:** Phase 1 (practice library) — students practise Starters topics with 8 games; teachers and
+admins edit practice content. See `PROJECT_STATUS.md`.
 
 ## Stack
 Next.js 16 (App Router, Cache Components) · TypeScript strict · Tailwind CSS v4 · shadcn/ui-style components ·
@@ -19,9 +19,11 @@ Supabase (Postgres + RLS, Auth, Storage) · Vitest · Playwright · Vercel.
 | `src/lib/auth/` | Username→email mapping, role rules, `requireRole()` guard |
 | `src/features/<module>/` | Server actions, schemas and components per feature |
 | `supabase/migrations/` | Database schema, RLS policies, grading/report functions (source of truth) |
-| `supabase/tests/` | 169 permission/grading/report/account assertions + local Supabase shim |
+| `supabase/tests/` | 198 permission/grading/report/account/practice assertions + local Supabase shim |
 | `scripts/test-db.sh` | Runs migrations + DB tests on a throwaway PostgreSQL 15/16 server |
 | `scripts/seed-dev.mts` | `[SAMPLE]` accounts, class and links for local/preview (refuses non-local URLs) |
+| `content/starters.mts` | Original Starters practice pack; `npm run content:build` writes migration 0014 |
+| `scripts/copy-emoji.mjs` | Copies Fluent Emoji 3D pictures into `public/emoji/` before dev/build (see `docs/THIRD_PARTY.md`) |
 | `tests/unit`, `tests/e2e` | Vitest and Playwright suites |
 
 ## Run it locally

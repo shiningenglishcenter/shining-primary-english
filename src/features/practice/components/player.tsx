@@ -643,6 +643,7 @@ function SpellQ({
       <div
         className={cn("flex flex-wrap justify-center gap-2", a.shake === "slots" && "animate-kid-shake")}
         data-testid="spell-slots"
+        data-answer={target}
       >
         {target.split("").map((_, i) => (
           <span
@@ -915,6 +916,7 @@ function OrderQ({
           a.shake === "line" && "animate-kid-shake",
         )}
         data-testid="sentence-line"
+        data-answer={q.answer.join(" ")}
       >
         {placed.length === 0 ? (
           <span className="text-lg font-bold text-k-soft">Chạm các từ bên dưới</span>

@@ -39,6 +39,8 @@ teacher_comments (student, attempt?, answer?)   feedback_templates   progress_re
 | 0010 health | `health_check()` for `/api/health` |
 | 0011 provisioning fix | profile created when `app_metadata.role` appears (Auth Admin API) |
 | 0012 admin people | standard levels seeded; `students.student_code` defaults to `HSnnnn`; `log_account_event()`; lock/unlock audited |
+| 0013 practice | `topics`, `practice_activities` (8 kinds, jsonb content), `vocabulary.topic_id` + `emoji`, `progress_records.practice_activity_id`, `record_practice()`; published practice open to all active users; staff write |
+| 0014 Starters pack | generated from `content/starters.mts`: 12 topics, 134 words, 96 activities (inserts missing rows only) |
 
 ### Notes on choices vs. the requested table list
 - **roles**: lookup table; `profiles.role` is an enum with an FK to it (one role per account; a person who is

@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-09_
+_Last updated: 2026-11-10_
 
 ## Completed milestones
 **Milestone 0 — Discovery & architecture** ✅
@@ -26,8 +26,7 @@ _Last updated: 2026-11-09_
 - `[SAMPLE]` seed script; CI with lint, format, typecheck, unit, build, DB tests, e2e on a real local
   Supabase stack, and a service-key-in-bundle check.
 
-## Current milestone
-**Milestone 2 — People & classes (admin)** ✅ built, awaiting owner review (PR on branch `milestone-1`)
+**Milestone 2 — People & classes (admin)** ✅ (PR #3, merged)
 - Scope agreed with the owner (D21): what students need to do homework, and what teachers need to assign
   and grade it. Parents and CSV import deferred.
 - Admin menu: Tổng quan · Học sinh · Giáo viên · Lớp học.
@@ -44,21 +43,42 @@ _Last updated: 2026-11-09_
 - Fixed while building: Supabase calls now wait for the request (`connection()`), which removes the
   "Date.now() while prerendering" errors that M1 pages also logged under Partial Prefetching.
 
-## Next milestone
-**Milestone 3 — Learning content (admin)** — starts after the M2 PR is reviewed.
+## Current milestone
+**Phase 1 — Practice library (Starters pilot)** ✅ built, awaiting owner review (PR on branch `milestone-1`)
+- Owner direction (D23): the system is mainly for students doing exercises; organise by level → topic;
+  every account opens every level; teachers edit content; pilot with Starters, then feedback.
+- **Students** (`/learn`): level tabs Starters / Movers / Flyers, each with its own theme (D24); topic grid
+  with stars; topic page with its activities; player with **8 games** — flashcards, listen & choose,
+  look & choose, match, look & spell, yes/no, fill the blank, make a sentence. Device voice reads the
+  English; Web Audio tones; mute; a wrong answer gives a hint and the child retries (points only for a
+  first-try answer); celebration with 0–3 stars; result saved.
+- **Starters pack** (original content): 12 topics, 134 words, 96 activities (8 per topic) with Fluent
+  Emoji 3D pictures. Source `content/starters.mts` → `npm run content:build` → migration 0014.
+- **Teachers and admins** (`/teacher/content`, `/admin/content`): topics per level (draft/published),
+  vocabulary with emoji pictures, activities: pick words for word games, write items for sentence games
+  (validated: blanks, right answer among options, 2–10 words). Students see only published content.
+- Migration 0013: `topics`, `practice_activities`, `vocabulary.topic_id/emoji`, `record_practice()`,
+  open read access for published practice, staff write access, progress per activity.
+- Fixed: forms no longer lose what was typed after a failed save (React 19 form reset) — admin forms too.
 
-### To deploy M2 to the preview (owner)
-1. Supabase `shining-dev` → SQL Editor: run `supabase/migrations/20261109000012_admin_people.sql`
-   ("Run without RLS" is fine: it creates no tables).
-2. Vercel → Settings → Environment Variables: add `SUPABASE_SERVICE_ROLE_KEY` (Supabase secret key) for
-   **Preview** only, marked Sensitive. Redeploy the preview.
+### To deploy Phase 1 to the preview (owner)
+Supabase `shining-dev` → SQL Editor: run `supabase/migrations/20261110000013_practice.sql`, then
+`supabase/migrations/20261110000014_starters_content.sql`. Vercel needs nothing new.
+
+## Next
+Pilot with Starters students → collect feedback → then Movers/Flyers content, mock tests (Cambridge
+format), teacher homework (assign + track), as the owner decides.
 
 ## Test status
 | Suite | Result |
 |---|---|
-| DB (migrations + RLS/grading/reports/health/account audit) | 169/169 |
-| Unit (Vitest) | 50/50 |
-| End-to-end (Playwright, real local Supabase): M1 login/session/redirect suite + M2: every admin screen refused for teacher/student/parent and signed-out visitors; create class → student with login → student signs in; numbered usernames; teacher by username and by email, assigned → sees class; lock/unlock; password reset; name edit shows after login; login created later; enrol/remove; search | 43/43 (desktop + phone viewport) |
+| DB (migrations + RLS/grading/reports/health/account audit/practice) | 198/198 |
+| Unit (Vitest) | 64/64 |
+| End-to-end (Playwright, real local Supabase): M1 login/session/redirect suite + M2: every admin screen refused for teacher/student/parent and signed-out visitors; create class → student with login → student signs in; numbered usernames; teacher by username and by email, assigned → sees class; lock/unlock; password reset; name edit shows after login; login created later; enrol/remove; search | 49/49 (desktop + phone viewport) |
+
+Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
+a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
+word game, sentence game with validation) and students see it only after publishing.
 
 Still not run against a hosted Supabase project — required before production (M8).
 
@@ -81,6 +101,9 @@ usernames, passwords).
    assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
 
 ## Resolved decisions
+- 2026-11-10 — Practice library first, every level open to every account, teachers edit content,
+  Starters pilot; one theme per level; Fluent Emoji pictures; free device voice for now; QR login cards
+  and teacher homework later (D23, D24).
 - 2026-11-09 — M2 scope: students + teachers + classes only; parents and CSV import later. Teachers assign
   and grade work. Levels: Starters, Movers, Flyers, Global Success 1–5. Passwords generated and shown once.
 - 2026-11-09 — Preview environment: Supabase `shining-dev` (Singapore, free, `[SAMPLE]` seed, sign-up

@@ -16,6 +16,12 @@ mostly UI on top of a tested data layer.
 | **7 Story library** | Story CRUD, video/audio player, WebVTT subtitles, transcript, listening exercises | playback on iOS/Android browsers |
 | **8 Production readiness** | Full test pass, performance review, error handling, monitoring/alerts, backup restore drill, deployment & recovery docs | owner approval → production deploy |
 
+## Re-plan (owner, 2026-11-10)
+The main purpose is students doing exercises. New order:
+**Phase 1 ✅ practice library + Starters pack + content editor** → pilot & feedback → Phase 2 mock tests
+(Cambridge format, question bank) → Phase 3 teacher homework (assign, deadline, Zalo message, tracking) →
+Movers/Flyers content → later: teacher grading/comments, parents and reports, stories.
+
 ## MVP scope (owner decisions, 2026-11-09)
 "MVP first, easy features first"; then the owner moved stories (without video), vocabulary games and all
 question types into the MVP. **Video is the only content type excluded** (storage/bandwidth).
