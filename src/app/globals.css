@@ -5,6 +5,11 @@
 @import "@fontsource/be-vietnam-pro/500.css";
 @import "@fontsource/be-vietnam-pro/600.css";
 @import "@fontsource/be-vietnam-pro/800.css";
+/* Student area: rounded, friendly faces with Vietnamese support (self-hosted). */
+@import "@fontsource/nunito/700.css";
+@import "@fontsource/nunito/800.css";
+@import "@fontsource/nunito/900.css";
+@import "@fontsource/quicksand/700.css";
 
 /*
  * SHINING design tokens
@@ -32,10 +37,104 @@
   --berry-soft: #fbe7ea;
 
   --radius: 0.625rem;
+
+  /* Student "kid" theme tokens. Brand: logo charcoal #3A3A3C, sunshine #FFC61A,
+     ray orange #F28C1B. Default = Starters ("Nắng Sớm"); .theme-movers and
+     .theme-flyers override (one theme per level, owner decision 2026-11-10). */
+  --k-bg: #fffbef;
+  --k-surface: #ffffff;
+  --k-ink: #3a3a3c;
+  --k-soft: #6b6b70;
+  --k-line: #f1e6c8;
+  --k-primary: #ffc61a;
+  --k-primary-ink: #3a3a3c;
+  --k-primary-shadow: #e0a800;
+  --k-accent: #f28c1b;
+  --k-accent-soft: #ffe7cc;
+  --k-accent-ink: #9a4a08;
+  --k-tile: #fff1c2;
+  --k-good: #1f7a4a;
+  --k-good-soft: #e3f6e9;
+  --k-bad: #b54708;
+  --k-bad-soft: #ffe7cc;
+  --k-star: #ffb400;
+  --k-star-off: #ede3cb;
+  --k-nav: #3a3a3c;
+  --k-nav-ink: #e6e6e8;
+  --k-nav-active: #ffc61a;
+}
+
+.theme-movers {
+  /* "Đảo Phiêu Lưu": sky, islands, chunky buttons */
+  --k-bg: #cfefff;
+  --k-surface: #ffffff;
+  --k-ink: #3a3a3c;
+  --k-soft: #3f5a6b;
+  --k-line: #a9ddf5;
+  --k-primary: #ffc61a;
+  --k-primary-ink: #3a3a3c;
+  --k-primary-shadow: #e0a800;
+  --k-accent: #7ed957;
+  --k-accent-soft: #e3f8d9;
+  --k-accent-ink: #2f6e1a;
+  --k-tile: #e3f8d9;
+  --k-star-off: #c8dde8;
+  --k-nav: #3a3a3c;
+  --k-nav-ink: #e6e6e8;
+  --k-nav-active: #7ed957;
+}
+
+.theme-flyers {
+  /* "Vũ Trụ Kẹo Ngọt": night sky, candy colours */
+  --k-bg: #24242a;
+  --k-surface: #34343c;
+  --k-ink: #ffffff;
+  --k-soft: #c9c9d1;
+  --k-line: #4a4a55;
+  --k-primary: #7ee8c7;
+  --k-primary-ink: #24242a;
+  --k-primary-shadow: #4fc4a0;
+  --k-accent: #b9a6ff;
+  --k-accent-soft: #3d3a52;
+  --k-accent-ink: #e2d9ff;
+  --k-tile: #2d2d34;
+  --k-good: #7ee8c7;
+  --k-good-soft: #23443b;
+  --k-bad: #ffb38a;
+  --k-bad-soft: #4a3326;
+  --k-star: #ffc61a;
+  --k-star-off: #5a5a66;
+  --k-nav: #34343c;
+  --k-nav-ink: #e6e6ec;
+  --k-nav-active: #7ee8c7;
 }
 
 @theme inline {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-kid: "Nunito", "Be Vietnam Pro", ui-rounded, system-ui, sans-serif;
+  --font-kid-display: "Quicksand", "Nunito", ui-rounded, system-ui, sans-serif;
+
+  --color-k-bg: var(--k-bg);
+  --color-k-surface: var(--k-surface);
+  --color-k-ink: var(--k-ink);
+  --color-k-soft: var(--k-soft);
+  --color-k-line: var(--k-line);
+  --color-k-primary: var(--k-primary);
+  --color-k-primary-ink: var(--k-primary-ink);
+  --color-k-primary-shadow: var(--k-primary-shadow);
+  --color-k-accent: var(--k-accent);
+  --color-k-accent-soft: var(--k-accent-soft);
+  --color-k-accent-ink: var(--k-accent-ink);
+  --color-k-tile: var(--k-tile);
+  --color-k-good: var(--k-good);
+  --color-k-good-soft: var(--k-good-soft);
+  --color-k-bad: var(--k-bad);
+  --color-k-bad-soft: var(--k-bad-soft);
+  --color-k-star: var(--k-star);
+  --color-k-star-off: var(--k-star-off);
+  --color-k-nav: var(--k-nav);
+  --color-k-nav-ink: var(--k-nav-ink);
+  --color-k-nav-active: var(--k-nav-active);
 
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
@@ -118,4 +217,95 @@
 }
 .animate-sun-rise {
   animation: sun-rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* ---------------------------------------------------------- student games */
+/* Chunky "press-down" buttons: the shadow is the button's bottom edge. */
+.kid-press {
+  box-shadow: 0 5px 0 var(--press, var(--k-line));
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease;
+}
+.kid-press:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--press, var(--k-line));
+}
+@keyframes kid-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-kid-pop {
+  animation: kid-pop 320ms ease-out;
+}
+@keyframes kid-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+.animate-kid-shake {
+  animation: kid-shake 380ms ease-in-out;
+}
+@keyframes kid-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-kid-in {
+  animation: kid-in 260ms ease-out both;
+}
+@keyframes kid-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-kid-float {
+  animation: kid-float 2.4s ease-in-out infinite;
+}
+@keyframes kid-confetti {
+  from {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+.kid-confetti {
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 14px;
+  border-radius: 3px;
+  animation: kid-confetti 2.6s linear forwards;
 }
