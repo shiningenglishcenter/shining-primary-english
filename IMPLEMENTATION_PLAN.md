@@ -18,7 +18,9 @@ mostly UI on top of a tested data layer.
 
 ## Re-plan (owner, 2026-11-10)
 The main purpose is students doing exercises. New order:
-**Phase 1 ✅ practice library + Starters pack + content editor** → pilot & feedback → Phase 2 mock tests
+**Phase 1 ✅ practice library + Starters pack + content editor** → pilot & feedback →
+**Phase 1.1 ✅ feedback: programmes (Cambridge / Global Success), one theme, 4 new kinds, G1 pack, speed,
+loading** (2026-11-11) → Phase 2 mock tests
 (Cambridge format, question bank) → Phase 3 teacher homework (assign, deadline, Zalo message, tracking) →
 Movers/Flyers content → later: teacher grading/comments, parents and reports, stories.
 

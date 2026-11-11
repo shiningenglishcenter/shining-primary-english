@@ -12,18 +12,18 @@ async function as(browser: Browser, login: string): Promise<Page> {
   return page;
 }
 
-/** Answers the current round correctly, whatever the game. */
+/** Answers the current round correctly, whatever the game (mixed rounds included). */
 async function playThrough(page: Page) {
   const player = page.getByTestId("player");
   await expect(player).toBeVisible();
-  const kind = await player.getAttribute("data-kind");
-  for (let guard = 0; guard < 30; guard++) {
+  for (let guard = 0; guard < 40; guard++) {
     if (await page.getByTestId("finish").isVisible()) return;
-    if (kind === "flashcards") {
+    const visible = async (id: string) => page.getByTestId(id).first().isVisible();
+    if (await visible("flash-word")) {
       await page.getByTestId("next").click();
       continue;
     }
-    if (kind === "match") {
+    if (await visible("match-picture")) {
       for (const w of await page
         .getByTestId("match-picture")
         .evaluateAll((els) =>
@@ -32,16 +32,20 @@ async function playThrough(page: Page) {
         await page.locator(`[data-testid=match-picture][data-word="${w}"]`).click();
         await page.locator(`[data-testid=match-word][data-word="${w}"]`).click();
       }
-    } else if (kind === "spell") {
+    } else if (await visible("spell-slots")) {
       const answer = (await page.getByTestId("spell-slots").getAttribute("data-answer"))!;
       for (const ch of answer) {
         await page.locator(`[data-testid=letter][data-letter="${ch}"]:not([disabled])`).first().click();
       }
-    } else if (kind === "rearrange") {
+    } else if (await visible("sentence-line")) {
       const answer = (await page.getByTestId("sentence-line").getAttribute("data-answer"))!.split(" ");
       for (const w of answer) {
         await page.locator(`[data-testid=word-chip][data-word="${w}"]:not([disabled])`).first().click();
       }
+      await page.getByTestId("check").click();
+    } else if (await visible("type-input")) {
+      const input = page.getByTestId("type-input");
+      await input.fill((await input.getAttribute("data-answer"))!);
       await page.getByTestId("check").click();
     } else {
       await page.locator("[data-testid=option][data-correct=true]").click();
@@ -53,7 +57,7 @@ async function playThrough(page: Page) {
 }
 
 test.describe("student practice library", () => {
-  test("every level is open, each with its own theme @mobile", async ({ page }) => {
+  test("every programme and level is open @mobile", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await expect(page.locator("[data-level=starters]")).toBeVisible();
@@ -61,13 +65,16 @@ test.describe("student practice library", () => {
     await page.getByRole("link", { name: "Flyers" }).click();
     await expect(page.locator("[data-level=flyers]")).toBeVisible();
     await expect(page.getByTestId("no-topics")).toBeVisible();
+    await page.getByRole("link", { name: "Global Success" }).click();
+    await expect(page.locator("[data-level=g1]")).toBeVisible();
+    await expect(page.getByTestId("topic")).toHaveCount(16);
   });
 
   test("a student plays every game of a topic and earns stars", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Transport" }).click();
-    await expect(page.getByTestId("activity")).toHaveCount(8);
+    await expect(page.getByTestId("activity")).toHaveCount(10);
     const hrefs = await page
       .getByTestId("activity")
       .evaluateAll((els) => els.map((e) => e.getAttribute("href")!));
@@ -81,7 +88,7 @@ test.describe("student practice library", () => {
       page.getByTestId("activity").first().getByRole("img", { name: "3 trên 3 sao" }),
     ).toBeVisible();
     await page.goto("/learn?level=starters");
-    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("8/8 bài");
+    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("10/10 bài");
   });
 
   test("a wrong first answer gives a hint and costs the point", async ({ page }) => {

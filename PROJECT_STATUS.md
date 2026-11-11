@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-11_
 
 ## Completed milestones
 **Milestone 0 — Discovery & architecture** ✅
@@ -61,20 +61,44 @@ _Last updated: 2026-11-10_
   open read access for published practice, staff write access, progress per activity.
 - Fixed: forms no longer lose what was typed after a failed save (React 19 form reset) — admin forms too.
 
-### To deploy Phase 1 to the preview (owner)
-Supabase `shining-dev` → SQL Editor: run `supabase/migrations/20261110000013_practice.sql`, then
-`supabase/migrations/20261110000014_starters_content.sql`. Vercel needs nothing new.
+### Phase 1.1 — Pilot feedback (2026-11-11, same branch)
+From the owner's demo with teachers:
+- **Speed** (D25): functions moved to Tokyo next to Supabase; fewer and parallel Supabase calls per page.
+- **Loading feedback** (D25): top progress bar on every navigation + skeleton pages.
+- **Programmes** (D26): Cambridge (Starters/Movers/Flyers) and Global Success (G1–G5) tabs for students and
+  in the editor; Global Success topics are called units.
+- **One theme** (D27): pale yellow + green for every level.
+- **4 new activity kinds** (D28): listen and write, listening (YouTube or uploaded audio), reading, skills
+  challenge (mixed). Editor support for each, including audio upload.
+- **Global Success 1 pack**: 16 units, 78 words, 11 activities per unit (reading and skills challenge
+  included). Unit titles are from memory of the syllabus — **teachers should check them** (editable).
+- Starters: every topic gains *Listen and write* and a *Skills challenge* (10 activities per topic).
+
+### To deploy to the preview (owner)
+Supabase `shining-dev` → SQL Editor, in order (skip any already run):
+1. `supabase/migrations/20261110000013_practice.sql`
+2. `supabase/migrations/20261110000014_starters_content.sql`
+3. `supabase/migrations/20261111000015_practice_skills.sql` ← run alone first (adds the new kinds)
+4. `supabase/migrations/20261111000016_gs1_content.sql`
+5. `supabase/migrations/20261111000017_starters_skills.sql`
+
+Recommended: Supabase → Settings → JWT Keys → enable asymmetric signing keys, so `getClaims()` checks
+sessions without calling the Auth server. Vercel picks up the Tokyo region from `vercel.json` on the
+next deploy (check: Project → Settings → Functions → Region).
 
 ## Next
-Pilot with Starters students → collect feedback → then Movers/Flyers content, mock tests (Cambridge
-format), teacher homework (assign + track), as the owner decides.
+Teachers try Phase 1.1 → then Phase 2 mock tests (Cambridge format), Phase 3 teacher homework, Movers/
+Flyers and G2–G5 content, as the owner decides.
 
 ## Test status
 | Suite | Result |
 |---|---|
-| DB (migrations + RLS/grading/reports/health/account audit/practice) | 198/198 |
-| Unit (Vitest) | 64/64 |
+| DB (migrations + RLS/grading/reports/health/account audit/practice) | 210/210 |
+| Unit (Vitest) | 78/78 |
 | End-to-end (Playwright, real local Supabase): M1 login/session/redirect suite + M2: every admin screen refused for teacher/student/parent and signed-out visitors; create class → student with login → student signs in; numbered usernames; teacher by username and by email, assigned → sees class; lock/unlock; password reset; name edit shows after login; login created later; enrol/remove; search | 49/49 (desktop + phone viewport) |
+
+Phase 1.1: e2e updated (programme tabs, 10 activities per Starters topic, mixed rounds, typing answers)
+but **not re-run** in this session (no local Supabase stack here); CI runs it.
 
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
@@ -91,7 +115,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D22). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D28; Phase 1.1: D25–D28). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 
@@ -101,12 +125,15 @@ usernames, passwords).
    assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
 
 ## Resolved decisions
+- 2026-11-11 — Organise as Cambridge / Global Success → level; one pale-yellow + green theme; add
+  listening (YouTube or teacher audio), reading, listen-and-write and a skills challenge; seed G1;
+  loading bar + skeletons; Supabase region is Tokyo (D25–D28).
 - 2026-11-10 — Practice library first, every level open to every account, teachers edit content,
   Starters pilot; one theme per level; Fluent Emoji pictures; free device voice for now; QR login cards
   and teacher homework later (D23, D24).
 - 2026-11-09 — M2 scope: students + teachers + classes only; parents and CSV import later. Teachers assign
   and grade work. Levels: Starters, Movers, Flyers, Global Success 1–5. Passwords generated and shown once.
-- 2026-11-09 — Preview environment: Supabase `shining-dev` (Singapore, free, `[SAMPLE]` seed, sign-up
+- 2026-11-09 — Preview environment: Supabase `shining-dev` (Northeast Asia / Tokyo, free, `[SAMPLE]` seed, sign-up
   disabled) + Vercel Hobby; repository made public for the trial period (owner decision).
 - 2026-11-09 — GitHub repo `shiningenglishcenter/shining-primary-english`; work on branches + PRs.
 - 2026-11-09 — Hosting: Supabase Singapore + Vercel (ARCHITECTURE D15).
