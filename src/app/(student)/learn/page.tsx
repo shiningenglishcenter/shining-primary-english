@@ -28,10 +28,11 @@ async function defaultLevelSlug(): Promise<string> {
 }
 
 async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
-  const user = await requireRole("student");
   const sp = await searchParams;
   const requested = typeof sp.level === "string" ? sp.level : undefined;
-  const level = levelBySlug(requested ?? (await defaultLevelSlug()));
+  // Independent round trips run together (RLS still guards the class read).
+  const [user, slug] = await Promise.all([requireRole("student"), requested ?? defaultLevelSlug()]);
+  const level = levelBySlug(slug);
   const topics = await listTopics(level);
   const name = user.displayName ?? user.fullName;
   const totalStars = topics.reduce((n, t) => n + t.stars, 0);

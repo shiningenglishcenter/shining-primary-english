@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { KidPage } from "@/features/practice/components/kid-ui";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { Player } from "@/features/practice/components/player";
-import { getActivity, getTopicWords } from "@/features/practice/queries";
+import { getActivity } from "@/features/practice/queries";
 import { buildRound } from "@/features/practice/round";
 
 export const metadata: Metadata = { title: "Làm bài" };
@@ -18,14 +18,13 @@ async function PlayView({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ r?: string | string[] }>;
 }) {
-  await requireRole("student");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
-  const activity = await getActivity(id);
+  // RLS guards the content read, so it can run alongside the role check.
+  const [, activity] = await Promise.all([requireRole("student"), getActivity(id)]);
   if (!activity) notFound();
-  const words = await getTopicWords(activity.topic.id);
   // A fresh shuffle on every visit; `r` lets "Chơi lại" force a new round.
-  const round = buildRound(activity.kind, activity.content, words);
+  const round = buildRound(activity.kind, activity.content, activity.words);
 
   return (
     <KidPage level={activity.topic.level} header={false}>

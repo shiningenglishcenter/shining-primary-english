@@ -13,10 +13,9 @@ import { getTopic } from "@/features/practice/queries";
 export const metadata: Metadata = { title: "Chủ đề" };
 
 async function TopicView({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole("student");
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
-  const topic = await getTopic(id);
+  const [, topic] = await Promise.all([requireRole("student"), getTopic(id)]);
   if (!topic) notFound();
 
   return (

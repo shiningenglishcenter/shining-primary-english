@@ -12,7 +12,9 @@ export type CurrentUser = {
 };
 
 /**
- * The signed-in user, verified with the Auth server (getUser) and loaded from
+ * The signed-in user, verified from the session JWT (getClaims: checked
+ * locally against the project's signing keys, or with the Auth server for
+ * legacy symmetric keys) and loaded from
  * `profiles` under RLS. Returns null when there is no session, no profile, or
  * the account is deactivated. Deduplicated per request.
  *
@@ -27,15 +29,14 @@ type SessionState =
 
 const getSessionState = cache(async (): Promise<SessionState> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { status: "signed_out" };
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) return { status: "signed_out" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, role, full_name, display_name, is_active, deleted_at")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   if (!profile || !profile.is_active || profile.deleted_at || !isAppRole(profile.role)) {

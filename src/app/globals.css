@@ -309,3 +309,29 @@
   border-radius: 3px;
   animation: kid-confetti 2.6s linear forwards;
 }
+
+/* Navigation progress bar (D25): grows while loading, fills and fades when done. */
+.nav-progress-bar {
+  width: 0;
+  opacity: 0;
+  background: #3fa34d;
+  box-shadow: 0 0 6px rgb(63 163 77 / 0.6);
+}
+.nav-progress[data-phase="loading"] .nav-progress-bar {
+  opacity: 1;
+  width: 85%;
+  transition: width 8s cubic-bezier(0.1, 0.7, 0.2, 1);
+}
+.nav-progress[data-phase="done"] .nav-progress-bar {
+  opacity: 0;
+  width: 100%;
+  transition:
+    width 0.2s ease-out,
+    opacity 0.3s ease 0.15s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress[data-phase="loading"] .nav-progress-bar {
+    transition: none;
+    width: 85%;
+  }
+}
