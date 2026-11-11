@@ -29,7 +29,15 @@ export type Topic = {
   trueFalse: TrueFalse[];
   fillBlank: FillBlank[];
   rearrange: Rearrange[];
+  /** Optional short passage for a "reading" activity (Global Success packs). */
+  reading?: Reading;
 };
+
+/** Questions are Yes/No ("tf") or pick one answer ("mc", answer listed first). */
+export type ReadingItem =
+  | { type: "tf"; sentence: string; answer: boolean }
+  | { type: "mc"; question: string; answer: string; options: string[] };
+export type Reading = { title: string; emoji: string; passage: string; items: ReadingItem[] };
 
 export const LEVEL_CODE = "STARTERS";
 
