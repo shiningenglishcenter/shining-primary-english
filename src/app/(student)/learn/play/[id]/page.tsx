@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { KidPage } from "@/features/practice/components/kid-ui";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { Player } from "@/features/practice/components/player";
-import { getActivity } from "@/features/practice/queries";
+import { getActivity, resolveContexts } from "@/features/practice/queries";
 import { buildRound } from "@/features/practice/round";
 
 export const metadata: Metadata = { title: "Làm bài" };
@@ -25,6 +25,7 @@ async function PlayView({
   if (!activity) notFound();
   // A fresh shuffle on every visit; `r` lets "Chơi lại" force a new round.
   const round = buildRound(activity.kind, activity.content, activity.words);
+  const contexts = await resolveContexts(round.contexts);
 
   return (
     <KidPage level={activity.topic.level} header={false}>
@@ -34,6 +35,7 @@ async function PlayView({
         kind={activity.kind}
         title={`${activity.topic.titleEn}: ${activity.titleVi}`}
         questions={round.questions}
+        contexts={contexts}
         maxScore={round.maxScore}
         topicHref={`/learn/topics/${activity.topic.id}`}
         nextHref={activity.nextActivityId ? `/learn/play/${activity.nextActivityId}` : null}

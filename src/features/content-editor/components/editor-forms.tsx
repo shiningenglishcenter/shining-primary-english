@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import Image from "next/image";
 import { Plus, Trash2 } from "lucide-react";
 import { Field, FormStatus, SubmitButton, useKeepValues } from "@/components/forms/form-parts";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -16,19 +15,18 @@ import {
   updateActivity,
   updateTopic,
 } from "@/features/content-editor/actions";
-import { codeToEmoji, EMOJI_CODE_PATTERN, emojiSrc, emojiToCode } from "@/features/practice/emoji";
-import { KIND_LABEL_VI, PRACTICE_KINDS, WORD_KINDS, type PracticeKind } from "@/features/practice/model";
+import { codeToEmoji, emojiSrc } from "@/features/practice/emoji";
+import { KIND_LABEL_VI, PRACTICE_KINDS, type PracticeKind } from "@/features/practice/model";
+import {
+  ContentFields,
+  serializeContent,
+  toCode,
+  type Content,
+} from "@/features/content-editor/components/content-fields";
 import type { FormState } from "@/features/people/schemas";
 
 const initial: FormState = {};
 type Base = "/admin/content" | "/teacher/content";
-
-function toCode(value: string): string | null {
-  const v = value.trim();
-  if (!v) return null;
-  const c = EMOJI_CODE_PATTERN.test(v.toLowerCase()) ? v.toLowerCase() : emojiToCode(v);
-  return EMOJI_CODE_PATTERN.test(c) ? c : null;
-}
 
 /** Paste or type an emoji; shows the 3D picture the children will see. */
 export function EmojiInput({
@@ -338,14 +336,6 @@ export function NewActivityForm({ topicId, base }: { topicId: string; base: Base
   );
 }
 
-type Item = { emoji?: string | null; sentence: string; answer?: boolean | string; options?: string[] };
-
-const ITEM_HELP: Partial<Record<PracticeKind, string>> = {
-  true_false: "Mỗi câu: một hình, một câu tiếng Anh, và câu đó đúng hay sai với hình.",
-  fill_blank: "Viết ___ (3 dấu gạch dưới) ở chỗ trống. Nhập đáp án đúng và 2 đáp án sai.",
-  rearrange: "Viết câu đúng, hệ thống tự xáo trộn các từ cho học sinh sắp xếp (2–10 từ).",
-};
-
 export function ActivityEditor({
   base,
   activity,
@@ -367,21 +357,8 @@ export function ActivityEditor({
   const [state, action, pending] = useActionState(updateActivity, initial);
   const keep = useKeepValues(action);
   const [delState, delAction, delPending] = useActionState(deleteActivity, initial);
-  const isWordKind = WORD_KINDS.includes(activity.kind);
-  const [words, setWords] = useState<string[]>(
-    Array.isArray(activity.content.words) ? (activity.content.words as string[]) : [],
-  );
-  const [items, setItems] = useState<Item[]>(
-    Array.isArray(activity.content.items) ? (activity.content.items as Item[]) : [],
-  );
-
-  const content = isWordKind
-    ? words.length
-      ? { words }
-      : {}
-    : { items: items.map((i) => normalise(activity.kind, i)) };
-  const update = (i: number, patch: Partial<Item>) =>
-    setItems(items.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  const [draft, setDraft] = useState<Content>(activity.content);
+  const content = serializeContent(activity.kind, draft);
 
   return (
     <div className="flex flex-col gap-6">
@@ -404,138 +381,7 @@ export function ActivityEditor({
           </Field>
         </div>
 
-        {isWordKind ? (
-          <fieldset
-            className="flex flex-col gap-3 rounded-lg border border-line p-4"
-            data-testid="word-picker"
-          >
-            <legend className="px-1 text-sm font-semibold">Từ dùng trong bài</legend>
-            <p className="text-sm text-ink-soft">
-              Không chọn từ nào = dùng tất cả từ có hình của chủ đề. Mỗi lần chơi, hệ thống lấy ngẫu nhiên tối
-              đa 8 từ.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {topicWords.map((w) => {
-                const on = words.includes(w.word);
-                return (
-                  <label
-                    key={w.word}
-                    className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${on ? "border-ink bg-sun-soft" : "border-line bg-surface"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={(e) =>
-                        setWords(e.target.checked ? [...words, w.word] : words.filter((x) => x !== w.word))
-                      }
-                      className="size-4 accent-ink"
-                    />
-                    {emojiSrc(w.emoji) ? (
-                      <Image src={emojiSrc(w.emoji)!} alt="" width={22} height={22} unoptimized />
-                    ) : null}
-                    {w.word}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        ) : (
-          <fieldset
-            className="flex flex-col gap-3 rounded-lg border border-line p-4"
-            data-testid="item-editor"
-          >
-            <legend className="px-1 text-sm font-semibold">Câu hỏi ({items.length})</legend>
-            <p className="text-sm text-ink-soft">{ITEM_HELP[activity.kind]}</p>
-            <ol className="flex flex-col gap-3">
-              {items.map((it, i) => (
-                <li key={i} className="flex flex-col gap-2 rounded-lg bg-paper p-3" data-testid="item-row">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-ink-soft">Câu {i + 1}</span>
-                    <ItemEmoji value={it.emoji ?? null} onChange={(emoji) => update(i, { emoji })} />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto text-berry"
-                      onClick={() => setItems(items.filter((_, k) => k !== i))}
-                      aria-label={`Xoá câu ${i + 1}`}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
-                  <Input
-                    value={it.sentence}
-                    onChange={(e) => update(i, { sentence: e.target.value })}
-                    placeholder={activity.kind === "fill_blank" ? "A ___ can swim." : "This is a dog."}
-                    aria-label={`Câu ${i + 1}`}
-                    maxLength={200}
-                  />
-                  {activity.kind === "true_false" ? (
-                    <div className="flex gap-4 text-sm">
-                      {[true, false].map((v) => (
-                        <label key={String(v)} className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name={`answer-${i}`}
-                            checked={it.answer === v}
-                            onChange={() => update(i, { answer: v })}
-                            className="size-4 accent-ink"
-                          />
-                          {v ? "Đúng với hình (Yes)" : "Sai với hình (No)"}
-                        </label>
-                      ))}
-                    </div>
-                  ) : null}
-                  {activity.kind === "fill_blank" ? (
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <Input
-                        value={typeof it.answer === "string" ? it.answer : ""}
-                        onChange={(e) => update(i, { answer: e.target.value })}
-                        placeholder="Đáp án đúng"
-                        aria-label={`Đáp án đúng câu ${i + 1}`}
-                        className="border-leaf"
-                      />
-                      {[0, 1].map((k) => (
-                        <Input
-                          key={k}
-                          value={wrongOptions(it)[k] ?? ""}
-                          onChange={(e) => {
-                            const wrong = [...wrongOptions(it)];
-                            wrong[k] = e.target.value;
-                            update(i, {
-                              options: [typeof it.answer === "string" ? it.answer : "", ...wrong],
-                            });
-                          }}
-                          placeholder={`Đáp án sai ${k + 1}`}
-                          aria-label={`Đáp án sai ${k + 1} câu ${i + 1}`}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  setItems([
-                    ...items,
-                    activity.kind === "true_false"
-                      ? { emoji: null, sentence: "", answer: true }
-                      : activity.kind === "fill_blank"
-                        ? { emoji: null, sentence: "", answer: "", options: ["", "", ""] }
-                        : { emoji: null, sentence: "" },
-                  ])
-                }
-              >
-                <Plus aria-hidden="true" />
-                Thêm câu
-              </Button>
-            </div>
-          </fieldset>
-        )}
+        <ContentFields kind={activity.kind} content={draft} onChange={setDraft} topicWords={topicWords} />
 
         <div>
           <SubmitButton pending={pending}>Lưu bài</SubmitButton>
@@ -560,49 +406,5 @@ export function ActivityEditor({
         {delState.error ? <p className="mt-2 text-sm text-berry">{delState.error}</p> : null}
       </form>
     </div>
-  );
-}
-
-function wrongOptions(it: Item): string[] {
-  const answer = typeof it.answer === "string" ? it.answer : "";
-  const opts = it.options ?? [];
-  const rest = opts.filter((o, i) => !(i === 0 && o === answer));
-  return [rest[0] ?? "", rest[1] ?? ""];
-}
-
-function normalise(kind: PracticeKind, it: Item) {
-  const emoji = it.emoji ? (toCode(it.emoji) ?? it.emoji) : null;
-  const sentence = it.sentence.trim();
-  if (kind === "true_false") return { emoji, sentence, answer: it.answer === true };
-  if (kind === "fill_blank") {
-    const answer = typeof it.answer === "string" ? it.answer.trim() : "";
-    const wrong = wrongOptions(it)
-      .map((o) => o.trim())
-      .filter(Boolean);
-    return { emoji, sentence, answer, options: [answer, ...wrong] };
-  }
-  return { emoji, sentence };
-}
-
-function ItemEmoji({ value, onChange }: { value: string | null; onChange: (code: string | null) => void }) {
-  const [text, setText] = useState(value && EMOJI_CODE_PATTERN.test(value) ? codeToEmoji(value) : "");
-  const src = emojiSrc(toCode(text));
-  return (
-    <span className="flex items-center gap-2">
-      <Input
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          onChange(toCode(e.target.value));
-        }}
-        aria-label="Emoji của câu"
-        placeholder="🐶"
-        className="h-10 w-16 px-2 text-center text-xl"
-        autoComplete="off"
-      />
-      <span className="flex size-10 items-center justify-center rounded-md border border-line bg-surface">
-        {src ? <Image src={src} alt="" width={30} height={30} unoptimized /> : null}
-      </span>
-    </span>
   );
 }

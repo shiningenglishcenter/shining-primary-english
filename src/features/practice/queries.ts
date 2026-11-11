@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { PlayerContext, RoundContext } from "@/features/practice/round";
 import {
   levelByCode,
   starsFor,
@@ -169,4 +170,34 @@ export async function getActivity(activityId: string) {
     words,
     nextActivityId: topic.activities[index + 1]?.id ?? null,
   };
+}
+
+const AUDIO_URL_SECONDS = 2 * 60 * 60;
+
+/**
+ * Turns a round's contexts into what the player needs: uploaded audio gets
+ * a short-lived signed URL (the bucket is private; RLS lets any signed-in
+ * user read it).
+ */
+export async function resolveContexts(contexts: RoundContext[]): Promise<PlayerContext[]> {
+  const paths = contexts.flatMap((c) =>
+    c.type === "listening" && c.media.source === "file" ? [c.media.path] : [],
+  );
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const supabase = await createClient();
+    const { data } = await supabase.storage.from("learning-media").createSignedUrls(paths, AUDIO_URL_SECONDS);
+    for (const row of data ?? []) if (row.path && row.signedUrl) urls.set(row.path, row.signedUrl);
+  }
+  return contexts.map((c): PlayerContext => {
+    if (c.type === "reading") return c;
+    if (c.media.source === "youtube") {
+      return {
+        type: "listening",
+        youtube: { videoId: c.media.videoId, start: c.media.start ?? 0 },
+        audioUrl: null,
+      };
+    }
+    return { type: "listening", youtube: null, audioUrl: urls.get(c.media.path) ?? null };
+  });
 }

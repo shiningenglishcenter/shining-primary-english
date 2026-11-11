@@ -1,7 +1,13 @@
 import {
+  isSentenceKind,
   itemsSchemaByKind,
+  listeningContentSchema,
+  mixedContentSchema,
+  readingContentSchema,
   wordContentSchema,
+  type Media,
   type PracticeKind,
+  type QuizItem,
   type VocabWord,
 } from "@/features/practice/model";
 
@@ -13,7 +19,7 @@ import {
 
 export type Card = { word: string; meaningVi: string; emoji: string | null };
 
-export type Question =
+type QuestionBody =
   | { type: "flash"; card: Card }
   | { type: "listen_choose"; answer: Card; options: Card[] }
   | { type: "look_choose"; answer: Card; options: string[] }
@@ -28,11 +34,31 @@ export type Question =
       options: string[];
       answer: string;
     }
-  | { type: "rearrange"; emoji: string | null; words: string[]; answer: string[] };
+  | { type: "rearrange"; emoji: string | null; words: string[]; answer: string[] }
+  | { type: "listen_type"; answer: Card }
+  | { type: "choice"; emoji: string | null; prompt: string; options: string[]; answer: string };
 
-export type Round = { questions: Question[]; maxScore: number };
+/**
+ * A question; `ctx` points into `Round.contexts` when it is about a passage
+ * or a recording, which the player keeps on screen above the question.
+ */
+export type Question = QuestionBody & { ctx?: number };
+
+/** Server-side context: an audio file is still a storage path here. */
+export type RoundContext =
+  | { type: "listening"; media: Media }
+  | { type: "reading"; emoji: string | null; title: string | null; passage: string };
+
+/** What the player receives: files resolved to short-lived URLs. */
+export type PlayerContext =
+  | { type: "listening"; youtube: { videoId: string; start: number } | null; audioUrl: string | null }
+  | { type: "reading"; emoji: string | null; title: string | null; passage: string };
+
+export type Round = { questions: Question[]; maxScore: number; contexts: RoundContext[] };
 
 export const ROUND_SIZE = 8;
+/** Questions taken from each step of a "mixed" activity. */
+export const MIXED_STEP_SIZE = 3;
 const MATCH_PAIRS = 4;
 
 type Rand = () => number;
@@ -63,13 +89,76 @@ function pickOthers(all: Card[], answer: Card, n: number, rand: Rand): Card[] {
   ).slice(0, n);
 }
 
+const EMPTY: Round = { questions: [], maxScore: 0, contexts: [] };
+
+function scoreOf(questions: Question[]): number {
+  return questions.reduce((n, q) => n + (q.type === "match" ? q.pairs.length : 1), 0);
+}
+
 export function buildRound(
   kind: PracticeKind,
   content: unknown,
   topicWords: VocabWord[],
   rand: Rand = Math.random,
 ): Round {
-  if (kind === "true_false" || kind === "fill_blank" || kind === "rearrange") {
+  if (kind === "mixed") {
+    const parsed = mixedContentSchema.safeParse(content);
+    if (!parsed.success) return EMPTY;
+    const questions: Question[] = [];
+    const contexts: RoundContext[] = [];
+    for (const step of parsed.data.steps) {
+      const r = buildRound(step.kind, step.content, topicWords, rand);
+      // Keep a step's questions in order for passages; others are already shuffled.
+      const take = step.kind === "match" ? 1 : MIXED_STEP_SIZE;
+      const offset = contexts.length;
+      contexts.push(...r.contexts);
+      for (const q of r.questions.slice(0, take)) {
+        questions.push(q.ctx === undefined ? q : { ...q, ctx: q.ctx + offset });
+      }
+    }
+    return { questions, maxScore: scoreOf(questions), contexts };
+  }
+  if (kind === "listening" || kind === "reading") {
+    const parsed = (kind === "listening" ? listeningContentSchema : readingContentSchema).safeParse(content);
+    if (!parsed.success) return EMPTY;
+    const data = parsed.data as {
+      media?: Media;
+      emoji?: string | null;
+      title?: string;
+      passage?: string;
+      items: QuizItem[];
+    };
+    const context: RoundContext =
+      kind === "listening"
+        ? { type: "listening", media: data.media! }
+        : { type: "reading", emoji: data.emoji ?? null, title: data.title || null, passage: data.passage! };
+    // Questions follow the recording / passage, so keep the teacher's order.
+    const questions: Question[] = data.items.map((item) => ({ ...quizQuestion(item, rand), ctx: 0 }));
+    return { questions, maxScore: questions.length, contexts: [context] };
+  }
+  return { ...buildSimple(kind, content, topicWords, rand), contexts: [] };
+}
+
+function quizQuestion(item: QuizItem, rand: Rand): QuestionBody {
+  if (item.type === "tf") {
+    return { type: "true_false", emoji: item.emoji ?? null, sentence: item.sentence, answer: item.answer };
+  }
+  return {
+    type: "choice",
+    emoji: item.emoji ?? null,
+    prompt: item.question,
+    options: shuffle(item.options, rand),
+    answer: item.answer,
+  };
+}
+
+function buildSimple(
+  kind: PracticeKind,
+  content: unknown,
+  topicWords: VocabWord[],
+  rand: Rand,
+): Omit<Round, "contexts"> {
+  if (isSentenceKind(kind)) {
     const parsed = itemsSchemaByKind[kind].safeParse(content);
     if (!parsed.success) return { questions: [], maxScore: 0 };
     const items = shuffle(parsed.data.items, rand).slice(0, ROUND_SIZE);
@@ -121,10 +210,14 @@ export function buildRound(
       const pairs = chosen.slice(i, i + size);
       if (pairs.length >= 2) questions.push({ type: "match", pairs });
     }
-    return {
-      questions,
-      maxScore: questions.reduce((n, q) => n + (q.type === "match" ? q.pairs.length : 0), 0),
-    };
+    return { questions, maxScore: scoreOf(questions) };
+  }
+  if (kind === "listen_type") {
+    const writable = pool.filter((w) => /^[a-z]{2,12}$/i.test(w.word));
+    const questions: Question[] = shuffle(writable, rand)
+      .slice(0, ROUND_SIZE)
+      .map((answer) => ({ type: "listen_type", answer }));
+    return { questions, maxScore: questions.length };
   }
   if (kind === "spell") {
     const spellable = pool.filter((w) => /^[a-z]{2,10}$/i.test(w.word));
@@ -164,4 +257,10 @@ export function splitBlank(sentence: string): [string, string] {
 /** Compare a rearranged sentence ignoring case of the first word. */
 export function sameSentence(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((w, i) => w.toLowerCase() === b[i]!.toLowerCase());
+}
+
+/** Typed answers: ignore case, surrounding spaces and doubled spaces. */
+export function sameWord(typed: string, answer: string): boolean {
+  const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+  return norm(typed) === norm(answer);
 }

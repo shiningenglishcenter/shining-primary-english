@@ -7,11 +7,11 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { EMOJI_CODE_PATTERN, emojiToCode } from "@/features/practice/emoji";
 import {
-  itemsSchemaByKind,
+  contentSchemaFor,
+  emptyContentFor,
   levelByCode,
   PRACTICE_KINDS,
   KIND_LABEL_VI,
-  WORD_KINDS,
   type PracticeKind,
 } from "@/features/practice/model";
 import { fieldErrorsOf, type FormState } from "@/features/people/schemas";
@@ -223,13 +223,35 @@ export async function createActivity(_prev: FormState, formData: FormData): Prom
       title_vi: KIND_LABEL_VI[kind.data],
       sort_order: 999,
       status: "draft",
-      content: WORD_KINDS.includes(kind.data) ? {} : { items: [] },
+      content: emptyContentFor(kind.data),
       created_by: me.id,
     })
     .select("id")
     .single();
   if (error || !data) return { error: SAVE_FAILED };
   redirect(`${baseOf(formData)}/activities/${data.id}`);
+}
+
+function isEmptyContent(content: unknown): boolean {
+  if (!content || typeof content !== "object") return true;
+  const c = content as { items?: unknown[]; steps?: unknown[] };
+  return Object.keys(c).length === 0 || c.items?.length === 0 || c.steps?.length === 0;
+}
+
+/** "Chặng 2 · Câu 3: …" from a zod issue path such as ["steps", 1, "content", "items", 2, …]. */
+function describeIssue(issue: z.core.$ZodIssue | undefined): string {
+  if (!issue) return "Nội dung chưa đúng.";
+  const parts: string[] = [];
+  const path = issue.path;
+  for (let i = 0; i < path.length - 1; i++) {
+    const n = path[i + 1];
+    if (typeof n !== "number") continue;
+    if (path[i] === "steps") parts.push(`Chặng ${n + 1}`);
+    if (path[i] === "items") parts.push(`Câu ${n + 1}`);
+  }
+  if (path[0] === "media") parts.push("Phần nghe");
+  if (path[0] === "passage") parts.push("Đoạn văn");
+  return `${parts.length ? `${parts.join(" · ")}: ` : ""}${issue.message}`;
 }
 
 function defaultTitleEn(kind: PracticeKind): string {
@@ -242,6 +264,10 @@ function defaultTitleEn(kind: PracticeKind): string {
     true_false: "Yes or no?",
     fill_blank: "Complete the sentence",
     rearrange: "Make a sentence",
+    listen_type: "Listen and write",
+    listening: "Listen and answer",
+    reading: "Read and answer",
+    mixed: "Skills challenge",
   }[kind];
 }
 
@@ -283,23 +309,14 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
   } catch {
     return { error: "Nội dung bài không hợp lệ." };
   }
-  if (kind === "true_false" || kind === "fill_blank" || kind === "rearrange") {
-    const check = itemsSchemaByKind[kind].safeParse(content);
-    if (!check.success) {
-      const issue = check.error.issues[0];
-      const where = typeof issue?.path[1] === "number" ? `Câu ${issue.path[1] + 1}: ` : "";
-      if (parsed.data.status === "published" || (content as { items?: unknown[] })?.items?.length) {
-        return { error: `${where}${issue?.message ?? "Nội dung chưa đúng."}` };
-      }
-    } else {
-      content = check.data;
-    }
+  const check = contentSchemaFor(kind).safeParse(content);
+  if (check.success) {
+    content = check.data;
+  } else if (parsed.data.status === "published" || !isEmptyContent(content)) {
+    // An untouched draft may be saved empty; anything else must be valid.
+    return { error: describeIssue(check.error.issues[0]) };
   } else {
-    const words = z
-      .object({ words: z.array(z.string().trim().min(1).max(80)).max(100).optional() })
-      .safeParse(content);
-    if (!words.success) return { error: "Danh sách từ không hợp lệ." };
-    content = words.data;
+    content = emptyContentFor(kind);
   }
 
   const { error } = await supabase

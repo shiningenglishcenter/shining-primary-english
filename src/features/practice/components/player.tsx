@@ -7,7 +7,13 @@ import { Check, Delete, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { recordPractice } from "@/features/practice/actions";
 import { Pic, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import { starsFor, type PracticeKind } from "@/features/practice/model";
-import { sameSentence, type Card, type Question } from "@/features/practice/round";
+import {
+  sameSentence,
+  sameWord,
+  type Card,
+  type PlayerContext,
+  type Question,
+} from "@/features/practice/round";
 import { useSound } from "@/features/practice/use-sound";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +29,20 @@ const INSTRUCTIONS: Record<Question["type"], [string, string]> = {
   true_false: ["Yes or no?", "Câu này đúng hay sai với hình?"],
   fill_blank: ["Choose and complete", "Chọn từ điền vào chỗ trống"],
   rearrange: ["Make a sentence", "Chạm các từ theo đúng thứ tự"],
+  listen_type: ["Listen and write", "Nghe rồi viết từ con nghe được"],
+  choice: ["Choose the answer", "Chọn câu trả lời đúng"],
+};
+
+/** Headings for questions about a recording / a passage. */
+const CONTEXT_HEADINGS: Record<PlayerContext["type"], { tf: [string, string]; mc: [string, string] }> = {
+  listening: {
+    tf: ["Listen. Yes or no?", "Nghe bài, câu này đúng hay sai?"],
+    mc: ["Listen and choose", "Nghe bài rồi chọn câu trả lời đúng"],
+  },
+  reading: {
+    tf: ["Read. Yes or no?", "Đọc bài, câu này đúng hay sai?"],
+    mc: ["Read and choose", "Đọc bài rồi chọn câu trả lời đúng"],
+  },
 };
 
 // ------------------------------------------------------------------ shell ---
@@ -32,6 +52,7 @@ export function Player({
   kind,
   title,
   questions,
+  contexts = [],
   maxScore,
   topicHref,
   nextHref,
@@ -40,6 +61,7 @@ export function Player({
   kind: PracticeKind;
   title: string;
   questions: Question[];
+  contexts?: PlayerContext[];
   maxScore: number;
   topicHref: string;
   nextHref: string | null;
@@ -138,12 +160,31 @@ export function Player({
         </button>
       </div>
       <p className="sr-only">{title}</p>
-      <QuestionView key={index} q={q} sound={sound} last={index + 1 >= questions.length} onDone={advance} />
+      {q.ctx !== undefined && contexts[q.ctx] ? (
+        // Keyed by context: the video / passage stays put across its questions.
+        <ContextPanel key={`ctx-${q.ctx}`} ctx={contexts[q.ctx]!} sound={sound} />
+      ) : null}
+      <QuestionView
+        key={index}
+        q={q}
+        ctxType={q.ctx !== undefined ? contexts[q.ctx]?.type : undefined}
+        sound={sound}
+        last={index + 1 >= questions.length}
+        onDone={advance}
+      />
     </div>
   );
 }
 
-function QuestionView(props: { q: Question; sound: Sound; last: boolean; onDone: (points: number) => void }) {
+type QProps = {
+  q: Question;
+  ctxType?: PlayerContext["type"];
+  sound: Sound;
+  last: boolean;
+  onDone: (points: number) => void;
+};
+
+function QuestionView(props: QProps) {
   switch (props.q.type) {
     case "flash":
       return <FlashQ {...props} q={props.q} />;
@@ -161,6 +202,10 @@ function QuestionView(props: { q: Question; sound: Sound; last: boolean; onDone:
       return <FillQ {...props} q={props.q} />;
     case "rearrange":
       return <OrderQ {...props} q={props.q} />;
+    case "listen_type":
+      return <ListenTypeQ {...props} q={props.q} />;
+    case "choice":
+      return <ChoiceQ {...props} q={props.q} />;
   }
 }
 
@@ -168,14 +213,16 @@ function QuestionView(props: { q: Question; sound: Sound; last: boolean; onDone:
 
 function Frame({
   type,
+  heading,
   children,
   footer,
 }: {
   type: Question["type"];
+  heading?: [string, string];
   children: React.ReactNode;
   footer: React.ReactNode;
 }) {
-  const [en, vi] = INSTRUCTIONS[type];
+  const [en, vi] = heading ?? INSTRUCTIONS[type];
   return (
     <div className="animate-kid-in flex flex-1 flex-col">
       <div className="pt-3 text-center">
@@ -689,11 +736,13 @@ function SpellQ({
 
 function TrueFalseQ({
   q,
+  ctxType,
   sound,
   last,
   onDone,
 }: {
   q: Extract<Question, { type: "true_false" }>;
+  ctxType?: PlayerContext["type"];
   sound: Sound;
   last: boolean;
   onDone: (p: number) => void;
@@ -743,18 +792,34 @@ function TrueFalseQ({
   return (
     <Frame
       type="true_false"
+      heading={ctxType ? CONTEXT_HEADINGS[ctxType].tf : undefined}
       footer={
         <Footer
           status={a.status}
           last={last}
           onNext={() => onDone(a.points)}
-          rightDetail={q.answer ? "Câu này đúng với hình." : "Câu này không đúng với hình."}
+          rightDetail={
+            ctxType
+              ? q.answer
+                ? "Câu này đúng theo bài."
+                : "Câu này không đúng theo bài."
+              : q.answer
+                ? "Câu này đúng với hình."
+                : "Câu này không đúng với hình."
+          }
         />
       }
     >
-      <div className="flex size-44 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
-        <Pic code={q.emoji} size={140} />
-      </div>
+      {!ctxType || q.emoji ? (
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]",
+            ctxType ? "size-28" : "size-44",
+          )}
+        >
+          <Pic code={q.emoji} size={ctxType ? 90 : 140} />
+        </div>
+      ) : null}
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
         <SpeakButton onClick={() => sound.speak(q.sentence)} label="Nghe câu" />
         <p className="font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
@@ -955,6 +1020,219 @@ function OrderQ({
 // ---------------------------------------------------------------- finish ----
 
 const CONFETTI_COLORS = ["#FFC61A", "#F28C1B", "#FF8FB1", "#7EE8C7", "#7ED957", "#B9A6FF", "#4CC9F0"];
+
+function ListenTypeQ({
+  q,
+  sound,
+  last,
+  onDone,
+}: {
+  q: Extract<Question, { type: "listen_type" }>;
+  sound: Sound;
+  last: boolean;
+  onDone: (p: number) => void;
+}) {
+  const a = useAnswer(sound);
+  const [typed, setTyped] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const t = window.setTimeout(() => sound.speak(q.answer.word), 300);
+    return () => window.clearTimeout(t);
+  }, [q.answer.word, sound]);
+  const check = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (a.status === "right" || !typed.trim()) return;
+    if (sameWord(typed, q.answer.word)) {
+      a.right();
+      sound.speak(q.answer.word);
+    } else {
+      a.wrong("input");
+      input.current?.select();
+    }
+  };
+  return (
+    <Frame
+      type="listen_type"
+      footer={
+        <Footer
+          status={a.status}
+          last={last}
+          onNext={() => onDone(a.points)}
+          rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
+          hint={`Từ có ${q.answer.word.length} chữ cái. Bấm loa để nghe lại.`}
+        />
+      }
+    >
+      {a.status === "right" ? (
+        <div className="animate-kid-pop flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
+          <Pic code={q.answer.emoji} size={120} />
+        </div>
+      ) : (
+        <SpeakButton big onClick={() => sound.speak(q.answer.word)} label="Nghe lại" />
+      )}
+      <form onSubmit={check} className="flex w-full max-w-md flex-col gap-3">
+        <input
+          ref={input}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          readOnly={a.status === "right"}
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          inputMode="text"
+          aria-label="Viết từ con nghe được"
+          placeholder={"_ ".repeat(q.answer.word.length).trim()}
+          data-testid="type-input"
+          data-answer={q.answer.word.toLowerCase()}
+          className={cn(
+            "h-20 w-full rounded-3xl border-[3px] bg-k-surface text-center font-kid-display text-4xl font-bold tracking-wider outline-none focus:border-k-primary",
+            a.status === "right" ? "border-k-good" : a.status === "wrong" ? "border-k-bad" : "border-k-line",
+            a.shake === "input" && "animate-kid-shake",
+          )}
+        />
+        {a.status !== "right" ? (
+          <button
+            type="submit"
+            disabled={!typed.trim()}
+            data-testid="check"
+            className="kid-press h-16 w-full rounded-2xl bg-k-accent text-xl font-black text-k-ink [--press:var(--k-accent-shadow)] disabled:opacity-40"
+          >
+            Kiểm tra
+          </button>
+        ) : null}
+      </form>
+    </Frame>
+  );
+}
+
+function ChoiceQ({
+  q,
+  ctxType,
+  sound,
+  last,
+  onDone,
+}: {
+  q: Extract<Question, { type: "choice" }>;
+  ctxType?: PlayerContext["type"];
+  sound: Sound;
+  last: boolean;
+  onDone: (p: number) => void;
+}) {
+  const a = useAnswer(sound);
+  const [picked, setPicked] = useState<string | null>(null);
+  const choose = (o: string) => {
+    if (a.status === "right") return;
+    setPicked(o);
+    if (o === q.answer) a.right();
+    else a.wrong(o);
+  };
+  return (
+    <Frame
+      type="choice"
+      heading={ctxType ? CONTEXT_HEADINGS[ctxType].mc : undefined}
+      footer={<Footer status={a.status} last={last} onNext={() => onDone(a.points)} />}
+    >
+      <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
+        {q.emoji ? <Pic code={q.emoji} size={56} className="shrink-0" /> : null}
+        <p className="flex-1 font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
+          {q.prompt}
+        </p>
+        <SpeakButton onClick={() => sound.speak(q.prompt)} label="Nghe câu hỏi" />
+      </div>
+      <div className="flex w-full max-w-md flex-col gap-3">
+        {q.options.map((o) => {
+          const isAnswer = o === q.answer;
+          const state =
+            a.status === "right"
+              ? isAnswer
+                ? "right"
+                : "dim"
+              : picked === o && a.status === "wrong"
+                ? "wrong"
+                : "idle";
+          return (
+            <button
+              key={o}
+              type="button"
+              onClick={() => choose(o)}
+              data-testid="option"
+              data-correct={isAnswer ? "true" : undefined}
+              className={cn(
+                choiceClass(state),
+                "min-h-16 px-4 py-3 text-xl font-black",
+                a.shake === o && "animate-kid-shake",
+              )}
+            >
+              {o}
+            </button>
+          );
+        })}
+      </div>
+    </Frame>
+  );
+}
+
+/** The recording or passage a run of questions is about; stays mounted between them. */
+function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
+  const [open, setOpen] = useState(true);
+  const label = ctx.type === "listening" ? "bài nghe" : "bài đọc";
+  return (
+    <section
+      className="mt-2 rounded-3xl bg-k-surface p-3 shadow-[0_3px_0_var(--k-line)]"
+      data-testid="context"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-base font-black">
+          {ctx.type === "reading" && ctx.emoji ? <Pic code={ctx.emoji} size={28} /> : null}
+          {ctx.type === "reading" ? (ctx.title ?? "Đọc bài") : "Nghe bài"}
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="rounded-full px-3 py-1 text-sm font-extrabold text-k-soft"
+        >
+          {open ? `Ẩn ${label}` : `Mở ${label}`}
+        </button>
+      </div>
+      {/* Hidden, not unmounted, so a playing video keeps its place. */}
+      <div className={cn("mt-2", !open && "hidden")}>
+        {ctx.type === "listening" ? (
+          ctx.youtube ? (
+            <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${ctx.youtube.videoId}?rel=0&playsinline=1${ctx.youtube.start ? `&start=${ctx.youtube.start}` : ""}`}
+                title="Video bài nghe"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="size-full"
+                data-testid="youtube"
+              />
+            </div>
+          ) : ctx.audioUrl ? (
+            <audio controls preload="metadata" src={ctx.audioUrl} className="w-full" data-testid="audio">
+              Trình duyệt không phát được audio.
+            </audio>
+          ) : (
+            <p className="text-sm font-bold text-k-soft">Không mở được bài nghe. Hỏi thầy cô nhé.</p>
+          )
+        ) : (
+          <div className="flex items-start gap-2">
+            <p
+              className="max-h-56 flex-1 overflow-y-auto text-[19px] leading-relaxed font-bold whitespace-pre-line"
+              data-testid="passage"
+            >
+              {ctx.passage}
+            </p>
+            <SpeakButton onClick={() => sound.speak(ctx.passage)} label="Đọc to bài" />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function Finish({
   activityId,

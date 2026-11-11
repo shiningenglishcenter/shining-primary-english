@@ -92,7 +92,7 @@ describe("buildRound — word games", () => {
   });
 
   it("returns an empty round when there are no usable words", () => {
-    expect(buildRound("flashcards", {}, [], seeded())).toEqual({ questions: [], maxScore: 0 });
+    expect(buildRound("flashcards", {}, [], seeded())).toEqual({ questions: [], maxScore: 0, contexts: [] });
   });
 });
 
