@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { KidPage, LevelTabs, Pic, StarBadge, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
-import { levelByCode, levelBySlug, PRACTICE_LEVELS } from "@/features/practice/model";
+import { levelByCode, levelBySlug, PRACTICE_LEVELS, topicNoun } from "@/features/practice/model";
 import { listTopics } from "@/features/practice/queries";
 
 export const metadata: Metadata = { title: "Học bài" };
@@ -60,7 +60,9 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
       </div>
 
       <div className="mt-5 flex items-baseline justify-between gap-3">
-        <h2 className="font-kid-display text-[22px] font-bold">Chủ đề {level.name}</h2>
+        <h2 className="font-kid-display text-[22px] font-bold">
+          {topicNoun(level)} {level.name}
+        </h2>
         {total > 0 ? (
           <span className="text-[15px] font-bold text-k-soft">
             {done}/{total} bài đã làm

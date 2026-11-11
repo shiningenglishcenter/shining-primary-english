@@ -38,75 +38,30 @@
 
   --radius: 0.625rem;
 
-  /* Student "kid" theme tokens. Brand: logo charcoal #3A3A3C, sunshine #FFC61A,
-     ray orange #F28C1B. Default = Starters ("Nắng Sớm"); .theme-movers and
-     .theme-flyers override (one theme per level, owner decision 2026-11-10). */
-  --k-bg: #fffbef;
+  /* Student "kid" theme (D27): one shared theme for every programme and level,
+     pale yellow + leaf green (owner decision 2026-11-11). */
+  --k-bg: #fff8dc;
   --k-surface: #ffffff;
-  --k-ink: #3a3a3c;
-  --k-soft: #6b6b70;
-  --k-line: #f1e6c8;
-  --k-primary: #ffc61a;
-  --k-primary-ink: #3a3a3c;
-  --k-primary-shadow: #e0a800;
-  --k-accent: #f28c1b;
-  --k-accent-soft: #ffe7cc;
-  --k-accent-ink: #9a4a08;
-  --k-tile: #fff1c2;
-  --k-good: #1f7a4a;
-  --k-good-soft: #e3f6e9;
-  --k-bad: #b54708;
-  --k-bad-soft: #ffe7cc;
+  --k-ink: #2f3b1f;
+  --k-soft: #5f6e48;
+  --k-line: #eadfa8;
+  --k-primary: #3a9a47;
+  --k-primary-ink: #ffffff;
+  --k-primary-shadow: #2e7d32;
+  --k-accent: #ffc93c;
+  --k-accent-shadow: #e0a800;
+  --k-accent-soft: #fff0c2;
+  --k-accent-ink: #7a5600;
+  --k-tile: #eef7e4;
+  --k-good: #2e7d32;
+  --k-good-soft: #e3f3dd;
+  --k-bad: #c0504d;
+  --k-bad-soft: #fde4e1;
   --k-star: #ffb400;
-  --k-star-off: #ede3cb;
-  --k-nav: #3a3a3c;
-  --k-nav-ink: #e6e6e8;
-  --k-nav-active: #ffc61a;
-}
-
-.theme-movers {
-  /* "Đảo Phiêu Lưu": sky, islands, chunky buttons */
-  --k-bg: #cfefff;
-  --k-surface: #ffffff;
-  --k-ink: #3a3a3c;
-  --k-soft: #3f5a6b;
-  --k-line: #a9ddf5;
-  --k-primary: #ffc61a;
-  --k-primary-ink: #3a3a3c;
-  --k-primary-shadow: #e0a800;
-  --k-accent: #7ed957;
-  --k-accent-soft: #e3f8d9;
-  --k-accent-ink: #2f6e1a;
-  --k-tile: #e3f8d9;
-  --k-star-off: #c8dde8;
-  --k-nav: #3a3a3c;
-  --k-nav-ink: #e6e6e8;
-  --k-nav-active: #7ed957;
-}
-
-.theme-flyers {
-  /* "Vũ Trụ Kẹo Ngọt": night sky, candy colours */
-  --k-bg: #24242a;
-  --k-surface: #34343c;
-  --k-ink: #ffffff;
-  --k-soft: #c9c9d1;
-  --k-line: #4a4a55;
-  --k-primary: #7ee8c7;
-  --k-primary-ink: #24242a;
-  --k-primary-shadow: #4fc4a0;
-  --k-accent: #b9a6ff;
-  --k-accent-soft: #3d3a52;
-  --k-accent-ink: #e2d9ff;
-  --k-tile: #2d2d34;
-  --k-good: #7ee8c7;
-  --k-good-soft: #23443b;
-  --k-bad: #ffb38a;
-  --k-bad-soft: #4a3326;
-  --k-star: #ffc61a;
-  --k-star-off: #5a5a66;
-  --k-nav: #34343c;
-  --k-nav-ink: #e6e6ec;
-  --k-nav-active: #7ee8c7;
+  --k-star-off: #ede3c0;
+  --k-nav: #2e7d32;
+  --k-nav-ink: #f1f8e9;
+  --k-nav-active: #ffc93c;
 }
 
 @theme inline {
@@ -123,6 +78,7 @@
   --color-k-primary-ink: var(--k-primary-ink);
   --color-k-primary-shadow: var(--k-primary-shadow);
   --color-k-accent: var(--k-accent);
+  --color-k-accent-shadow: var(--k-accent-shadow);
   --color-k-accent-soft: var(--k-accent-soft);
   --color-k-accent-ink: var(--k-accent-ink);
   --color-k-tile: var(--k-tile);
@@ -314,8 +270,8 @@
 .nav-progress-bar {
   width: 0;
   opacity: 0;
-  background: #3fa34d;
-  box-shadow: 0 0 6px rgb(63 163 77 / 0.6);
+  background: #3a9a47;
+  box-shadow: 0 0 6px rgb(58 154 71 / 0.6);
 }
 .nav-progress[data-phase="loading"] .nav-progress-bar {
   opacity: 1;

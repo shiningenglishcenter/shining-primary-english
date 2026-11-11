@@ -47,7 +47,8 @@ describe("starsFor (same thresholds as record_practice)", () => {
 
 describe("levelBySlug", () => {
   it("falls back to Starters", () => {
-    expect(levelBySlug("flyers").theme).toBe("theme-flyers");
+    expect(levelBySlug("flyers").code).toBe("FLYERS");
+    expect(levelBySlug("g1").program).toBe("global_success");
     expect(levelBySlug("nope").code).toBe("STARTERS");
   });
 });

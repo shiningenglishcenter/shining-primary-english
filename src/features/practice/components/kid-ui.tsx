@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/features/auth/actions";
 import { emojiSrc } from "@/features/practice/emoji";
-import { PRACTICE_LEVELS, type PracticeLevel } from "@/features/practice/model";
+import { levelsOf, PROGRAMS, type PracticeLevel } from "@/features/practice/model";
 import { cn } from "@/lib/utils";
 
 /** Sunny, the SHINING sun from the logo, as the children's guide. */
@@ -153,10 +153,7 @@ export function StarBadge({ value }: { value: number }) {
   );
 }
 
-/**
- * Full-bleed themed page for students. Each level has its own theme
- * (`theme-starters` / `-movers` / `-flyers`).
- */
+/** Full-bleed page for students, in the shared kid theme (D27). */
 export function KidPage({
   level,
   children,
@@ -167,7 +164,7 @@ export function KidPage({
   header?: boolean;
 }) {
   return (
-    <div className={cn(level.theme, "min-h-dvh bg-k-bg font-kid text-k-ink")} data-level={level.slug}>
+    <div className="min-h-dvh bg-k-bg font-kid text-k-ink" data-level={level.slug}>
       <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 pb-8 sm:px-6">
         {header ? (
           <header className="flex items-center justify-between gap-3 pt-4 pb-2">
@@ -192,27 +189,53 @@ export function KidPage({
   );
 }
 
+/** Programme tabs (Cambridge / Global Success), then that programme's levels. */
 export function LevelTabs({ current }: { current: PracticeLevel }) {
   return (
-    <nav aria-label="Chọn trình độ" className="flex gap-2">
-      {PRACTICE_LEVELS.map((l) => {
-        const active = l.slug === current.slug;
-        return (
-          <Link
-            key={l.slug}
-            href={`/learn?level=${l.slug}`}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex h-12 flex-1 items-center justify-center rounded-full text-[17px] font-black transition-colors",
-              active
-                ? "kid-press bg-k-primary text-k-primary-ink [--press:var(--k-primary-shadow)]"
-                : "border-2 border-k-line bg-k-surface text-k-ink",
-            )}
-          >
-            {l.name}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="flex flex-col gap-2">
+      <nav
+        aria-label="Chọn chương trình"
+        className="flex gap-2 rounded-full bg-k-surface p-1 shadow-[0_3px_0_var(--k-line)]"
+      >
+        {PROGRAMS.map((p) => {
+          const active = p.code === current.program;
+          return (
+            <Link
+              key={p.code}
+              href={`/learn?level=${levelsOf(p.code)[0].slug}`}
+              aria-current={active ? "page" : undefined}
+              data-testid="program-tab"
+              className={cn(
+                "flex h-11 flex-1 items-center justify-center rounded-full text-[16px] font-black transition-colors",
+                active ? "bg-k-primary text-k-primary-ink" : "text-k-soft",
+              )}
+            >
+              {p.name}
+            </Link>
+          );
+        })}
+      </nav>
+      <nav aria-label="Chọn trình độ" className="flex gap-2">
+        {levelsOf(current.program).map((l) => {
+          const active = l.slug === current.slug;
+          return (
+            <Link
+              key={l.slug}
+              href={`/learn?level=${l.slug}`}
+              aria-current={active ? "page" : undefined}
+              data-testid="level-tab"
+              className={cn(
+                "flex h-12 flex-1 items-center justify-center rounded-full text-[17px] font-black transition-colors",
+                active
+                  ? "kid-press bg-k-accent text-k-ink [--press:var(--k-accent-shadow)]"
+                  : "border-2 border-k-line bg-k-surface text-k-ink",
+              )}
+            >
+              {l.short}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }

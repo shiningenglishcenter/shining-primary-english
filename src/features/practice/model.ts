@@ -1,13 +1,45 @@
 import { z } from "zod";
 import { EMOJI_CODE_PATTERN } from "@/features/practice/emoji";
 
-/** Practice levels shown to students, each with its own theme (D23). */
-export const PRACTICE_LEVELS = [
-  { code: "STARTERS", slug: "starters", name: "Starters", theme: "theme-starters" },
-  { code: "MOVERS", slug: "movers", name: "Movers", theme: "theme-movers" },
-  { code: "FLYERS", slug: "flyers", name: "Flyers", theme: "theme-flyers" },
+/**
+ * Practice is organised Programme → Level → Topic/Unit → Activity (D26).
+ * One shared theme for every level (D27); codes match `public.levels.code`.
+ */
+export const PROGRAMS = [
+  { code: "cambridge", name: "Cambridge" },
+  { code: "global_success", name: "Global Success" },
 ] as const;
+export type Program = (typeof PROGRAMS)[number];
+export type ProgramCode = Program["code"];
+
+export const PRACTICE_LEVELS = [
+  { code: "STARTERS", slug: "starters", name: "Starters", short: "Starters", program: "cambridge" },
+  { code: "MOVERS", slug: "movers", name: "Movers", short: "Movers", program: "cambridge" },
+  { code: "FLYERS", slug: "flyers", name: "Flyers", short: "Flyers", program: "cambridge" },
+  { code: "GS1", slug: "g1", name: "Global Success 1", short: "G1", program: "global_success" },
+  { code: "GS2", slug: "g2", name: "Global Success 2", short: "G2", program: "global_success" },
+  { code: "GS3", slug: "g3", name: "Global Success 3", short: "G3", program: "global_success" },
+  { code: "GS4", slug: "g4", name: "Global Success 4", short: "G4", program: "global_success" },
+  { code: "GS5", slug: "g5", name: "Global Success 5", short: "G5", program: "global_success" },
+] as const satisfies readonly {
+  code: string;
+  slug: string;
+  name: string;
+  short: string;
+  program: ProgramCode;
+}[];
 export type PracticeLevel = (typeof PRACTICE_LEVELS)[number];
+
+export function levelsOf(program: ProgramCode): PracticeLevel[] {
+  return PRACTICE_LEVELS.filter((l) => l.program === program);
+}
+export function programOf(level: PracticeLevel): Program {
+  return PROGRAMS.find((p) => p.code === level.program) ?? PROGRAMS[0];
+}
+/** Global Success groups its topics as textbook units. */
+export function topicNoun(level: PracticeLevel): string {
+  return level.program === "global_success" ? "Unit" : "Chủ đề";
+}
 
 export function levelBySlug(slug: string | null | undefined): PracticeLevel {
   return PRACTICE_LEVELS.find((l) => l.slug === slug) ?? PRACTICE_LEVELS[0];

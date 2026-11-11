@@ -6,7 +6,15 @@ import { DataTable, PageHeader, Section, td, th } from "@/components/shell/page-
 import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/lib/auth/session";
 import { emojiSrc } from "@/features/practice/emoji";
-import { KIND_LABEL_VI, levelBySlug, levelByCode, PRACTICE_LEVELS } from "@/features/practice/model";
+import {
+  KIND_LABEL_VI,
+  levelBySlug,
+  levelByCode,
+  levelsOf,
+  PRACTICE_LEVELS,
+  PROGRAMS,
+  topicNoun,
+} from "@/features/practice/model";
 import { getActivityForStaff, getTopicForStaff, listTopicsForStaff } from "@/features/content-editor/queries";
 import {
   ActivityEditor,
@@ -60,8 +68,25 @@ export async function ContentHome({
         title="Bài luyện"
         description="Chủ đề, từ vựng và bài luyện học sinh tự làm. Học sinh ở mọi lớp đều mở được mọi trình độ."
       />
-      <nav aria-label="Trình độ" className="mb-6 flex gap-2">
-        {PRACTICE_LEVELS.map((l) => (
+      <nav aria-label="Chương trình" className="mb-3 flex gap-2">
+        {PROGRAMS.map((p) => (
+          <Link
+            key={p.code}
+            href={`${base}?level=${levelsOf(p.code)[0].slug}`}
+            aria-current={p.code === level.program ? "page" : undefined}
+            className={cn(
+              "rounded-md border px-4 py-2 text-sm font-semibold",
+              p.code === level.program
+                ? "border-sky bg-sky-soft text-ink"
+                : "border-line bg-surface hover:bg-muted",
+            )}
+          >
+            {p.name}
+          </Link>
+        ))}
+      </nav>
+      <nav aria-label="Trình độ" className="mb-6 flex flex-wrap gap-2">
+        {levelsOf(level.program).map((l) => (
           <Link
             key={l.slug}
             href={`${base}?level=${l.slug}`}
@@ -79,12 +104,14 @@ export async function ContentHome({
       </nav>
       <div className="flex flex-col gap-6">
         {topics.length === 0 ? (
-          <p className="text-ink-soft">Chưa có chủ đề nào cho {level.name}.</p>
+          <p className="text-ink-soft">
+            Chưa có {topicNoun(level).toLowerCase()} nào cho {level.name}.
+          </p>
         ) : (
           <DataTable testId="content-topics">
             <thead>
               <tr>
-                <th className={th}>Chủ đề</th>
+                <th className={th}>{topicNoun(level)}</th>
                 <th className={th}>Từ vựng</th>
                 <th className={th}>Bài luyện</th>
                 <th className={th}>Trạng thái</th>
@@ -115,7 +142,7 @@ export async function ContentHome({
             </tbody>
           </DataTable>
         )}
-        <Section title={`Thêm chủ đề ${level.name}`}>
+        <Section title={`Thêm ${topicNoun(level).toLowerCase()} ${level.name}`}>
           <NewTopicForm levelCode={level.code} base={base} />
         </Section>
       </div>

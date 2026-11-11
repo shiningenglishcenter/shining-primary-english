@@ -25,7 +25,7 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
         className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-k-surface px-4 py-2 text-base font-extrabold shadow-[0_3px_0_var(--k-line)]"
       >
         <ChevronLeft className="size-5" aria-hidden="true" />
-        Các chủ đề
+        Quay lại
       </Link>
 
       <section className="mt-4 flex items-center gap-4">
