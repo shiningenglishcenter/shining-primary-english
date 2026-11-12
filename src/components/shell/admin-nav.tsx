@@ -13,10 +13,12 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: "/admin/teachers", label: "Giáo viên" },
   { href: "/admin/classes", label: "Lớp học" },
   { href: "/admin/content", label: "Bài luyện" },
+  { href: "/admin/results", label: "Kết quả" },
 ];
 
 const TEACHER_ITEMS: NavItem[] = [
   { href: "/teacher", label: "Lớp của tôi", exact: true },
+  { href: "/teacher/results", label: "Kết quả" },
   { href: "/teacher/content", label: "Bài luyện" },
 ];
 
