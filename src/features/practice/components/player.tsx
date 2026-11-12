@@ -394,6 +394,8 @@ function Footer({
 }
 
 const AUTO_NEXT_MS = 3000;
+/** Pause before an automatic check, so the child sees what they placed or typed. */
+const AUTO_CHECK_MS = 400;
 
 /**
  * Tracks one question's answer (D29): points 2 right first time, 1 right
@@ -1109,13 +1111,23 @@ function OrderQ({
     hint: q.hint,
     onFail: () => setOrder(wordsFor(q.answer, q.words)),
   });
-  const placed = order.map((i) => q.words[i]!);
-  const full = order.length === q.words.length;
-  const check = () => {
-    if (sameSentence(placed, q.answer)) {
+  // Checked automatically once every word is placed (owner feedback 2026-11-12).
+  const check = (next: number[]) => {
+    if (
+      sameSentence(
+        next.map((i) => q.words[i]!),
+        q.answer,
+      )
+    ) {
       a.right();
       sound.speak(q.answer.join(" "));
     } else a.wrong("line");
+  };
+  const add = (i: number) => {
+    if (a.done || order.includes(i)) return;
+    const next = [...order, i];
+    setOrder(next);
+    if (next.length === q.words.length) window.setTimeout(() => check(next), AUTO_CHECK_MS);
   };
   return (
     <Frame
@@ -1136,19 +1148,11 @@ function OrderQ({
               <button
                 type="button"
                 onClick={() => setOrder([])}
-                aria-label={t.restart}
-                className="kid-press flex size-16 shrink-0 items-center justify-center rounded-2xl bg-k-surface"
+                disabled={order.length === 0}
+                className="kid-press flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-k-surface text-xl font-black disabled:opacity-40"
               >
                 <RotateCcw className="size-7" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={check}
-                disabled={!full}
-                data-testid="check"
-                className="kid-press h-16 flex-1 rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)] disabled:opacity-40"
-              >
-                {t.check}
+                {t.restart}
               </button>
             </div>
           </>
@@ -1167,7 +1171,7 @@ function OrderQ({
         data-testid="sentence-line"
         data-answer={q.answer.join(" ")}
       >
-        {placed.length === 0 ? <span className="text-lg font-bold text-k-soft">{t.tapWords}</span> : null}
+        {order.length === 0 ? <span className="text-lg font-bold text-k-soft">{t.tapWords}</span> : null}
         {order.map((wi, pos) => (
           <button
             key={`${wi}-${pos}`}
@@ -1186,7 +1190,7 @@ function OrderQ({
             key={i}
             type="button"
             disabled={order.includes(i) || a.done}
-            onClick={() => setOrder([...order, i])}
+            onClick={() => add(i)}
             data-testid="word-chip"
             data-word={w}
             className="kid-press rounded-2xl bg-k-primary px-5 py-3 text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)] disabled:opacity-25"
@@ -1222,15 +1226,30 @@ function ListenTypeQ({
     const t = window.setTimeout(() => sound.speak(q.answer.word), 300);
     return () => window.clearTimeout(t);
   }, [q.answer.word, sound]);
-  const check = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (a.done || !typed.trim()) return;
-    if (sameWord(typed, q.answer.word)) {
+  const timer = useRef<number | null>(null);
+  const verify = (value: string) => {
+    if (a.done || !value.trim()) return;
+    if (sameWord(value, q.answer.word)) {
       a.right();
       sound.speak(q.answer.word);
     } else {
       a.wrong("input");
       input.current?.select();
+    }
+  };
+  const check = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (timer.current) window.clearTimeout(timer.current);
+    verify(typed);
+  };
+  // Checked automatically once as many letters as the word has are typed;
+  // the Check button / Enter stays for shorter or longer answers.
+  const letters = (v: string) => v.replace(/\s+/g, "").length;
+  const change = (value: string) => {
+    setTyped(value);
+    if (timer.current) window.clearTimeout(timer.current);
+    if (letters(value) === letters(q.answer.word)) {
+      timer.current = window.setTimeout(() => verify(value), AUTO_CHECK_MS);
     }
   };
   return (
@@ -1258,7 +1277,7 @@ function ListenTypeQ({
         <input
           ref={input}
           value={typed}
-          onChange={(e) => setTyped(e.target.value)}
+          onChange={(e) => change(e.target.value)}
           readOnly={a.done}
           autoComplete="off"
           autoCapitalize="none"

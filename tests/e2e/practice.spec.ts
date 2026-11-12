@@ -42,11 +42,11 @@ async function playThrough(page: Page) {
       for (const w of answer) {
         await page.locator(`[data-testid=word-chip][data-word="${w}"]:not([disabled])`).first().click();
       }
-      await page.getByTestId("check").click();
+      // checked automatically once every word is placed
     } else if (await visible("type-input")) {
       const input = page.getByTestId("type-input");
       await input.fill((await input.getAttribute("data-answer"))!);
-      await page.getByTestId("check").click();
+      // checked automatically once the word's letters are typed
     } else {
       await page.locator("[data-testid=option][data-correct=true]").click();
     }
