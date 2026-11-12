@@ -12,6 +12,7 @@ const PACKS = [
   "20261110000014_starters_content.sql",
   "20261111000016_gs1_content.sql",
   "20261111000017_starters_skills.sql",
+  "20261112000019_video_activities.sql",
 ];
 const ACTIVITY =
   /select v_topic, '([a-z_]+)', '(?:[^']|'')*', '(?:[^']|'')*', \d+, 'published', '((?:[^']|'')*)'::jsonb/g;

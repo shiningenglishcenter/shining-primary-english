@@ -20,7 +20,7 @@ mostly UI on top of a tested data layer.
 The main purpose is students doing exercises. New order:
 **Phase 1 ✅ practice library + Starters pack + content editor** → pilot & feedback →
 **Phase 1.1 ✅ feedback: programmes (Cambridge / Global Success), one theme, 4 new kinds, G1 pack, speed,
-loading** (2026-11-11) → Phase 2 mock tests
+loading** (2026-11-11) → **Phase 1.2 ✅ hints/tries, results pages, EN/VI, video exercises** (2026-11-12) → Phase 2 mock tests
 (Cambridge format, question bank) → Phase 3 teacher homework (assign, deadline, Zalo message, tracking) →
 Movers/Flyers content → later: teacher grading/comments, parents and reports, stories.
 

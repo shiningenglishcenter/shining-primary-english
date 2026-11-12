@@ -86,7 +86,7 @@ test.describe("student practice library", () => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Transport" }).click();
-    await expect(page.getByTestId("activity")).toHaveCount(10);
+    await expect(page.getByTestId("activity")).toHaveCount(11);
     const hrefs = await page
       .getByTestId("activity")
       .evaluateAll((els) => els.map((e) => e.getAttribute("href")!));
@@ -100,7 +100,7 @@ test.describe("student practice library", () => {
       page.getByTestId("activity").first().getByRole("img", { name: "3 out of 3 stars" }),
     ).toBeVisible();
     await page.goto("/learn?level=starters");
-    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("10/10");
+    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("11/11");
   });
 
   test("a wrong answer offers a hint and earns 1 point instead of 2", async ({ page }) => {
