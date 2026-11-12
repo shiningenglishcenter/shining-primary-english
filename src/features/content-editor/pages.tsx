@@ -23,7 +23,7 @@ import {
   TopicForm,
   WordsEditor,
 } from "@/features/content-editor/components/editor-forms";
-import { CopyLink } from "@/features/content-editor/components/copy-link";
+import { CopyLinkIcon, ShareLink } from "@/features/content-editor/components/copy-link";
 import { cn } from "@/lib/utils";
 
 /**
@@ -171,12 +171,14 @@ export async function TopicEditorPage({
         title={topic.titleEn}
         description={`${topic.titleVi} · ${topic.levelName}`}
         back={{ href: `${base}?level=${level.slug}`, label: `Chủ đề ${level.name}` }}
-        action={
-          topic.status === "published" ? (
-            <CopyLink path={`/learn/topics/${topic.id}`} label="Sao chép link chủ đề" />
-          ) : null
-        }
       />
+      <div className="mb-6">
+        {topic.status === "published" ? (
+          <ShareLink path={`/learn/topics/${topic.id}`} title={topic.titleEn} what="chủ đề" />
+        ) : (
+          <p className="text-sm text-ink-soft">Xuất bản chủ đề để lấy link gửi học sinh.</p>
+        )}
+      </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-6">
           <Section
@@ -205,7 +207,7 @@ export async function TopicEditorPage({
                     <StatusBadge status={a.status} />
                   </Link>
                   {a.status === "published" && topic.status === "published" ? (
-                    <CopyLink path={`/learn/play/${a.id}`} label="Sao chép link bài cho học sinh" compact />
+                    <CopyLinkIcon path={`/learn/play/${a.id}`} label={`Sao chép link bài “${a.titleVi}”`} />
                   ) : null}
                 </li>
               ))}
@@ -237,14 +239,17 @@ export async function ActivityEditorPage({
         title={activity.titleVi}
         description={`${KIND_LABEL_VI[activity.kind]} · ${activity.topic.titleEn}`}
         back={{ href: `${base}/topics/${activity.topic.id}`, label: activity.topic.titleEn }}
-        action={
-          activity.status === "published" && activity.topic.status === "published" ? (
-            <CopyLink path={`/learn/play/${activity.id}`} label="Sao chép link bài cho học sinh" />
-          ) : (
-            <span className="text-sm text-ink-soft">Xuất bản bài và chủ đề để lấy link gửi học sinh.</span>
-          )
-        }
       />
+      <div className="mb-6 max-w-3xl">
+        {activity.status === "published" && activity.topic.status === "published" ? (
+          <ShareLink
+            path={`/learn/play/${activity.id}`}
+            title={`${activity.topic.titleEn}: ${activity.titleEn}`}
+          />
+        ) : (
+          <p className="text-sm text-ink-soft">Xuất bản bài và chủ đề để lấy link gửi học sinh.</p>
+        )}
+      </div>
       <div className="max-w-3xl">
         <Section title="Sửa bài">
           <ActivityEditor
