@@ -278,6 +278,8 @@ const activitySchema = z.object({
   status: z.enum(STATUSES),
   sortOrder: z.coerce.number().int().min(0).max(10_000),
   content: z.string().max(60_000),
+  hints: z.enum(["on", "off"]),
+  maxTries: z.coerce.number().int().min(1).max(5),
 });
 
 /** `content` arrives as JSON built by the editor; validated per kind here. */
@@ -290,6 +292,8 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     status: formData.get("status"),
     sortOrder: formData.get("sortOrder") || 0,
     content: formData.get("content") ?? "{}",
+    hints: formData.get("hints") === "on" ? "on" : "off",
+    maxTries: formData.get("maxTries") || 3,
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
 
@@ -327,6 +331,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
       status: parsed.data.status,
       sort_order: parsed.data.sortOrder,
       content,
+      settings: { hints: parsed.data.hints === "on", maxTries: parsed.data.maxTries },
     })
     .eq("id", parsed.data.id);
   if (error) return { error: SAVE_FAILED };

@@ -5,6 +5,7 @@ import {
   mixedContentSchema,
   readingContentSchema,
   wordContentSchema,
+  POINTS,
   type Media,
   type PracticeKind,
   type QuizItem,
@@ -42,7 +43,7 @@ type QuestionBody =
  * A question; `ctx` points into `Round.contexts` when it is about a passage
  * or a recording, which the player keeps on screen above the question.
  */
-export type Question = QuestionBody & { ctx?: number };
+export type Question = QuestionBody & { ctx?: number; hint?: string };
 
 /** Server-side context: an audio file is still a storage path here. */
 export type RoundContext =
@@ -91,8 +92,9 @@ function pickOthers(all: Card[], answer: Card, n: number, rand: Rand): Card[] {
 
 const EMPTY: Round = { questions: [], maxScore: 0, contexts: [] };
 
-function scoreOf(questions: Question[]): number {
-  return questions.reduce((n, q) => n + (q.type === "match" ? q.pairs.length : 1), 0);
+/** Best possible score: every question (every match pair) is worth POINTS.first. */
+export function scoreOf(questions: Question[]): number {
+  return questions.reduce((n, q) => n + (q.type === "match" ? q.pairs.length : 1), 0) * POINTS.first;
 }
 
 export function buildRound(
@@ -133,10 +135,15 @@ export function buildRound(
         ? { type: "listening", media: data.media! }
         : { type: "reading", emoji: data.emoji ?? null, title: data.title || null, passage: data.passage! };
     // Questions follow the recording / passage, so keep the teacher's order.
-    const questions: Question[] = data.items.map((item) => ({ ...quizQuestion(item, rand), ctx: 0 }));
-    return { questions, maxScore: questions.length, contexts: [context] };
+    const questions: Question[] = data.items.map((item) => ({
+      ...quizQuestion(item, rand),
+      ctx: 0,
+      ...(item.hint ? { hint: item.hint } : {}),
+    }));
+    return { questions, maxScore: scoreOf(questions), contexts: [context] };
   }
-  return { ...buildSimple(kind, content, topicWords, rand), contexts: [] };
+  const { questions } = buildSimple(kind, content, topicWords, rand);
+  return { questions, maxScore: scoreOf(questions), contexts: [] };
 }
 
 function quizQuestion(item: QuizItem, rand: Rand): QuestionBody {
@@ -162,13 +169,23 @@ function buildSimple(
     const parsed = itemsSchemaByKind[kind].safeParse(content);
     if (!parsed.success) return { questions: [], maxScore: 0 };
     const items = shuffle(parsed.data.items, rand).slice(0, ROUND_SIZE);
-    const questions: Question[] = items.map((item) => {
+    const questions: Question[] = items.map((item): Question => {
+      const h = (item as { hint?: string }).hint;
+      return h ? { ...sentenceQuestion(item), hint: h } : sentenceQuestion(item);
+    });
+    return { questions, maxScore: questions.length };
+    function sentenceQuestion(item: (typeof items)[number]): QuestionBody {
       if (kind === "true_false") {
-        const i = item as { emoji?: string | null; sentence: string; answer: boolean };
+        const i = item as unknown as { emoji?: string | null; sentence: string; answer: boolean };
         return { type: "true_false", emoji: i.emoji ?? null, sentence: i.sentence, answer: i.answer };
       }
       if (kind === "fill_blank") {
-        const i = item as { emoji?: string | null; sentence: string; answer: string; options: string[] };
+        const i = item as unknown as {
+          emoji?: string | null;
+          sentence: string;
+          answer: string;
+          options: string[];
+        };
         const [before, after] = splitBlank(i.sentence);
         return {
           type: "fill_blank",
@@ -179,11 +196,10 @@ function buildSimple(
           answer: i.answer,
         };
       }
-      const i = item as { emoji?: string | null; sentence: string };
+      const i = item as unknown as { emoji?: string | null; sentence: string };
       const answer = i.sentence.trim().split(/\s+/);
       return { type: "rearrange", emoji: i.emoji ?? null, words: scramble(answer, rand), answer };
-    });
-    return { questions, maxScore: questions.length };
+    }
   }
 
   // Word games: the activity may list words; otherwise use the whole topic.

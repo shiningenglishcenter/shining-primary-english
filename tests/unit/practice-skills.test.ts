@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contentSchemaFor, parseYouTube } from "@/features/practice/model";
+import { contentSchemaFor, parseYouTube, settingsOf } from "@/features/practice/model";
 import { buildRound, MIXED_STEP_SIZE, sameWord } from "@/features/practice/round";
 
 const words = [
@@ -38,6 +38,21 @@ describe("parseYouTube", () => {
   });
 });
 
+describe("hints and settings", () => {
+  it("carries teacher hints and defaults the play settings", () => {
+    const r = buildRound(
+      "true_false",
+      { items: [{ emoji: null, sentence: "It is red.", answer: true, hint: "Look at the colour." }] },
+      words,
+      rand,
+    );
+    expect(r.questions[0]).toMatchObject({ type: "true_false", hint: "Look at the colour." });
+    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3 });
+    expect(settingsOf({ hints: false, maxTries: 9 })).toEqual({ hints: true, maxTries: 3 });
+    expect(settingsOf({ hints: false, maxTries: 1 })).toEqual({ hints: false, maxTries: 1 });
+  });
+});
+
 describe("listen_type", () => {
   it("uses single-word vocabulary and compares typed words loosely", () => {
     const r = buildRound("listen_type", {}, words, rand);
@@ -64,7 +79,7 @@ describe("listening and reading", () => {
       ["true_false", 0],
       ["choice", 0],
     ]);
-    expect(r.maxScore).toBe(2);
+    expect(r.maxScore).toBe(4);
   });
   it("rejects a reading passage without questions", () => {
     const content = { passage: "Hello! My name is Lan. I have a cat.", items: [] };
@@ -95,7 +110,7 @@ describe("mixed", () => {
     expect(r.questions.filter((q) => q.ctx !== undefined).map((q) => q.ctx)).toEqual([0, 0, 1, 1]);
     const matchPairs = r.questions.find((q) => q.type === "match");
     expect(r.maxScore).toBe(
-      MIXED_STEP_SIZE + 4 + (matchPairs?.type === "match" ? matchPairs.pairs.length : 0),
+      2 * (MIXED_STEP_SIZE + 4 + (matchPairs?.type === "match" ? matchPairs.pairs.length : 0)),
     );
   });
   it("needs at least two valid steps and no nested mixed", () => {

@@ -57,7 +57,7 @@ describe("buildRound — word games", () => {
   it("listen_choose: 3 picture options including the answer, never pictureless words", () => {
     const r = buildRound("listen_choose", {}, words, seeded());
     expect(r.questions).toHaveLength(5);
-    expect(r.maxScore).toBe(5);
+    expect(r.maxScore).toBe(10);
     for (const q of r.questions) {
       if (q.type !== "listen_choose") throw new Error("wrong type");
       expect(q.options).toHaveLength(3);
@@ -88,7 +88,7 @@ describe("buildRound — word games", () => {
   it("match: groups of up to 4 pairs, score = number of pairs", () => {
     const r = buildRound("match", {}, words, seeded());
     expect(r.questions.every((q) => q.type === "match" && q.pairs.length <= 4)).toBe(true);
-    expect(r.maxScore).toBe(5);
+    expect(r.maxScore).toBe(10);
   });
 
   it("returns an empty round when there are no usable words", () => {

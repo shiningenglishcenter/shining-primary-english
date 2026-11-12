@@ -16,7 +16,12 @@ import {
   updateTopic,
 } from "@/features/content-editor/actions";
 import { codeToEmoji, emojiSrc } from "@/features/practice/emoji";
-import { KIND_LABEL_VI, PRACTICE_KINDS, type PracticeKind } from "@/features/practice/model";
+import {
+  KIND_LABEL_VI,
+  PRACTICE_KINDS,
+  type PlaySettings,
+  type PracticeKind,
+} from "@/features/practice/model";
 import {
   ContentFields,
   serializeContent,
@@ -350,6 +355,7 @@ export function ActivityEditor({
     status: string;
     sortOrder: number;
     content: Record<string, unknown>;
+    settings: PlaySettings;
     topicId: string;
   };
   topicWords: { word: string; emoji: string | null }[];
@@ -380,6 +386,40 @@ export function ActivityEditor({
             <Input id="act-sort" name="sortOrder" type="number" min={0} defaultValue={activity.sortOrder} />
           </Field>
         </div>
+
+        {activity.kind !== "flashcards" ? (
+          <fieldset
+            className="flex flex-col gap-3 rounded-lg border border-line p-4"
+            data-testid="play-settings"
+          >
+            <legend className="px-1 text-sm font-semibold">Khi học sinh trả lời sai</legend>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="hints"
+                defaultChecked={activity.settings.hints}
+                className="size-4 accent-ink"
+              />
+              Cho xem gợi ý 💡 (gợi ý của thầy cô ở từng câu, nếu không có thì hệ thống tự gợi ý)
+            </label>
+            <label className="flex flex-wrap items-center gap-2 text-sm">
+              Sai
+              <Select name="maxTries" defaultValue={String(activity.settings.maxTries)} className="w-20">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+              lần thì hiện đáp án và tự sang câu tiếp theo.
+            </label>
+            <p className="text-xs text-ink-soft">
+              Điểm mỗi câu: đúng ngay lần đầu 2 điểm, đúng sau khi sai 1 điểm, hết lượt 0 điểm.
+            </p>
+          </fieldset>
+        ) : (
+          <input type="hidden" name="maxTries" value={activity.settings.maxTries} />
+        )}
 
         <ContentFields kind={activity.kind} content={draft} onChange={setDraft} topicWords={topicWords} />
 

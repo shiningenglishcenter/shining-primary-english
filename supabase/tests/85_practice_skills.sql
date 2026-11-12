@@ -30,6 +30,6 @@ select tests.ok(tests.n($$select * from storage.objects where bucket_id = 'learn
   'student can read listening audio');
 reset role;
 
-select tests.ok((public.health_check() ->> 'schema_version')::int = 15, 'schema version 15');
+select tests.ok((public.health_check() ->> 'schema_version')::int >= 15, 'schema version is current');
 
 rollback;

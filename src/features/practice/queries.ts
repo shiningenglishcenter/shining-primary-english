@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PlayerContext, RoundContext } from "@/features/practice/round";
 import {
   levelByCode,
+  settingsOf,
   starsFor,
   type PracticeKind,
   type PracticeLevel,
@@ -18,19 +19,22 @@ type ActivityRow = {
   id: string;
   status: string;
   deleted_at: string | null;
-  progress_records?: { score: number | null; max_score: number | null }[] | null;
+  progress_records?: { score: number | null; max_score: number | null; recorded_at: string }[] | null;
 };
 
 /** Embedded with each activity: RLS returns only the student's own rows. */
-const PROGRESS_EMBED = "progress_records(score, max_score)";
+const PROGRESS_EMBED = "progress_records(score, max_score, recorded_at)";
 
-/** Best stars (0–3) a student earned on an activity, from its embedded progress rows. */
-function bestStarsOf(a: ActivityRow): number {
-  let best = 0;
+/**
+ * Stars (0–3) of the student's LATEST attempt at an activity (owner decision
+ * 2026-11-12, D29), from its embedded progress rows.
+ */
+function latestStarsOf(a: ActivityRow): number {
+  let latest: { score: number | null; max_score: number | null; recorded_at: string } | null = null;
   for (const r of a.progress_records ?? []) {
-    best = Math.max(best, starsFor(Number(r.score ?? 0), Number(r.max_score ?? 0)));
+    if (!latest || r.recorded_at > latest.recorded_at) latest = r;
   }
-  return best;
+  return latest ? starsFor(Number(latest.score ?? 0), Number(latest.max_score ?? 0)) : 0;
 }
 
 const isLive = (a: ActivityRow) => a.status === "published" && !a.deleted_at;
@@ -62,7 +66,7 @@ export async function listTopics(level: PracticeLevel): Promise<TopicSummary[]> 
   if (error) throw new Error(`listTopics: ${error.code}`);
 
   return (data ?? []).map((t) => {
-    const stars = ((t.practice_activities ?? []) as ActivityRow[]).filter(isLive).map(bestStarsOf);
+    const stars = ((t.practice_activities ?? []) as ActivityRow[]).filter(isLive).map(latestStarsOf);
     return {
       id: t.id as string,
       code: t.code as string,
@@ -121,7 +125,7 @@ export async function getTopic(topicId: string) {
       kind: a.kind,
       titleEn: a.title_en,
       titleVi: a.title_vi,
-      stars: bestStarsOf(a),
+      stars: latestStarsOf(a),
     })),
   };
 }
@@ -147,7 +151,7 @@ export async function getActivity(activityId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("practice_activities")
-    .select("id, kind, title_en, title_vi, content, topic_id")
+    .select("id, kind, title_en, title_vi, content, settings, topic_id")
     .eq("id", activityId)
     .eq("status", "published")
     .is("deleted_at", null)
@@ -166,6 +170,7 @@ export async function getActivity(activityId: string) {
     titleEn: data.title_en as string,
     titleVi: data.title_vi as string,
     content: data.content as unknown,
+    settings: settingsOf(data.settings),
     topic,
     words,
     nextActivityId: topic.activities[index + 1]?.id ?? null,

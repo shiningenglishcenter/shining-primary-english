@@ -91,18 +91,32 @@ test.describe("student practice library", () => {
     await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("10/10 bài");
   });
 
-  test("a wrong first answer gives a hint and costs the point", async ({ page }) => {
+  test("a wrong answer offers a hint and earns 1 point instead of 2", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Colours" }).click();
     await page.getByTestId("activity").filter({ hasText: "Đúng hay sai?" }).click();
     await page.locator("[data-testid=option]:not([data-correct])").click();
-    await expect(page.getByTestId("feedback-wrong")).toBeVisible();
+    await expect(page.getByTestId("feedback-wrong")).toContainText("Còn 2 lần thử");
+    await page.getByTestId("hint-button").click();
+    await expect(page.getByTestId("hint-text")).toBeVisible();
     await page.locator("[data-testid=option][data-correct=true]").click();
     await expect(page.getByTestId("feedback-right")).toBeVisible();
     await page.getByTestId("next").click();
     await playThrough(page);
-    await expect(page.getByTestId("score")).toHaveText("Đúng ngay lần đầu: 5/6");
+    await expect(page.getByTestId("score")).toHaveText("Điểm: 11/12");
+  });
+
+  test("out of tries, the answer shows and the round moves on", async ({ page }) => {
+    await loginFromScratch(page, "hs.an");
+    await page.goto("/learn?level=starters");
+    await page.getByTestId("topic").filter({ hasText: "Colours" }).click();
+    await page.getByTestId("activity").filter({ hasText: "Chọn từ điền vào câu" }).click();
+    for (let i = 0; i < 3; i++) {
+      await page.locator("[data-testid=option]:not([data-correct]):not([disabled])").first().click();
+    }
+    await expect(page.getByTestId("feedback-failed")).toBeVisible();
+    await expect(page.getByTestId("progress-text")).toHaveText(/^2\//, { timeout: 6000 });
   });
 });
 

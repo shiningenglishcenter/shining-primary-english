@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Delete, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
+import { Check, Delete, Lightbulb, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { recordPractice } from "@/features/practice/actions";
 import { Pic, Stars, Sunny } from "@/features/practice/components/kid-ui";
-import { starsFor, type PracticeKind } from "@/features/practice/model";
+import {
+  DEFAULT_SETTINGS,
+  POINTS,
+  starsFor,
+  type PlaySettings,
+  type PracticeKind,
+} from "@/features/practice/model";
 import {
   sameSentence,
   sameWord,
@@ -18,7 +24,9 @@ import { useSound } from "@/features/practice/use-sound";
 import { cn } from "@/lib/utils";
 
 type Sound = ReturnType<typeof useSound>;
-type Status = "idle" | "wrong" | "right";
+type Status = "idle" | "wrong" | "right" | "failed";
+
+const SettingsContext = createContext<PlaySettings>(DEFAULT_SETTINGS);
 
 const INSTRUCTIONS: Record<Question["type"], [string, string]> = {
   flash: ["Look, listen and say", "Nhìn, nghe và đọc theo"],
@@ -53,6 +61,7 @@ export function Player({
   title,
   questions,
   contexts = [],
+  settings = DEFAULT_SETTINGS,
   maxScore,
   topicHref,
   nextHref,
@@ -62,6 +71,7 @@ export function Player({
   title: string;
   questions: Question[];
   contexts?: PlayerContext[];
+  settings?: PlaySettings;
   maxScore: number;
   topicHref: string;
   nextHref: string | null;
@@ -115,64 +125,66 @@ export function Player({
   }
 
   return (
-    <div className="flex flex-1 flex-col" data-testid="player" data-kind={kind}>
-      <div className="flex items-center gap-3 pt-4 pb-2">
-        <Link
-          href={topicHref}
-          aria-label="Thoát bài"
-          className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
-        >
-          <X className="size-6" aria-hidden="true" />
-        </Link>
-        <div
-          className="flex flex-1 gap-1.5"
-          role="progressbar"
-          aria-label="Tiến độ"
-          aria-valuemin={0}
-          aria-valuemax={questions.length}
-          aria-valuenow={index}
-        >
-          {questions.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-3.5 flex-1 rounded-full",
-                i < index ? "bg-k-primary" : i === index ? "bg-k-accent" : "bg-k-line",
-              )}
-            />
-          ))}
+    <SettingsContext value={settings}>
+      <div className="flex flex-1 flex-col" data-testid="player" data-kind={kind}>
+        <div className="flex items-center gap-3 pt-4 pb-2">
+          <Link
+            href={topicHref}
+            aria-label="Thoát bài"
+            className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
+          >
+            <X className="size-6" aria-hidden="true" />
+          </Link>
+          <div
+            className="flex flex-1 gap-1.5"
+            role="progressbar"
+            aria-label="Tiến độ"
+            aria-valuemin={0}
+            aria-valuemax={questions.length}
+            aria-valuenow={index}
+          >
+            {questions.map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-3.5 flex-1 rounded-full",
+                  i < index ? "bg-k-primary" : i === index ? "bg-k-accent" : "bg-k-line",
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-base font-black tabular-nums" data-testid="progress-text">
+            {index + 1}/{questions.length}
+          </span>
+          <button
+            type="button"
+            onClick={sound.toggleMute}
+            aria-label={sound.muted ? "Bật âm thanh" : "Tắt âm thanh"}
+            aria-pressed={sound.muted}
+            className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
+          >
+            {sound.muted ? (
+              <VolumeX className="size-6" aria-hidden="true" />
+            ) : (
+              <Volume2 className="size-6" aria-hidden="true" />
+            )}
+          </button>
         </div>
-        <span className="text-base font-black tabular-nums" data-testid="progress-text">
-          {index + 1}/{questions.length}
-        </span>
-        <button
-          type="button"
-          onClick={sound.toggleMute}
-          aria-label={sound.muted ? "Bật âm thanh" : "Tắt âm thanh"}
-          aria-pressed={sound.muted}
-          className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
-        >
-          {sound.muted ? (
-            <VolumeX className="size-6" aria-hidden="true" />
-          ) : (
-            <Volume2 className="size-6" aria-hidden="true" />
-          )}
-        </button>
+        <p className="sr-only">{title}</p>
+        {q.ctx !== undefined && contexts[q.ctx] ? (
+          // Keyed by context: the video / passage stays put across its questions.
+          <ContextPanel key={`ctx-${q.ctx}`} ctx={contexts[q.ctx]!} sound={sound} />
+        ) : null}
+        <QuestionView
+          key={index}
+          q={q}
+          ctxType={q.ctx !== undefined ? contexts[q.ctx]?.type : undefined}
+          sound={sound}
+          last={index + 1 >= questions.length}
+          onDone={advance}
+        />
       </div>
-      <p className="sr-only">{title}</p>
-      {q.ctx !== undefined && contexts[q.ctx] ? (
-        // Keyed by context: the video / passage stays put across its questions.
-        <ContextPanel key={`ctx-${q.ctx}`} ctx={contexts[q.ctx]!} sound={sound} />
-      ) : null}
-      <QuestionView
-        key={index}
-        q={q}
-        ctxType={q.ctx !== undefined ? contexts[q.ctx]?.type : undefined}
-        sound={sound}
-        last={index + 1 >= questions.length}
-        onDone={advance}
-      />
-    </div>
+    </SettingsContext>
   );
 }
 
@@ -261,27 +273,47 @@ function SpeakButton({
   );
 }
 
-/** Feedback banner + continue button. Points: 1 on a first try, else 0. */
+type Answer = ReturnType<typeof useAnswer>;
+
+/**
+ * Feedback banner + continue button (D29). After a wrong answer: tries left
+ * and, when hints are on, a 💡 button. Out of tries: the right answer shows
+ * and the round moves on by itself.
+ */
 function Footer({
-  status,
+  a,
   last,
   onNext,
   rightText = "Giỏi quá!",
   rightDetail,
-  wrongText = "Gần đúng rồi! Thử lại nhé.",
+  wrongText = "Chưa đúng rồi! Thử lại nhé.",
   hint,
+  answer,
 }: {
-  status: Status;
+  a: Pick<Answer, "status" | "triesLeft" | "hintText" | "hintOn" | "showHint" | "misses">;
   last: boolean;
   onNext: () => void;
   rightText?: string;
   rightDetail?: React.ReactNode;
   wrongText?: string;
-  hint?: React.ReactNode;
+  /** Automatic hint when the teacher wrote none. */
+  hint?: string;
+  /** The right answer, shown when out of tries. */
+  answer?: React.ReactNode;
 }) {
+  const next = useRef(onNext);
+  useEffect(() => {
+    next.current = onNext;
+  });
+  useEffect(() => {
+    if (a.status !== "failed") return;
+    const t = window.setTimeout(() => next.current(), AUTO_NEXT_MS);
+    return () => window.clearTimeout(t);
+  }, [a.status]);
+  const hintText = a.hintText(hint);
   return (
     <>
-      {status === "right" ? (
+      {a.status === "right" ? (
         <div
           className="animate-kid-in flex items-center gap-3 rounded-3xl bg-k-good-soft px-4 py-3"
           role="status"
@@ -289,24 +321,63 @@ function Footer({
         >
           <Sunny mood="cheer" size={56} />
           <div>
-            <p className="font-kid-display text-2xl font-bold text-k-good">{rightText}</p>
+            <p className="font-kid-display text-2xl font-bold text-k-good">
+              {a.misses === 0 ? rightText : "Đúng rồi!"}
+            </p>
             {rightDetail ? <p className="text-base font-bold">{rightDetail}</p> : null}
           </div>
         </div>
-      ) : status === "wrong" ? (
+      ) : a.status === "failed" ? (
         <div
-          className="animate-kid-in flex items-center gap-3 rounded-3xl bg-k-bad-soft px-4 py-3"
+          className="animate-kid-in flex items-center gap-3 rounded-3xl bg-k-accent-soft px-4 py-3"
           role="status"
-          data-testid="feedback-wrong"
+          data-testid="feedback-failed"
         >
           <Sunny mood="think" size={56} />
           <div>
-            <p className="font-kid-display text-2xl font-bold text-k-bad">{wrongText}</p>
-            {hint ? <p className="text-base font-bold">{hint}</p> : null}
+            <p className="font-kid-display text-xl font-bold text-k-accent-ink">
+              Không sao, mình học tiếp nhé!
+            </p>
+            {answer ? (
+              <p className="text-base font-bold">
+                Đáp án đúng: <span data-testid="revealed-answer">{answer}</span>
+              </p>
+            ) : null}
           </div>
         </div>
+      ) : a.status === "wrong" ? (
+        <div
+          className="animate-kid-in flex flex-col gap-2 rounded-3xl bg-k-bad-soft px-4 py-3"
+          role="status"
+          data-testid="feedback-wrong"
+        >
+          <div className="flex items-center gap-3">
+            <Sunny mood="think" size={48} />
+            <div className="flex-1">
+              <p className="font-kid-display text-xl font-bold text-k-bad">{wrongText}</p>
+              <p className="text-sm font-bold text-k-soft">Còn {a.triesLeft} lần thử</p>
+            </div>
+            {hintText && !a.hintOn ? (
+              <button
+                type="button"
+                onClick={a.showHint}
+                data-testid="hint-button"
+                className="kid-press flex shrink-0 items-center gap-1 rounded-2xl bg-k-accent px-3 py-2 text-base font-black text-k-ink [--press:var(--k-accent-shadow)]"
+              >
+                <Lightbulb className="size-5" aria-hidden="true" />
+                Gợi ý
+              </button>
+            ) : null}
+          </div>
+          {hintText && a.hintOn ? (
+            <p className="flex items-start gap-2 text-base font-bold" data-testid="hint-text">
+              <Lightbulb className="mt-0.5 size-5 shrink-0 text-k-accent-ink" aria-hidden="true" />
+              {hintText}
+            </p>
+          ) : null}
+        </div>
       ) : null}
-      {status === "right" ? (
+      {a.status === "right" || a.status === "failed" ? (
         <button
           type="button"
           onClick={onNext}
@@ -320,27 +391,80 @@ function Footer({
   );
 }
 
-/** Tracks right/wrong and whether the first attempt was right. */
-function useAnswer(sound: Sound) {
+const AUTO_NEXT_MS = 3000;
+
+/**
+ * Tracks one question's answer (D29): points 2 right first time, 1 right
+ * after a mistake, 0 when out of tries (`settings.maxTries`). `done` covers
+ * both endings, so components reveal the right answer either way.
+ */
+function useAnswer(sound: Sound, opts: { hint?: string; onFail?: () => void } = {}) {
+  const settings = useContext(SettingsContext);
   const [status, setStatus] = useState<Status>("idle");
-  const [missed, setMissed] = useState(false);
+  const [misses, setMisses] = useState(0);
+  const [hintOn, setHintOn] = useState(false);
   const [shake, setShake] = useState<string | null>(null);
   return {
     status,
-    points: missed ? 0 : 1,
+    misses,
+    done: status === "right" || status === "failed",
+    points: status === "failed" ? POINTS.none : misses === 0 ? POINTS.first : POINTS.retry,
+    triesLeft: Math.max(settings.maxTries - misses, 0),
     shake,
+    /** Hint is on only after a mistake and the child asked for it. */
+    hintOn: settings.hints && hintOn && status !== "right",
+    showHint() {
+      setHintOn(true);
+    },
+    /** The teacher's hint, else the automatic one; null when hints are off. */
+    hintText(auto?: string): string | null {
+      if (!settings.hints) return null;
+      return opts.hint ?? auto ?? null;
+    },
     right() {
       sound.correct();
       setStatus("right");
     },
     wrong(key: string) {
       sound.wrong();
-      setMissed(true);
-      setStatus("wrong");
+      const m = misses + 1;
+      setMisses(m);
       setShake(key);
       window.setTimeout(() => setShake(null), 400);
+      if (m >= settings.maxTries) {
+        setStatus("failed");
+        opts.onFail?.();
+      } else {
+        setStatus("wrong");
+      }
     },
   };
+}
+
+/** Letter tile indexes that spell `word` in order. */
+function lettersFor(word: string, letters: string[]): number[] {
+  const taken: number[] = [];
+  for (const ch of word) {
+    const i = letters.findIndex((l, k) => l === ch && !taken.includes(k));
+    if (i >= 0) taken.push(i);
+  }
+  return taken;
+}
+
+/** Word chip indexes that put `answer` in order (case-insensitive). */
+function wordsFor(answer: string[], words: string[]): number[] {
+  const taken: number[] = [];
+  for (const w of answer) {
+    const i = words.findIndex((x, k) => x.toLowerCase() === w.toLowerCase() && !taken.includes(k));
+    if (i >= 0) taken.push(i);
+  }
+  return taken;
+}
+
+/** With the hint on, one wrong option (not the one already picked) is taken away. */
+function eliminated<T>(a: Answer, options: T[], isAnswer: (o: T) => boolean, picked: T | null): T | null {
+  if (!a.hintOn) return null;
+  return options.find((o) => !isAnswer(o) && o !== picked) ?? null;
 }
 
 function choiceClass(state: "idle" | "right" | "wrong" | "dim") {
@@ -376,7 +500,7 @@ function FlashQ({
       footer={
         <button
           type="button"
-          onClick={() => onDone(1)}
+          onClick={() => onDone(POINTS.first)}
           data-testid="next"
           className="kid-press h-16 w-full rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)]"
         >
@@ -412,14 +536,20 @@ function ListenQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
+  const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => {
     const t = window.setTimeout(() => sound.speak(q.answer.word), 300);
     return () => window.clearTimeout(t);
   }, [q.answer.word, sound]);
+  const gone = eliminated(
+    a,
+    q.options.map((c) => c.word),
+    (w) => w === q.answer.word,
+    picked,
+  );
   const choose = (c: Card) => {
-    if (a.status === "right") return;
+    if (a.done || c.word === gone) return;
     setPicked(c.word);
     if (c.word === q.answer.word) a.right();
     else a.wrong(c.word);
@@ -429,11 +559,12 @@ function ListenQ({
       type="listen_choose"
       footer={
         <Footer
-          status={a.status}
+          a={a}
           last={last}
           onNext={() => onDone(a.points)}
           rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint="Bấm nút loa để nghe lại."
+          hint="Bấm loa nghe lại thật kỹ. Một hình sai đã được bỏ đi."
+          answer={`${q.answer.word} (${q.answer.meaningVi})`}
         />
       }
     >
@@ -441,17 +572,19 @@ function ListenQ({
       <div className="grid w-full max-w-xl grid-cols-3 gap-3">
         {q.options.map((c) => {
           const isAnswer = c.word === q.answer.word;
-          const state =
-            a.status === "right"
-              ? isAnswer
-                ? "right"
-                : "dim"
+          const state = a.done
+            ? isAnswer
+              ? "right"
+              : "dim"
+            : c.word === gone
+              ? "dim"
               : picked === c.word && a.status === "wrong"
                 ? "wrong"
                 : "idle";
           return (
             <button
               key={c.word}
+              disabled={c.word === gone}
               type="button"
               onClick={() => choose(c)}
               aria-label={`Hình ${c.meaningVi}`}
@@ -483,10 +616,11 @@ function LookQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
+  const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
+  const gone = eliminated(a, q.options, (w) => w === q.answer.word, picked);
   const choose = (w: string) => {
-    if (a.status === "right") return;
+    if (a.done || w === gone) return;
     setPicked(w);
     sound.speak(w);
     if (w === q.answer.word) a.right();
@@ -497,10 +631,12 @@ function LookQ({
       type="look_choose"
       footer={
         <Footer
-          status={a.status}
+          a={a}
           last={last}
           onNext={() => onDone(a.points)}
           rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
+          hint={`Từ này bắt đầu bằng chữ “${q.answer.word[0]}”.`}
+          answer={q.answer.word}
         />
       }
     >
@@ -510,17 +646,19 @@ function LookQ({
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((w) => {
           const isAnswer = w === q.answer.word;
-          const state =
-            a.status === "right"
-              ? isAnswer
-                ? "right"
-                : "dim"
+          const state = a.done
+            ? isAnswer
+              ? "right"
+              : "dim"
+            : w === gone
+              ? "dim"
               : picked === w && a.status === "wrong"
                 ? "wrong"
                 : "idle";
           return (
             <button
               key={w}
+              disabled={w === gone}
               type="button"
               onClick={() => choose(w)}
               data-testid="option"
@@ -552,12 +690,24 @@ function MatchQ({
   onDone: (p: number) => void;
 }) {
   const words = useMemo(() => [...q.pairs].sort((x, y) => x.word.localeCompare(y.word)), [q.pairs]);
+  const settings = useContext(SettingsContext);
   const [pic, setPic] = useState<string | null>(null);
   const [matched, setMatched] = useState<string[]>([]);
-  const [missed, setMissed] = useState<string[]>([]);
+  /** Wrong taps per picture; at maxTries the pair is matched for the child (0 points). */
+  const [misses, setMisses] = useState<Record<string, number>>({});
   const [shake, setShake] = useState<string | null>(null);
   const done = matched.length === q.pairs.length;
+  const points = q.pairs.reduce((n, c) => {
+    const m = misses[c.word] ?? 0;
+    return n + (m >= settings.maxTries ? POINTS.none : m > 0 ? POINTS.retry : POINTS.first);
+  }, 0);
+  const anyMiss = Object.keys(misses).length > 0;
 
+  const tapPicture = (w: string) => {
+    setPic(w);
+    // Hint: after a mistake on this picture, tapping it says its name.
+    if (settings.hints && (misses[w] ?? 0) > 0) sound.speak(w);
+  };
   const tapWord = (w: string) => {
     if (!pic || matched.includes(w)) return;
     sound.speak(w);
@@ -567,9 +717,14 @@ function MatchQ({
       setPic(null);
     } else {
       sound.wrong();
-      if (!missed.includes(pic)) setMissed([...missed, pic]);
+      const m = (misses[pic] ?? 0) + 1;
+      setMisses({ ...misses, [pic]: m });
       setShake(w);
       window.setTimeout(() => setShake(null), 400);
+      if (m >= settings.maxTries) {
+        setMatched([...matched, pic]);
+        setPic(null);
+      }
     }
   };
   return (
@@ -577,13 +732,25 @@ function MatchQ({
       type="match"
       footer={
         <Footer
-          status={done ? "right" : "idle"}
+          a={{
+            status: done ? "right" : "idle",
+            misses: anyMiss ? 1 : 0,
+            triesLeft: 0,
+            hintText: () => null,
+            hintOn: false,
+            showHint: () => {},
+          }}
           last={last}
-          onNext={() => onDone(q.pairs.length - missed.length)}
-          rightText={missed.length === 0 ? "Giỏi quá!" : "Xong rồi!"}
+          onNext={() => onDone(points)}
         />
       }
     >
+      {anyMiss && settings.hints && !done ? (
+        <p className="flex items-center gap-2 text-base font-bold text-k-soft" data-testid="hint-text">
+          <Lightbulb className="size-5 text-k-accent-ink" aria-hidden="true" />
+          Chạm vào hình để nghe tên của nó.
+        </p>
+      ) : null}
       <div className="grid w-full max-w-xl grid-cols-2 gap-4">
         <div className="flex flex-col gap-3">
           {q.pairs.map((c) => {
@@ -593,7 +760,7 @@ function MatchQ({
                 key={c.word}
                 type="button"
                 disabled={isDone}
-                onClick={() => setPic(c.word)}
+                onClick={() => tapPicture(c.word)}
                 aria-label={`Hình ${c.meaningVi}`}
                 aria-pressed={pic === c.word}
                 data-testid="match-picture"
@@ -648,13 +815,17 @@ function SpellQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
-  const [used, setUsed] = useState<number[]>([]);
   const target = q.answer.word.toLowerCase();
+  const [used, setUsed] = useState<number[]>([]);
+  const a = useAnswer(sound, {
+    hint: q.hint,
+    // Out of tries: spell it out for the child.
+    onFail: () => window.setTimeout(() => setUsed(lettersFor(target, q.letters)), 700),
+  });
   const typed = used.map((i) => q.letters[i]).join("");
 
   const tap = (i: number) => {
-    if (a.status === "right" || used.includes(i) || used.length >= target.length) return;
+    if (a.done || used.includes(i) || used.length >= target.length) return;
     const next = [...used, i];
     setUsed(next);
     const word = next.map((k) => q.letters[k]).join("");
@@ -664,7 +835,8 @@ function SpellQ({
         sound.speak(q.answer.word);
       } else {
         a.wrong("slots");
-        window.setTimeout(() => setUsed([]), 700);
+        // Clear for another try (the last miss spells the word instead, see onFail).
+        if (a.triesLeft > 1) window.setTimeout(() => setUsed([]), 700);
       }
     }
   };
@@ -673,11 +845,12 @@ function SpellQ({
       type="spell"
       footer={
         <Footer
-          status={a.status}
+          a={a}
           last={last}
           onNext={() => onDone(a.points)}
           rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint="Nghe lại và xếp chữ lần nữa."
+          hint={`Từ bắt đầu bằng chữ “${target[0]}” và có ${target.length} chữ cái.`}
+          answer={q.answer.word}
         />
       }
     >
@@ -699,6 +872,7 @@ function SpellQ({
               "flex h-16 w-12 items-center justify-center rounded-2xl border-[3px] text-3xl font-black sm:w-14",
               typed[i] ? "border-k-surface bg-k-surface" : "border-dashed border-k-line",
               a.status === "right" && "border-k-good",
+              a.status === "failed" && "border-k-accent",
             )}
           >
             {typed[i] ?? ""}
@@ -710,7 +884,7 @@ function SpellQ({
           <button
             key={i}
             type="button"
-            disabled={used.includes(i) || a.status === "right"}
+            disabled={used.includes(i) || a.done}
             onClick={() => tap(i)}
             aria-label={`Chữ ${l}`}
             data-testid="letter"
@@ -723,7 +897,7 @@ function SpellQ({
         <button
           type="button"
           onClick={() => setUsed(used.slice(0, -1))}
-          disabled={used.length === 0 || a.status === "right"}
+          disabled={used.length === 0 || a.done}
           aria-label="Xoá chữ vừa chọn"
           className="kid-press flex h-16 w-14 items-center justify-center rounded-2xl bg-k-surface disabled:opacity-30"
         >
@@ -747,27 +921,26 @@ function TrueFalseQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
+  const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<boolean | null>(null);
   useEffect(() => {
     const t = window.setTimeout(() => sound.speak(q.sentence), 300);
     return () => window.clearTimeout(t);
   }, [q.sentence, sound]);
   const choose = (v: boolean) => {
-    if (a.status === "right") return;
+    if (a.done) return;
     setPicked(v);
     if (v === q.answer) a.right();
     else a.wrong(String(v));
   };
   const btn = (v: boolean) => {
-    const state =
-      a.status === "right"
-        ? v === q.answer
-          ? "right"
-          : "dim"
-        : picked === v && a.status === "wrong"
-          ? "wrong"
-          : "idle";
+    const state = a.done
+      ? v === q.answer
+        ? "right"
+        : "dim"
+      : picked === v && a.status === "wrong"
+        ? "wrong"
+        : "idle";
     return (
       <button
         type="button"
@@ -795,9 +968,17 @@ function TrueFalseQ({
       heading={ctxType ? CONTEXT_HEADINGS[ctxType].tf : undefined}
       footer={
         <Footer
-          status={a.status}
+          a={a}
           last={last}
           onNext={() => onDone(a.points)}
+          hint={
+            ctxType === "listening"
+              ? "Nghe lại bài thật kỹ nhé."
+              : ctxType === "reading"
+                ? "Đọc lại bài thật kỹ nhé."
+                : "Nhìn kỹ hình và nghe lại câu nhé."
+          }
+          answer={q.answer ? "Yes" : "No"}
           rightDetail={
             ctxType
               ? q.answer
@@ -845,10 +1026,11 @@ function FillQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
+  const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
+  const gone = eliminated(a, q.options, (w) => w === q.answer, picked);
   const choose = (w: string) => {
-    if (a.status === "right") return;
+    if (a.done || w === gone) return;
     setPicked(w);
     if (w === q.answer) {
       a.right();
@@ -858,7 +1040,15 @@ function FillQ({
   return (
     <Frame
       type="fill_blank"
-      footer={<Footer status={a.status} last={last} onNext={() => onDone(a.points)} />}
+      footer={
+        <Footer
+          a={a}
+          last={last}
+          onNext={() => onDone(a.points)}
+          hint="Đọc lại cả câu nhé. Một đáp án sai đã được bỏ đi."
+          answer={q.answer}
+        />
+      }
     >
       <div className="flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
         <Pic code={q.emoji} size={128} />
@@ -871,20 +1061,21 @@ function FillQ({
         <span
           className={cn(
             "mx-1 inline-block min-w-24 rounded-xl border-b-4 px-2 text-center",
-            a.status === "right" ? "border-k-good bg-k-good-soft" : "border-k-accent bg-k-surface",
+            a.done ? "border-k-good bg-k-good-soft" : "border-k-accent bg-k-surface",
           )}
         >
-          {a.status === "right" ? q.answer : " "}
+          {a.done ? q.answer : " "}
         </span>
         {q.after}
       </p>
       <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
         {q.options.map((w) => {
-          const state =
-            a.status === "right"
-              ? w === q.answer
-                ? "right"
-                : "dim"
+          const state = a.done
+            ? w === q.answer
+              ? "right"
+              : "dim"
+            : w === gone
+              ? "dim"
               : picked === w && a.status === "wrong"
                 ? "wrong"
                 : "idle";
@@ -892,6 +1083,7 @@ function FillQ({
             <button
               key={w}
               type="button"
+              disabled={w === gone}
               onClick={() => choose(w)}
               data-testid="option"
               data-correct={w === q.answer ? "true" : undefined}
@@ -921,8 +1113,11 @@ function OrderQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
   const [order, setOrder] = useState<number[]>([]);
+  const a = useAnswer(sound, {
+    hint: q.hint,
+    onFail: () => setOrder(wordsFor(q.answer, q.words)),
+  });
   const placed = order.map((i) => q.words[i]!);
   const full = order.length === q.words.length;
   const check = () => {
@@ -935,19 +1130,17 @@ function OrderQ({
     <Frame
       type="rearrange"
       footer={
-        a.status === "right" ? (
-          <Footer status="right" last={last} onNext={() => onDone(a.points)} />
+        a.done ? (
+          <Footer a={a} last={last} onNext={() => onDone(a.points)} answer={q.answer.join(" ")} />
         ) : (
           <>
-            {a.status === "wrong" ? (
-              <div
-                className="rounded-3xl bg-k-bad-soft px-4 py-3 text-center font-kid-display text-xl font-bold text-k-bad"
-                role="status"
-                data-testid="feedback-wrong"
-              >
-                Chưa đúng thứ tự. Thử lại nhé!
-              </div>
-            ) : null}
+            <Footer
+              a={a}
+              last={last}
+              onNext={() => onDone(a.points)}
+              wrongText="Chưa đúng thứ tự. Thử lại nhé!"
+              hint={`Câu bắt đầu bằng “${q.answer[0]}”.`}
+            />
             <div className="flex gap-3">
               <button
                 type="button"
@@ -977,7 +1170,7 @@ function OrderQ({
       <div
         className={cn(
           "flex min-h-20 w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-3xl border-[3px] border-dashed p-3",
-          a.status === "right" ? "border-k-good bg-k-good-soft" : "border-k-line",
+          a.done ? "border-k-good bg-k-good-soft" : "border-k-line",
           a.shake === "line" && "animate-kid-shake",
         )}
         data-testid="sentence-line"
@@ -990,7 +1183,7 @@ function OrderQ({
           <button
             key={`${wi}-${pos}`}
             type="button"
-            disabled={a.status === "right"}
+            disabled={a.done}
             onClick={() => setOrder(order.filter((_, p) => p !== pos))}
             className="rounded-2xl bg-k-surface px-4 py-2 text-xl font-black shadow-[0_3px_0_var(--k-line)]"
           >
@@ -1003,7 +1196,7 @@ function OrderQ({
           <button
             key={i}
             type="button"
-            disabled={order.includes(i) || a.status === "right"}
+            disabled={order.includes(i) || a.done}
             onClick={() => setOrder([...order, i])}
             data-testid="word-chip"
             data-word={w}
@@ -1032,8 +1225,8 @@ function ListenTypeQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
   const [typed, setTyped] = useState("");
+  const a = useAnswer(sound, { hint: q.hint, onFail: () => setTyped(q.answer.word) });
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const t = window.setTimeout(() => sound.speak(q.answer.word), 300);
@@ -1041,7 +1234,7 @@ function ListenTypeQ({
   }, [q.answer.word, sound]);
   const check = (e: React.FormEvent) => {
     e.preventDefault();
-    if (a.status === "right" || !typed.trim()) return;
+    if (a.done || !typed.trim()) return;
     if (sameWord(typed, q.answer.word)) {
       a.right();
       sound.speak(q.answer.word);
@@ -1055,15 +1248,16 @@ function ListenTypeQ({
       type="listen_type"
       footer={
         <Footer
-          status={a.status}
+          a={a}
           last={last}
           onNext={() => onDone(a.points)}
           rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint={`Từ có ${q.answer.word.length} chữ cái. Bấm loa để nghe lại.`}
+          hint={`Từ bắt đầu bằng chữ “${q.answer.word[0]}” và có ${q.answer.word.length} chữ cái.`}
+          answer={`${q.answer.word} (${q.answer.meaningVi})`}
         />
       }
     >
-      {a.status === "right" ? (
+      {a.done ? (
         <div className="animate-kid-pop flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
           <Pic code={q.answer.emoji} size={120} />
         </div>
@@ -1075,7 +1269,7 @@ function ListenTypeQ({
           ref={input}
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          readOnly={a.status === "right"}
+          readOnly={a.done}
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
@@ -1091,7 +1285,7 @@ function ListenTypeQ({
             a.shake === "input" && "animate-kid-shake",
           )}
         />
-        {a.status !== "right" ? (
+        {!a.done ? (
           <button
             type="submit"
             disabled={!typed.trim()}
@@ -1119,10 +1313,11 @@ function ChoiceQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
-  const a = useAnswer(sound);
+  const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
+  const gone = eliminated(a, q.options, (o) => o === q.answer, picked);
   const choose = (o: string) => {
-    if (a.status === "right") return;
+    if (a.done || o === gone) return;
     setPicked(o);
     if (o === q.answer) a.right();
     else a.wrong(o);
@@ -1131,7 +1326,19 @@ function ChoiceQ({
     <Frame
       type="choice"
       heading={ctxType ? CONTEXT_HEADINGS[ctxType].mc : undefined}
-      footer={<Footer status={a.status} last={last} onNext={() => onDone(a.points)} />}
+      footer={
+        <Footer
+          a={a}
+          last={last}
+          onNext={() => onDone(a.points)}
+          hint={
+            ctxType === "listening"
+              ? "Nghe lại đoạn có câu trả lời nhé. Một đáp án sai đã được bỏ đi."
+              : "Đọc lại bài nhé. Một đáp án sai đã được bỏ đi."
+          }
+          answer={q.answer}
+        />
+      }
     >
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
         {q.emoji ? <Pic code={q.emoji} size={56} className="shrink-0" /> : null}
@@ -1143,17 +1350,19 @@ function ChoiceQ({
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((o) => {
           const isAnswer = o === q.answer;
-          const state =
-            a.status === "right"
-              ? isAnswer
-                ? "right"
-                : "dim"
+          const state = a.done
+            ? isAnswer
+              ? "right"
+              : "dim"
+            : o === gone
+              ? "dim"
               : picked === o && a.status === "wrong"
                 ? "wrong"
                 : "idle";
           return (
             <button
               key={o}
+              disabled={o === gone}
               type="button"
               onClick={() => choose(o)}
               data-testid="option"
@@ -1293,7 +1502,9 @@ function Finish({
       </h1>
       <Stars value={stars} size={52} />
       <p className="text-xl font-bold" data-testid="score">
-        {kind === "flashcards" ? `Con đã xem ${maxScore} thẻ từ` : `Đúng ngay lần đầu: ${score}/${maxScore}`}
+        {kind === "flashcards"
+          ? `Con đã xem ${maxScore / POINTS.first} thẻ từ`
+          : `Điểm: ${score}/${maxScore}`}
       </p>
       <div className="mt-2 flex w-full max-w-sm flex-col gap-3">
         {nextHref ? (

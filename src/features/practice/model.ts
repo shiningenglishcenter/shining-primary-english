@@ -102,21 +102,48 @@ export const WORD_KINDS: readonly PracticeKind[] = [
 
 const emoji = z.string().regex(EMOJI_CODE_PATTERN).nullable().optional();
 const sentence = z.string().trim().min(1).max(200);
+/** Optional teacher hint, shown after a wrong answer when hints are on (D29). */
+const hint = z
+  .string()
+  .trim()
+  .max(160)
+  .optional()
+  .transform((v) => v || undefined);
+
+/**
+ * Per-activity play settings (D29; `practice_activities.settings`). Defaults:
+ * hints on, move on after 3 wrong answers.
+ */
+export const settingsSchema = z.object({
+  hints: z.boolean().default(true),
+  maxTries: z.number().int().min(1).max(5).default(3),
+});
+export type PlaySettings = z.infer<typeof settingsSchema>;
+export const DEFAULT_SETTINGS: PlaySettings = { hints: true, maxTries: 3 };
+export function settingsOf(raw: unknown): PlaySettings {
+  const r = settingsSchema.safeParse(raw ?? {});
+  return r.success ? r.data : DEFAULT_SETTINGS;
+}
+
+/** Points per question: right first time, right after a mistake, out of tries. */
+export const POINTS = { first: 2, retry: 1, none: 0 } as const;
 
 export const wordContentSchema = z.object({
   words: z.array(z.string().trim().min(1).max(80)).max(100).optional(),
 });
-export const trueFalseItemSchema = z.object({ emoji, sentence, answer: z.boolean() });
+export const trueFalseItemSchema = z.object({ emoji, sentence, answer: z.boolean(), hint });
 export const fillBlankItemSchema = z
   .object({
     emoji,
     sentence: sentence.refine((s) => s.includes("___"), "Câu phải có chỗ trống ___"),
     answer: z.string().trim().min(1).max(60),
     options: z.array(z.string().trim().min(1).max(60)).min(2).max(4),
+    hint,
   })
   .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn");
 export const rearrangeItemSchema = z.object({
   emoji,
+  hint,
   sentence: sentence.refine(
     (s) => s.trim().split(/\s+/).length >= 2 && s.trim().split(/\s+/).length <= 10,
     "Câu từ 2 đến 10 từ",
@@ -133,7 +160,7 @@ export const itemsSchemaByKind = {
 
 /** A question about a passage or a recording: Yes/No, or pick one answer. */
 export const quizItemSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean() }),
+  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean(), hint }),
   z
     .object({
       type: z.literal("mc"),
@@ -141,6 +168,7 @@ export const quizItemSchema = z.discriminatedUnion("type", [
       question: sentence,
       answer: z.string().trim().min(1).max(80),
       options: z.array(z.string().trim().min(1).max(80)).min(2).max(4),
+      hint,
     })
     .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn"),
 ]);

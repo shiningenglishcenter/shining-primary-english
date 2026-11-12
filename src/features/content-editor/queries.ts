@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { PracticeKind, PracticeLevel } from "@/features/practice/model";
+import { settingsOf, type PracticeKind, type PracticeLevel } from "@/features/practice/model";
 
 /** Staff reads (admins and teachers see drafts too; RLS enforces it). */
 
@@ -107,7 +107,7 @@ export async function getActivityForStaff(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("practice_activities")
-    .select("id, kind, title_en, title_vi, status, sort_order, content, topic_id")
+    .select("id, kind, title_en, title_vi, status, sort_order, content, settings, topic_id")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -122,6 +122,7 @@ export async function getActivityForStaff(id: string) {
     status: data.status as Status,
     sortOrder: data.sort_order as number,
     content: (data.content ?? {}) as Record<string, unknown>,
+    settings: settingsOf(data.settings),
     topic,
   };
 }

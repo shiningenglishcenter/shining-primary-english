@@ -219,6 +219,7 @@ type SentenceDraft = {
   sentence: string;
   answer?: boolean | string;
   options?: string[];
+  hint?: string;
 };
 
 const SENTENCE_HELP: Record<string, string> = {
@@ -288,6 +289,7 @@ function SentenceItems({
                 ))}
               </div>
             ) : null}
+            <HintInput n={i + 1} value={it.hint ?? ""} onChange={(hint) => update(i, { hint })} />
           </li>
         ))}
       </ol>
@@ -318,35 +320,49 @@ function emojiCode(e: string | null | undefined): string | null {
   return e ? (toCode(e) ?? e) : null;
 }
 
+function hintOf(it: { hint?: string }): { hint?: string } {
+  const h = it.hint?.trim();
+  return h ? { hint: h } : {};
+}
+
 function normaliseSentence(kind: PracticeKind, it: SentenceDraft) {
   const emoji = emojiCode(it.emoji);
   const sentence = it.sentence.trim();
-  if (kind === "true_false") return { emoji, sentence, answer: it.answer === true };
+  if (kind === "true_false") return { emoji, sentence, answer: it.answer === true, ...hintOf(it) };
   if (kind === "fill_blank") {
     const answer = typeof it.answer === "string" ? it.answer.trim() : "";
     const wrong = wrongOptions(it)
       .map((o) => o.trim())
       .filter(Boolean);
-    return { emoji, sentence, answer, options: [answer, ...wrong] };
+    return { emoji, sentence, answer, options: [answer, ...wrong], ...hintOf(it) };
   }
-  return { emoji, sentence };
+  return { emoji, sentence, ...hintOf(it) };
 }
 
 // ------------------------------------------------------------ quiz items ---
 
 type QuizDraft =
-  | { type: "tf"; emoji?: string | null; sentence: string; answer: boolean }
-  | { type: "mc"; emoji?: string | null; question: string; answer: string; options: string[] };
+  | { type: "tf"; emoji?: string | null; sentence: string; answer: boolean; hint?: string }
+  | { type: "mc"; emoji?: string | null; question: string; answer: string; options: string[]; hint?: string };
 
 function normaliseQuiz(it: QuizDraft) {
   const emoji = emojiCode(it.emoji);
-  if (it.type === "tf") return { type: "tf", emoji, sentence: it.sentence.trim(), answer: it.answer };
+  if (it.type === "tf") {
+    return { type: "tf", emoji, sentence: it.sentence.trim(), answer: it.answer, ...hintOf(it) };
+  }
   const answer = it.answer.trim();
   const wrong = it.options
     .slice(1)
     .map((o) => o.trim())
     .filter(Boolean);
-  return { type: "mc", emoji, question: it.question.trim(), answer, options: [answer, ...wrong] };
+  return {
+    type: "mc",
+    emoji,
+    question: it.question.trim(),
+    answer,
+    options: [answer, ...wrong],
+    ...hintOf(it),
+  };
 }
 
 function QuizItems({
@@ -415,6 +431,7 @@ function QuizItems({
                 </div>
               </>
             )}
+            <HintInput n={i + 1} value={it.hint ?? ""} onChange={(hint) => set(i, { ...it, hint })} />
           </li>
         ))}
       </ol>
@@ -670,6 +687,19 @@ function YesNo({
         </label>
       ))}
     </div>
+  );
+}
+
+function HintInput({ n, value, onChange }: { n: number; value: string; onChange: (v: string) => void }) {
+  return (
+    <Input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="💡 Gợi ý khi học sinh làm sai (không bắt buộc), ví dụ: Nhìn màu của con mèo"
+      aria-label={`Gợi ý câu ${n}`}
+      maxLength={160}
+      className="text-sm"
+    />
   );
 }
 

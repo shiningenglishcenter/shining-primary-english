@@ -36,6 +36,7 @@ async function PlayView({
         title={`${activity.topic.titleEn}: ${activity.titleVi}`}
         questions={round.questions}
         contexts={contexts}
+        settings={activity.settings}
         maxScore={round.maxScore}
         topicHref={`/learn/topics/${activity.topic.id}`}
         nextHref={activity.nextActivityId ? `/learn/play/${activity.nextActivityId}` : null}
