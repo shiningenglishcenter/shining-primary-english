@@ -21,6 +21,7 @@ import {
   type Question,
 } from "@/features/practice/round";
 import { useSound } from "@/features/practice/use-sound";
+import { useLang, useT } from "@/features/i18n/client";
 import { cn } from "@/lib/utils";
 
 type Sound = ReturnType<typeof useSound>;
@@ -76,6 +77,7 @@ export function Player({
   topicHref: string;
   nextHref: string | null;
 }) {
+  const t = useT();
   const sound = useSound();
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -116,9 +118,9 @@ export function Player({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <Sunny mood="think" size={96} />
-        <p className="text-xl font-black">Bài này chưa có câu hỏi.</p>
+        <p className="text-xl font-black">{t.noQuestions}</p>
         <Link href={topicHref} className="font-extrabold underline">
-          Quay lại chủ đề
+          {t.backToTopic}
         </Link>
       </div>
     );
@@ -130,7 +132,7 @@ export function Player({
         <div className="flex items-center gap-3 pt-4 pb-2">
           <Link
             href={topicHref}
-            aria-label="Thoát bài"
+            aria-label={t.exit}
             className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
           >
             <X className="size-6" aria-hidden="true" />
@@ -138,7 +140,7 @@ export function Player({
           <div
             className="flex flex-1 gap-1.5"
             role="progressbar"
-            aria-label="Tiến độ"
+            aria-label={t.progress}
             aria-valuemin={0}
             aria-valuemax={questions.length}
             aria-valuenow={index}
@@ -159,7 +161,7 @@ export function Player({
           <button
             type="button"
             onClick={sound.toggleMute}
-            aria-label={sound.muted ? "Bật âm thanh" : "Tắt âm thanh"}
+            aria-label={sound.muted ? t.soundOn : t.soundOff}
             aria-pressed={sound.muted}
             className="kid-press flex size-12 shrink-0 items-center justify-center rounded-full bg-k-surface"
           >
@@ -235,13 +237,14 @@ function Frame({
   footer: React.ReactNode;
 }) {
   const [en, vi] = heading ?? INSTRUCTIONS[type];
+  const lang = useLang();
   return (
     <div className="animate-kid-in flex flex-1 flex-col">
       <div className="pt-3 text-center">
         <h1 className="font-kid-display text-[28px] leading-tight font-bold" data-testid="page-title">
           {en}
         </h1>
-        <p className="text-[17px] font-bold text-k-soft">{vi}</p>
+        {lang === "vi" ? <p className="text-[17px] font-bold text-k-soft">{vi}</p> : null}
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-6">{children}</div>
       <div className="sticky bottom-0 flex flex-col gap-3 bg-k-bg pt-2 pb-4">{footer}</div>
@@ -284,9 +287,9 @@ function Footer({
   a,
   last,
   onNext,
-  rightText = "Giỏi quá!",
+  rightText,
   rightDetail,
-  wrongText = "Chưa đúng rồi! Thử lại nhé.",
+  wrongText,
   hint,
   answer,
 }: {
@@ -310,6 +313,7 @@ function Footer({
     const t = window.setTimeout(() => next.current(), AUTO_NEXT_MS);
     return () => window.clearTimeout(t);
   }, [a.status]);
+  const t = useT();
   const hintText = a.hintText(hint);
   return (
     <>
@@ -322,7 +326,7 @@ function Footer({
           <Sunny mood="cheer" size={56} />
           <div>
             <p className="font-kid-display text-2xl font-bold text-k-good">
-              {a.misses === 0 ? rightText : "Đúng rồi!"}
+              {a.misses === 0 ? (rightText ?? t.great) : t.correct}
             </p>
             {rightDetail ? <p className="text-base font-bold">{rightDetail}</p> : null}
           </div>
@@ -335,12 +339,10 @@ function Footer({
         >
           <Sunny mood="think" size={56} />
           <div>
-            <p className="font-kid-display text-xl font-bold text-k-accent-ink">
-              Không sao, mình học tiếp nhé!
-            </p>
+            <p className="font-kid-display text-xl font-bold text-k-accent-ink">{t.failed}</p>
             {answer ? (
               <p className="text-base font-bold">
-                Đáp án đúng: <span data-testid="revealed-answer">{answer}</span>
+                {t.rightAnswer} <span data-testid="revealed-answer">{answer}</span>
               </p>
             ) : null}
           </div>
@@ -354,8 +356,8 @@ function Footer({
           <div className="flex items-center gap-3">
             <Sunny mood="think" size={48} />
             <div className="flex-1">
-              <p className="font-kid-display text-xl font-bold text-k-bad">{wrongText}</p>
-              <p className="text-sm font-bold text-k-soft">Còn {a.triesLeft} lần thử</p>
+              <p className="font-kid-display text-xl font-bold text-k-bad">{wrongText ?? t.tryAgain}</p>
+              <p className="text-sm font-bold text-k-soft">{t.triesLeft(a.triesLeft)}</p>
             </div>
             {hintText && !a.hintOn ? (
               <button
@@ -365,7 +367,7 @@ function Footer({
                 className="kid-press flex shrink-0 items-center gap-1 rounded-2xl bg-k-accent px-3 py-2 text-base font-black text-k-ink [--press:var(--k-accent-shadow)]"
               >
                 <Lightbulb className="size-5" aria-hidden="true" />
-                Gợi ý
+                {t.hint}
               </button>
             ) : null}
           </div>
@@ -384,7 +386,7 @@ function Footer({
           data-testid="next"
           className="kid-press h-16 w-full rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)]"
         >
-          {last ? "Xem kết quả" : "Câu tiếp theo"}
+          {last ? t.seeResults : t.nextQuestion}
         </button>
       ) : null}
     </>
@@ -490,6 +492,8 @@ function FlashQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
+  const lang = useLang();
   const say = () => sound.speak(q.card.word);
   useEffect(() => {
     sound.speak(q.card.word);
@@ -504,23 +508,23 @@ function FlashQ({
           data-testid="next"
           className="kid-press h-16 w-full rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)]"
         >
-          {last ? "Xong rồi!" : "Thẻ tiếp theo"}
+          {last ? t.flashDone : t.flashNext}
         </button>
       }
     >
       <button
         type="button"
         onClick={say}
-        aria-label={`Nghe từ ${q.card.word}`}
+        aria-label={t.listenWord(q.card.word)}
         className="kid-press flex w-full max-w-sm flex-col items-center gap-2 rounded-[2rem] bg-k-surface px-6 py-8"
       >
         <Pic code={q.card.emoji} size={176} className="animate-kid-float" />
         <span className="font-kid-display text-5xl font-bold" data-testid="flash-word">
           {q.card.word}
         </span>
-        <span className="text-xl font-bold text-k-soft">{q.card.meaningVi}</span>
+        {lang === "vi" ? <span className="text-xl font-bold text-k-soft">{q.card.meaningVi}</span> : null}
       </button>
-      <SpeakButton onClick={say} label="Nghe lại" />
+      <SpeakButton onClick={say} label={t.listenAgain} />
     </Frame>
   );
 }
@@ -536,6 +540,7 @@ function ListenQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => {
@@ -562,13 +567,13 @@ function ListenQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint="Bấm loa nghe lại thật kỹ. Một hình sai đã được bỏ đi."
+          rightDetail={t.wordMeans(q.answer.word, q.answer.meaningVi)}
+          hint={t.hintListenChoose}
           answer={`${q.answer.word} (${q.answer.meaningVi})`}
         />
       }
     >
-      <SpeakButton big onClick={() => sound.speak(q.answer.word)} label="Nghe lại" />
+      <SpeakButton big onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
       <div className="grid w-full max-w-xl grid-cols-3 gap-3">
         {q.options.map((c) => {
           const isAnswer = c.word === q.answer.word;
@@ -587,7 +592,7 @@ function ListenQ({
               disabled={c.word === gone}
               type="button"
               onClick={() => choose(c)}
-              aria-label={`Hình ${c.meaningVi}`}
+              aria-label={t.picture(c.meaningVi, q.options.indexOf(c) + 1)}
               data-testid="option"
               data-correct={isAnswer ? "true" : undefined}
               className={cn(
@@ -616,6 +621,7 @@ function LookQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   const gone = eliminated(a, q.options, (w) => w === q.answer.word, picked);
@@ -634,8 +640,8 @@ function LookQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint={`Từ này bắt đầu bằng chữ “${q.answer.word[0]}”.`}
+          rightDetail={t.wordMeans(q.answer.word, q.answer.meaningVi)}
+          hint={t.hintStartsWith(q.answer.word[0]!)}
           answer={q.answer.word}
         />
       }
@@ -689,6 +695,7 @@ function MatchQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const words = useMemo(() => [...q.pairs].sort((x, y) => x.word.localeCompare(y.word)), [q.pairs]);
   const settings = useContext(SettingsContext);
   const [pic, setPic] = useState<string | null>(null);
@@ -748,7 +755,7 @@ function MatchQ({
       {anyMiss && settings.hints && !done ? (
         <p className="flex items-center gap-2 text-base font-bold text-k-soft" data-testid="hint-text">
           <Lightbulb className="size-5 text-k-accent-ink" aria-hidden="true" />
-          Chạm vào hình để nghe tên của nó.
+          {t.tapPictureToHear}
         </p>
       ) : null}
       <div className="grid w-full max-w-xl grid-cols-2 gap-4">
@@ -761,7 +768,7 @@ function MatchQ({
                 type="button"
                 disabled={isDone}
                 onClick={() => tapPicture(c.word)}
-                aria-label={`Hình ${c.meaningVi}`}
+                aria-label={t.picture(c.meaningVi, q.pairs.indexOf(c) + 1)}
                 aria-pressed={pic === c.word}
                 data-testid="match-picture"
                 data-word={c.word}
@@ -815,6 +822,7 @@ function SpellQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const target = q.answer.word.toLowerCase();
   const [used, setUsed] = useState<number[]>([]);
   const a = useAnswer(sound, {
@@ -848,8 +856,8 @@ function SpellQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint={`Từ bắt đầu bằng chữ “${target[0]}” và có ${target.length} chữ cái.`}
+          rightDetail={t.wordMeans(q.answer.word, q.answer.meaningVi)}
+          hint={t.hintStartsLength(target[0]!, target.length)}
           answer={q.answer.word}
         />
       }
@@ -857,7 +865,7 @@ function SpellQ({
       <div className="relative flex size-44 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
         <Pic code={q.answer.emoji} size={140} />
         <span className="absolute -top-3 -right-3">
-          <SpeakButton onClick={() => sound.speak(q.answer.word)} label="Nghe từ" />
+          <SpeakButton onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
         </span>
       </div>
       <div
@@ -886,7 +894,7 @@ function SpellQ({
             type="button"
             disabled={used.includes(i) || a.done}
             onClick={() => tap(i)}
-            aria-label={`Chữ ${l}`}
+            aria-label={t.letter(l)}
             data-testid="letter"
             data-letter={l}
             className="kid-press h-16 w-14 rounded-2xl bg-k-primary text-3xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)] disabled:opacity-30"
@@ -898,7 +906,7 @@ function SpellQ({
           type="button"
           onClick={() => setUsed(used.slice(0, -1))}
           disabled={used.length === 0 || a.done}
-          aria-label="Xoá chữ vừa chọn"
+          aria-label={t.deleteLetter}
           className="kid-press flex h-16 w-14 items-center justify-center rounded-2xl bg-k-surface disabled:opacity-30"
         >
           <Delete className="size-7" aria-hidden="true" />
@@ -921,6 +929,7 @@ function TrueFalseQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<boolean | null>(null);
   useEffect(() => {
@@ -971,23 +980,9 @@ function TrueFalseQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          hint={
-            ctxType === "listening"
-              ? "Nghe lại bài thật kỹ nhé."
-              : ctxType === "reading"
-                ? "Đọc lại bài thật kỹ nhé."
-                : "Nhìn kỹ hình và nghe lại câu nhé."
-          }
+          hint={t.hintTf(ctxType)}
           answer={q.answer ? "Yes" : "No"}
-          rightDetail={
-            ctxType
-              ? q.answer
-                ? "Câu này đúng theo bài."
-                : "Câu này không đúng theo bài."
-              : q.answer
-                ? "Câu này đúng với hình."
-                : "Câu này không đúng với hình."
-          }
+          rightDetail={t.tfRight(q.answer, Boolean(ctxType))}
         />
       }
     >
@@ -1002,7 +997,7 @@ function TrueFalseQ({
         </div>
       ) : null}
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
-        <SpeakButton onClick={() => sound.speak(q.sentence)} label="Nghe câu" />
+        <SpeakButton onClick={() => sound.speak(q.sentence)} label={t.listenSentence} />
         <p className="font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
           {q.sentence}
         </p>
@@ -1026,6 +1021,7 @@ function FillQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   const gone = eliminated(a, q.options, (w) => w === q.answer, picked);
@@ -1041,13 +1037,7 @@ function FillQ({
     <Frame
       type="fill_blank"
       footer={
-        <Footer
-          a={a}
-          last={last}
-          onNext={() => onDone(a.points)}
-          hint="Đọc lại cả câu nhé. Một đáp án sai đã được bỏ đi."
-          answer={q.answer}
-        />
+        <Footer a={a} last={last} onNext={() => onDone(a.points)} hint={t.hintFill} answer={q.answer} />
       }
     >
       <div className="flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
@@ -1113,6 +1103,7 @@ function OrderQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const [order, setOrder] = useState<number[]>([]);
   const a = useAnswer(sound, {
     hint: q.hint,
@@ -1138,14 +1129,14 @@ function OrderQ({
               a={a}
               last={last}
               onNext={() => onDone(a.points)}
-              wrongText="Chưa đúng thứ tự. Thử lại nhé!"
-              hint={`Câu bắt đầu bằng “${q.answer[0]}”.`}
+              wrongText={t.orderTryAgain}
+              hint={t.hintOrder(q.answer[0]!)}
             />
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setOrder([])}
-                aria-label="Xếp lại từ đầu"
+                aria-label={t.restart}
                 className="kid-press flex size-16 shrink-0 items-center justify-center rounded-2xl bg-k-surface"
               >
                 <RotateCcw className="size-7" aria-hidden="true" />
@@ -1157,7 +1148,7 @@ function OrderQ({
                 data-testid="check"
                 className="kid-press h-16 flex-1 rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)] disabled:opacity-40"
               >
-                Kiểm tra
+                {t.check}
               </button>
             </div>
           </>
@@ -1176,9 +1167,7 @@ function OrderQ({
         data-testid="sentence-line"
         data-answer={q.answer.join(" ")}
       >
-        {placed.length === 0 ? (
-          <span className="text-lg font-bold text-k-soft">Chạm các từ bên dưới</span>
-        ) : null}
+        {placed.length === 0 ? <span className="text-lg font-bold text-k-soft">{t.tapWords}</span> : null}
         {order.map((wi, pos) => (
           <button
             key={`${wi}-${pos}`}
@@ -1225,6 +1214,7 @@ function ListenTypeQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const [typed, setTyped] = useState("");
   const a = useAnswer(sound, { hint: q.hint, onFail: () => setTyped(q.answer.word) });
   const input = useRef<HTMLInputElement>(null);
@@ -1251,8 +1241,8 @@ function ListenTypeQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          rightDetail={`“${q.answer.word}” là ${q.answer.meaningVi}`}
-          hint={`Từ bắt đầu bằng chữ “${q.answer.word[0]}” và có ${q.answer.word.length} chữ cái.`}
+          rightDetail={t.wordMeans(q.answer.word, q.answer.meaningVi)}
+          hint={t.hintStartsLength(q.answer.word[0]!, q.answer.word.length)}
           answer={`${q.answer.word} (${q.answer.meaningVi})`}
         />
       }
@@ -1262,7 +1252,7 @@ function ListenTypeQ({
           <Pic code={q.answer.emoji} size={120} />
         </div>
       ) : (
-        <SpeakButton big onClick={() => sound.speak(q.answer.word)} label="Nghe lại" />
+        <SpeakButton big onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
       )}
       <form onSubmit={check} className="flex w-full max-w-md flex-col gap-3">
         <input
@@ -1275,7 +1265,7 @@ function ListenTypeQ({
           autoCorrect="off"
           spellCheck={false}
           inputMode="text"
-          aria-label="Viết từ con nghe được"
+          aria-label={t.writeWord}
           placeholder={"_ ".repeat(q.answer.word.length).trim()}
           data-testid="type-input"
           data-answer={q.answer.word.toLowerCase()}
@@ -1292,7 +1282,7 @@ function ListenTypeQ({
             data-testid="check"
             className="kid-press h-16 w-full rounded-2xl bg-k-accent text-xl font-black text-k-ink [--press:var(--k-accent-shadow)] disabled:opacity-40"
           >
-            Kiểm tra
+            {t.check}
           </button>
         ) : null}
       </form>
@@ -1313,6 +1303,7 @@ function ChoiceQ({
   last: boolean;
   onDone: (p: number) => void;
 }) {
+  const t = useT();
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   const gone = eliminated(a, q.options, (o) => o === q.answer, picked);
@@ -1331,11 +1322,7 @@ function ChoiceQ({
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          hint={
-            ctxType === "listening"
-              ? "Nghe lại đoạn có câu trả lời nhé. Một đáp án sai đã được bỏ đi."
-              : "Đọc lại bài nhé. Một đáp án sai đã được bỏ đi."
-          }
+          hint={t.hintChoice(ctxType)}
           answer={q.answer}
         />
       }
@@ -1345,7 +1332,7 @@ function ChoiceQ({
         <p className="flex-1 font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
           {q.prompt}
         </p>
-        <SpeakButton onClick={() => sound.speak(q.prompt)} label="Nghe câu hỏi" />
+        <SpeakButton onClick={() => sound.speak(q.prompt)} label={t.listenQuestion} />
       </div>
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((o) => {
@@ -1385,7 +1372,8 @@ function ChoiceQ({
 /** The recording or passage a run of questions is about; stays mounted between them. */
 function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
   const [open, setOpen] = useState(true);
-  const label = ctx.type === "listening" ? "bài nghe" : "bài đọc";
+  const t = useT();
+  const listening = ctx.type === "listening";
   return (
     <section
       className="mt-2 rounded-3xl bg-k-surface p-3 shadow-[0_3px_0_var(--k-line)]"
@@ -1394,7 +1382,7 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-base font-black">
           {ctx.type === "reading" && ctx.emoji ? <Pic code={ctx.emoji} size={28} /> : null}
-          {ctx.type === "reading" ? (ctx.title ?? "Đọc bài") : "Nghe bài"}
+          {ctx.type === "reading" ? (ctx.title ?? t.readTitle) : t.listenTitle}
         </p>
         <button
           type="button"
@@ -1402,7 +1390,7 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
           aria-expanded={open}
           className="rounded-full px-3 py-1 text-sm font-extrabold text-k-soft"
         >
-          {open ? `Ẩn ${label}` : `Mở ${label}`}
+          {open ? t.hide(listening) : t.show(listening)}
         </button>
       </div>
       {/* Hidden, not unmounted, so a playing video keeps its place. */}
@@ -1412,7 +1400,7 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
             <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${ctx.youtube.videoId}?rel=0&playsinline=1${ctx.youtube.start ? `&start=${ctx.youtube.start}` : ""}`}
-                title="Video bài nghe"
+                title={t.videoTitle}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -1422,10 +1410,10 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
             </div>
           ) : ctx.audioUrl ? (
             <audio controls preload="metadata" src={ctx.audioUrl} className="w-full" data-testid="audio">
-              Trình duyệt không phát được audio.
+              {t.noAudio}
             </audio>
           ) : (
-            <p className="text-sm font-bold text-k-soft">Không mở được bài nghe. Hỏi thầy cô nhé.</p>
+            <p className="text-sm font-bold text-k-soft">{t.mediaMissing}</p>
           )
         ) : (
           <div className="flex items-start gap-2">
@@ -1435,7 +1423,7 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
             >
               {ctx.passage}
             </p>
-            <SpeakButton onClick={() => sound.speak(ctx.passage)} label="Đọc to bài" />
+            <SpeakButton onClick={() => sound.speak(ctx.passage)} label={t.readAloud} />
           </div>
         )}
       </div>
@@ -1460,6 +1448,7 @@ function Finish({
   topicHref: string;
   nextHref: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [, startTransition] = useTransition();
   const sent = useRef(false);
@@ -1473,8 +1462,7 @@ function Finish({
     });
   }, [activityId, score, maxScore, seconds]);
 
-  const message =
-    stars === 3 ? "Xuất sắc!" : stars === 2 ? "Giỏi lắm!" : stars === 1 ? "Cố lên nào!" : "Mình thử lại nhé!";
+  const message = t.cheer(stars);
 
   return (
     <div
@@ -1500,11 +1488,9 @@ function Finish({
       <h1 className="font-kid-display text-4xl font-bold" data-testid="page-title">
         {message}
       </h1>
-      <Stars value={stars} size={52} />
+      <Stars value={stars} size={52} label={t.starsOf(stars)} />
       <p className="text-xl font-bold" data-testid="score">
-        {kind === "flashcards"
-          ? `Con đã xem ${maxScore / POINTS.first} thẻ từ`
-          : `Điểm: ${score}/${maxScore}`}
+        {kind === "flashcards" ? t.flashSeen(maxScore / POINTS.first) : t.score(score, maxScore)}
       </p>
       <div className="mt-2 flex w-full max-w-sm flex-col gap-3">
         {nextHref ? (
@@ -1512,7 +1498,7 @@ function Finish({
             href={nextHref}
             className="kid-press flex h-16 items-center justify-center rounded-2xl bg-k-primary text-xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)]"
           >
-            Bài tiếp theo
+            {t.nextActivity}
           </Link>
         ) : null}
         <button
@@ -1520,13 +1506,13 @@ function Finish({
           onClick={() => router.push(`/learn/play/${activityId}?r=${Math.floor(Math.random() * 1e6)}`)}
           className="kid-press h-14 rounded-2xl bg-k-surface text-lg font-black"
         >
-          Chơi lại
+          {t.playAgain}
         </button>
         <Link
           href={topicHref}
           className="kid-press flex h-14 items-center justify-center rounded-2xl bg-k-surface text-lg font-black"
         >
-          Về chủ đề
+          {t.aboutTopic}
         </Link>
       </div>
     </div>

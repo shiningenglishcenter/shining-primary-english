@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { KidPage, LevelTabs, Pic, StarBadge, Stars, Sunny } from "@/features/practice/components/kid-ui";
+import { KidPage, LevelTabs } from "@/features/practice/components/kid-page";
+import { Pic, StarBadge, Stars, Sunny } from "@/features/practice/components/kid-ui";
+import { getMessages } from "@/features/i18n/server";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { levelByCode, levelBySlug, PRACTICE_LEVELS, topicNoun } from "@/features/practice/model";
 import { listTopics } from "@/features/practice/queries";
@@ -33,7 +35,7 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
   // Independent round trips run together (RLS still guards the class read).
   const [user, slug] = await Promise.all([requireRole("student"), requested ?? defaultLevelSlug()]);
   const level = levelBySlug(slug);
-  const topics = await listTopics(level);
+  const [topics, { lang, t: m }] = await Promise.all([listTopics(level), getMessages()]);
   const name = user.displayName ?? user.fullName;
   const totalStars = topics.reduce((n, t) => n + t.stars, 0);
   const done = topics.reduce((n, t) => n + t.done, 0);
@@ -44,12 +46,12 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
       <section className="mt-2 flex items-center gap-3 rounded-3xl bg-k-surface p-3 shadow-[0_3px_0_var(--k-line)] sm:p-4">
         <Sunny size={72} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-bold text-k-soft">Sunny chào con!</p>
+          <p className="text-[15px] font-bold text-k-soft">{m.greeting}</p>
           <h1
             className="font-kid-display text-[22px] leading-tight font-bold break-words sm:text-[26px]"
             data-testid="page-title"
           >
-            Hello, {name}!
+            {m.hello(name)}
           </h1>
         </div>
         <StarBadge value={totalStars} />
@@ -61,12 +63,10 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
 
       <div className="mt-5 flex items-baseline justify-between gap-3">
         <h2 className="font-kid-display text-[22px] font-bold">
-          {topicNoun(level)} {level.name}
+          {m.topicsOf(topicNoun(level) === "Unit" ? "unit" : "topic", level.name)}
         </h2>
         {total > 0 ? (
-          <span className="text-[15px] font-bold text-k-soft">
-            {done}/{total} bài đã làm
-          </span>
+          <span className="text-[15px] font-bold text-k-soft">{m.doneOf(done, total)}</span>
         ) : null}
       </div>
 
@@ -76,13 +76,17 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
           data-testid="no-topics"
         >
           <Sunny mood="think" size={96} />
-          <p className="font-kid-display text-2xl font-bold">Bài luyện {level.name} sắp có!</p>
+          <p className="font-kid-display text-2xl font-bold">{m.comingSoon(level.name)}</p>
           <p className="max-w-sm text-base font-bold text-k-soft">
-            Thầy cô đang chuẩn bị bài. Trong lúc chờ, con luyện{" "}
+            {m.comingSoonHint}{" "}
             <Link href="/learn?level=starters" className="underline">
               Starters
             </Link>{" "}
-            nhé.
+            {m.comingSoonOr}{" "}
+            <Link href="/learn?level=g1" className="underline">
+              G1
+            </Link>
+            .
           </p>
         </div>
       ) : (
@@ -98,10 +102,13 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
                   <Pic code={t.emoji} size={60} />
                 </span>
                 <span className="mt-1 text-[19px] leading-tight font-black">{t.titleEn}</span>
-                <span className="text-sm font-bold text-k-soft">{t.titleVi}</span>
-                <Stars value={t.maxStars ? Math.round((t.stars / t.maxStars) * 3) : 0} />
+                {lang === "vi" ? <span className="text-sm font-bold text-k-soft">{t.titleVi}</span> : null}
+                <TopicStars
+                  value={t.maxStars ? Math.round((t.stars / t.maxStars) * 3) : 0}
+                  label={m.starsOf}
+                />
                 <span className="text-xs font-bold text-k-soft">
-                  {t.done}/{t.activityCount} bài
+                  {m.activitiesOf(t.done, t.activityCount)}
                 </span>
               </Link>
             </li>
@@ -118,4 +125,8 @@ export default function StudentDashboardPage({ searchParams }: PageProps<"/learn
       <StudentHome searchParams={searchParams} />
     </Suspense>
   );
+}
+
+function TopicStars({ value, label }: { value: number; label: (n: number) => string }) {
+  return <Stars value={value} label={label(value)} />;
 }

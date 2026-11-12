@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
-import { KidPage } from "@/features/practice/components/kid-ui";
+import { KidPage } from "@/features/practice/components/kid-page";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { Player } from "@/features/practice/components/player";
 import { getActivity, resolveContexts } from "@/features/practice/queries";

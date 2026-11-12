@@ -70,6 +70,18 @@ test.describe("student practice library", () => {
     await expect(page.getByTestId("topic")).toHaveCount(16);
   });
 
+  test("English by default; Vietnamese on request, remembered", async ({ page }) => {
+    await loginFromScratch(page, "hs.an");
+    await page.goto("/learn?level=starters");
+    await expect(page.getByTestId("sign-out")).toHaveText("Log out");
+    await page.getByTestId("lang-switch").getByRole("button", { name: "vi" }).click();
+    await expect(page.getByTestId("sign-out")).toHaveText("Thoát");
+    await page.reload();
+    await expect(page.getByTestId("sign-out")).toHaveText("Thoát");
+    await page.getByTestId("lang-switch").getByRole("button", { name: "en" }).click();
+    await expect(page.getByTestId("sign-out")).toHaveText("Log out");
+  });
+
   test("a student plays every game of a topic and earns stars", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
@@ -81,37 +93,37 @@ test.describe("student practice library", () => {
     for (const href of hrefs) {
       await page.goto(href);
       await playThrough(page);
-      await expect(page.getByTestId("finish").getByRole("img", { name: "3 trên 3 sao" })).toBeVisible();
+      await expect(page.getByTestId("finish").getByRole("img", { name: "3 out of 3 stars" })).toBeVisible();
     }
-    await page.getByRole("link", { name: "Về chủ đề" }).click();
+    await page.getByRole("link", { name: "Back to the topic" }).click();
     await expect(
-      page.getByTestId("activity").first().getByRole("img", { name: "3 trên 3 sao" }),
+      page.getByTestId("activity").first().getByRole("img", { name: "3 out of 3 stars" }),
     ).toBeVisible();
     await page.goto("/learn?level=starters");
-    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("10/10 bài");
+    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("10/10");
   });
 
   test("a wrong answer offers a hint and earns 1 point instead of 2", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Colours" }).click();
-    await page.getByTestId("activity").filter({ hasText: "Đúng hay sai?" }).click();
+    await page.getByTestId("activity").filter({ hasText: "Yes or no?" }).click();
     await page.locator("[data-testid=option]:not([data-correct])").click();
-    await expect(page.getByTestId("feedback-wrong")).toContainText("Còn 2 lần thử");
+    await expect(page.getByTestId("feedback-wrong")).toContainText("2 tries left");
     await page.getByTestId("hint-button").click();
     await expect(page.getByTestId("hint-text")).toBeVisible();
     await page.locator("[data-testid=option][data-correct=true]").click();
     await expect(page.getByTestId("feedback-right")).toBeVisible();
     await page.getByTestId("next").click();
     await playThrough(page);
-    await expect(page.getByTestId("score")).toHaveText("Điểm: 11/12");
+    await expect(page.getByTestId("score")).toHaveText("Score: 11/12");
   });
 
   test("out of tries, the answer shows and the round moves on", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Colours" }).click();
-    await page.getByTestId("activity").filter({ hasText: "Chọn từ điền vào câu" }).click();
+    await page.getByTestId("activity").filter({ hasText: "Complete the sentence" }).click();
     for (let i = 0; i < 3; i++) {
       await page.locator("[data-testid=option]:not([data-correct]):not([disabled])").first().click();
     }
