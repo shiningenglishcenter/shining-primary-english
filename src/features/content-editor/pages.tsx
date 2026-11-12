@@ -23,6 +23,7 @@ import {
   TopicForm,
   WordsEditor,
 } from "@/features/content-editor/components/editor-forms";
+import { CopyLink } from "@/features/content-editor/components/copy-link";
 import { cn } from "@/lib/utils";
 
 /**
@@ -170,6 +171,11 @@ export async function TopicEditorPage({
         title={topic.titleEn}
         description={`${topic.titleVi} · ${topic.levelName}`}
         back={{ href: `${base}?level=${level.slug}`, label: `Chủ đề ${level.name}` }}
+        action={
+          topic.status === "published" ? (
+            <CopyLink path={`/learn/topics/${topic.id}`} label="Sao chép link chủ đề" />
+          ) : null
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-6">
@@ -187,10 +193,10 @@ export async function TopicEditorPage({
           <Section title={`Bài luyện (${topic.activities.length})`} testId="topic-activities">
             <ul className="mb-5 divide-y divide-line rounded-md border border-line">
               {topic.activities.map((a) => (
-                <li key={a.id}>
+                <li key={a.id} className="flex items-center gap-2 pr-2 hover:bg-muted">
                   <Link
                     href={`${base}/activities/${a.id}`}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted"
+                    className="flex flex-1 items-center gap-3 px-3 py-2.5 text-sm"
                   >
                     <span className="flex-1">
                       <span className="font-semibold">{a.titleVi}</span>
@@ -198,6 +204,9 @@ export async function TopicEditorPage({
                     </span>
                     <StatusBadge status={a.status} />
                   </Link>
+                  {a.status === "published" && topic.status === "published" ? (
+                    <CopyLink path={`/learn/play/${a.id}`} label="Sao chép link bài cho học sinh" compact />
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -228,6 +237,13 @@ export async function ActivityEditorPage({
         title={activity.titleVi}
         description={`${KIND_LABEL_VI[activity.kind]} · ${activity.topic.titleEn}`}
         back={{ href: `${base}/topics/${activity.topic.id}`, label: activity.topic.titleEn }}
+        action={
+          activity.status === "published" && activity.topic.status === "published" ? (
+            <CopyLink path={`/learn/play/${activity.id}`} label="Sao chép link bài cho học sinh" />
+          ) : (
+            <span className="text-sm text-ink-soft">Xuất bản bài và chủ đề để lấy link gửi học sinh.</span>
+          )
+        }
       />
       <div className="max-w-3xl">
         <Section title="Sửa bài">
