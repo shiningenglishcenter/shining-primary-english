@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useTra
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Delete, Lightbulb, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
-import { recordPractice } from "@/features/practice/actions";
+import { recordPractice, type QuestionResult } from "@/features/practice/actions";
 import { Pic, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import {
   DEFAULT_SETTINGS,
@@ -83,6 +83,7 @@ export function Player({
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [details, setDetails] = useState<QuestionResult[]>([]);
   const started = useRef<number | null>(null);
 
   useEffect(() => {
@@ -92,6 +93,7 @@ export function Player({
   const q = questions[index];
   const advance = (points: number) => {
     setScore((s) => s + points);
+    if (q && q.type !== "flash") setDetails((d) => [...d, resultOf(q, points)]);
     if (index + 1 >= questions.length) {
       sound.fanfare();
       setSeconds(started.current ? Math.round((Date.now() - started.current) / 1000) : 0);
@@ -109,6 +111,7 @@ export function Player({
         score={score}
         maxScore={maxScore}
         seconds={seconds}
+        details={details}
         topicHref={topicHref}
         nextHref={nextHref}
       />
@@ -443,6 +446,30 @@ function useAnswer(sound: Sound, opts: { hint?: string; onFail?: () => void } = 
       }
     },
   };
+}
+
+/** What a question was about, for the teacher's "often wrong" list (D32). */
+function resultOf(q: Question, points: number): QuestionResult {
+  const label = (() => {
+    switch (q.type) {
+      case "flash":
+        return q.card.word;
+      case "match":
+        return q.pairs.map((c) => c.word).join(", ");
+      case "true_false":
+        return q.sentence;
+      case "fill_blank":
+        return `${q.before}${q.answer}${q.after}`.trim();
+      case "rearrange":
+        return q.answer.join(" ");
+      case "choice":
+        return q.prompt;
+      default:
+        return q.answer.word;
+    }
+  })();
+  const max = q.type === "match" ? q.pairs.length * POINTS.first : POINTS.first;
+  return { t: q.type, q: label.slice(0, 120), p: points, x: max };
 }
 
 /** Letter tile indexes that spell `word` in order. */
@@ -1456,6 +1483,7 @@ function Finish({
   score,
   maxScore,
   seconds,
+  details,
   topicHref,
   nextHref,
 }: {
@@ -1464,6 +1492,7 @@ function Finish({
   score: number;
   maxScore: number;
   seconds: number;
+  details: QuestionResult[];
   topicHref: string;
   nextHref: string | null;
 }) {
@@ -1477,9 +1506,9 @@ function Finish({
     if (sent.current || maxScore < 1) return;
     sent.current = true;
     startTransition(async () => {
-      await recordPractice({ activityId, score, maxScore, seconds });
+      await recordPractice({ activityId, score, maxScore, seconds, details });
     });
-  }, [activityId, score, maxScore, seconds]);
+  }, [activityId, score, maxScore, seconds, details]);
 
   const message = t.cheer(stars);
 

@@ -75,23 +75,36 @@ export type ActivityInfo = {
   sortKey: string;
 };
 
+export type TopicInfo = {
+  id: string;
+  titleEn: string;
+  level: PracticeLevel | null;
+  sortKey: string;
+  /** Every published activity of the topic, in order (done or not). */
+  activityIds: string[];
+};
+
 const MAX_RECORDS = 10_000;
 
+type TopicJoin = { id: string; title_en: string; sort_order: number; level: { code: string } };
+
 /**
- * Practice records of these students since a date, with what each activity
- * is. `levelCode` keeps only activities of that level.
+ * Practice records of these students since a date, plus every published
+ * activity of the topics they touched (so pages can show what is not done
+ * yet). `levelCode` keeps only that level.
  */
 export async function practiceRecords(
   studentIds: string[],
   sinceIso: string | null,
   levelCode: string | null,
-): Promise<{ records: PracticeRecord[]; activities: Map<string, ActivityInfo> }> {
+): Promise<{ records: PracticeRecord[]; activities: Map<string, ActivityInfo>; topics: TopicInfo[] }> {
   const activities = new Map<string, ActivityInfo>();
-  if (studentIds.length === 0) return { records: [], activities };
+  const empty = { records: [], activities, topics: [] };
+  if (studentIds.length === 0) return empty;
   const supabase = await createClient();
   let q = supabase
     .from("progress_records")
-    .select("student_id, practice_activity_id, score, max_score, recorded_at")
+    .select("student_id, practice_activity_id, score, max_score, recorded_at, duration_seconds, details")
     .in("student_id", studentIds)
     .not("practice_activity_id", "is", null)
     .order("recorded_at", { ascending: false })
@@ -99,41 +112,57 @@ export async function practiceRecords(
   if (sinceIso) q = q.gte("recorded_at", sinceIso);
   const { data, error } = await q;
   if (error) throw new Error(`practiceRecords: ${error.code}`);
+  const done = [...new Set((data ?? []).map((r) => r.practice_activity_id as string))];
+  if (done.length === 0) return empty;
 
-  const ids = [...new Set((data ?? []).map((r) => r.practice_activity_id as string))];
-  if (ids.length) {
-    const { data: acts, error: aErr } = await supabase
-      .from("practice_activities")
-      .select(
-        "id, kind, title_vi, sort_order, topic:topics!inner(id, title_en, sort_order, level:levels!inner(code))",
-      )
-      .in("id", ids);
-    if (aErr) throw new Error(`practiceRecords/activities: ${aErr.code}`);
-    for (const a of acts ?? []) {
-      const topic = a.topic as unknown as {
-        id: string;
-        title_en: string;
-        sort_order: number;
-        level: { code: string };
-      };
-      const level = levelByCode(topic.level.code);
-      if (levelCode && topic.level.code !== levelCode) continue;
-      activities.set(a.id as string, {
-        id: a.id as string,
-        kind: a.kind as PracticeKind,
-        titleVi: a.title_vi as string,
-        topicId: topic.id,
-        topicEn: topic.title_en,
-        level,
-        sortKey: [
-          PRACTICE_LEVELS.findIndex((l) => l.code === topic.level.code),
-          topic.sort_order,
-          a.sort_order,
-        ]
-          .map((n) => String(n + 1).padStart(6, "0"))
-          .join("-"),
-      });
-    }
+  // Topics of the activities done, then all their published activities.
+  const { data: touched, error: tErr } = await supabase
+    .from("practice_activities")
+    .select("topic_id")
+    .in("id", done);
+  if (tErr) throw new Error(`practiceRecords/topics: ${tErr.code}`);
+  const topicIds = [...new Set((touched ?? []).map((r) => r.topic_id as string))];
+  const { data: acts, error: aErr } = await supabase
+    .from("practice_activities")
+    .select(
+      "id, kind, title_vi, sort_order, status, deleted_at, topic:topics!inner(id, title_en, sort_order, level:levels!inner(code))",
+    )
+    .in("topic_id", topicIds);
+  if (aErr) throw new Error(`practiceRecords/activities: ${aErr.code}`);
+
+  const doneSet = new Set(done);
+  const topics = new Map<string, TopicInfo>();
+  for (const a of acts ?? []) {
+    const topic = a.topic as unknown as TopicJoin;
+    if (levelCode && topic.level.code !== levelCode) continue;
+    // Unpublished activities only matter if the student did them earlier.
+    const live = a.status === "published" && !a.deleted_at;
+    if (!live && !doneSet.has(a.id as string)) continue;
+    const level = levelByCode(topic.level.code);
+    const topicKey = [PRACTICE_LEVELS.findIndex((l) => l.code === topic.level.code), topic.sort_order]
+      .map((n) => String(n + 1).padStart(6, "0"))
+      .join("-");
+    activities.set(a.id as string, {
+      id: a.id as string,
+      kind: a.kind as PracticeKind,
+      titleVi: a.title_vi as string,
+      topicId: topic.id,
+      topicEn: topic.title_en,
+      level,
+      sortKey: `${topicKey}-${String((a.sort_order as number) + 1).padStart(6, "0")}`,
+    });
+    const t = topics.get(topic.id) ?? {
+      id: topic.id,
+      titleEn: topic.title_en,
+      level,
+      sortKey: topicKey,
+      activityIds: [],
+    };
+    t.activityIds.push(a.id as string);
+    topics.set(topic.id, t);
+  }
+  for (const t of topics.values()) {
+    t.activityIds.sort((x, y) => activities.get(x)!.sortKey.localeCompare(activities.get(y)!.sortKey));
   }
   const records = (data ?? [])
     .filter((r) => activities.has(r.practice_activity_id as string))
@@ -143,6 +172,12 @@ export async function practiceRecords(
       score: Number(r.score ?? 0),
       maxScore: Number(r.max_score ?? 0),
       recordedAt: r.recorded_at as string,
+      seconds: Number(r.duration_seconds ?? 0),
+      details: Array.isArray(r.details) ? (r.details as PracticeRecord["details"]) : null,
     }));
-  return { records, activities };
+  return {
+    records,
+    activities,
+    topics: [...topics.values()].sort((x, y) => x.sortKey.localeCompare(y.sortKey)),
+  };
 }
