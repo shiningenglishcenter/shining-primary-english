@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { ZALO_PHONE } from "@/features/feedback/labels";
 
 /**
  * Pilot feedback (D38). Anyone may submit (validated again in SQL by
@@ -12,14 +13,17 @@ import { createClient } from "@/lib/supabase/server";
 
 const text = (max: number) => z.string().trim().max(max).optional();
 
+const phone = z
+  .string()
+  .transform((v) => v.replace(/[\s.-]/g, ""))
+  .pipe(z.string().regex(ZALO_PHONE, "Số Zalo gồm 10 số, bắt đầu bằng 0."));
+
 const feedbackSchema = z.object({
   /** Honeypot: hidden from people; bots fill it. */
   website: z.string().max(0).optional(),
-  name: text(80),
-  role: z.enum(["teacher", "admin", "parent", "other"]).optional(),
-  contact: text(120),
+  name: z.string().trim().min(2, "Nhập họ tên.").max(80),
+  contact: phone,
   ratings: z.record(z.string(), z.number().int().min(1).max(5)).optional(),
-  liked: text(2000),
   change: text(2000),
   pageUrl: text(300),
   userAgent: text(300),
@@ -30,7 +34,6 @@ const feedbackSchema = z.object({
         area: z.enum(["login", "content", "share", "play", "results", "other"]),
         severity: z.enum(["blocker", "annoying", "minor"]).optional(),
         description: z.string().trim().max(2000),
-        steps: text(2000),
         screenshots: z.array(z.string().regex(/^incoming\/[0-9a-f-]{36}\.(png|jpg|jpeg|webp)$/)).max(3),
       }),
     )
@@ -38,25 +41,30 @@ const feedbackSchema = z.object({
 });
 
 export type FeedbackInput = z.input<typeof feedbackSchema>;
+export type FeedbackResult = { ok: boolean; error?: string; field?: "name" | "contact" | "items" };
 
-export async function submitFeedback(input: FeedbackInput): Promise<{ ok: boolean; error?: string }> {
+export async function submitFeedback(input: FeedbackInput): Promise<FeedbackResult> {
   const parsed = feedbackSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Nội dung chưa hợp lệ. Cô kiểm tra lại giúp nhé." };
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field = issue?.path[0];
+    if (field === "name") return { ok: false, field: "name", error: "Cô nhập họ tên giúp nhé." };
+    if (field === "contact")
+      return { ok: false, field: "contact", error: "Số Zalo gồm 10 số, bắt đầu bằng 0." };
+    return { ok: false, error: "Nội dung chưa hợp lệ. Cô kiểm tra lại giúp nhé." };
+  }
   const f = parsed.data;
   if (f.website) return { ok: true }; // bot: pretend it worked
   const items = f.items.filter((i) => i.description);
-  const hasRating = f.ratings && Object.keys(f.ratings).length > 0;
-  if (!items.length && !hasRating && !f.liked && !f.change) {
-    return { ok: false, error: "Cô điền ít nhất một đánh giá, một lỗi/ý tưởng hoặc một nhận xét nhé." };
+  if (!items.length) {
+    return { ok: false, field: "items", error: "Cô viết ít nhất một ý tưởng hoặc một lỗi nhé." };
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("submit_feedback", {
     p: {
       name: f.name,
-      role: f.role,
       contact: f.contact,
       ratings: f.ratings ?? {},
-      liked: f.liked,
       change: f.change,
       page_url: f.pageUrl,
       user_agent: f.userAgent,

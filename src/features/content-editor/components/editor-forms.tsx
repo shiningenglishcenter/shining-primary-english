@@ -53,7 +53,29 @@ export function EmojiInput({
     <Field
       id={id}
       label={label}
-      hint="Gõ hoặc dán một emoji (bàn phím điện thoại, hoặc Win + . trên Windows)."
+      hint={
+        <>
+          Gõ hoặc dán một emoji (bàn phím điện thoại, hoặc Win + . trên Windows). Tìm emoji ở{" "}
+          <a
+            href="https://emojipedia.org"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-sky underline"
+          >
+            emojipedia.org
+          </a>{" "}
+          hoặc{" "}
+          <a
+            href="https://getemoji.com"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-sky underline"
+          >
+            getemoji.com
+          </a>
+          .
+        </>
+      }
       error={error}
     >
       <div className="flex items-center gap-3">

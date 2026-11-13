@@ -50,3 +50,6 @@ export type FeedbackStatus = (typeof STATUSES)[number]["code"];
 
 export const labelOf = <T extends { code: string; label: string }>(list: readonly T[], code: string | null) =>
   list.find((x) => x.code === code)?.label ?? "—";
+
+/** Vietnamese mobile number: 0xxxxxxxxx or +84xxxxxxxxx (spaces and dots removed first). */
+export const ZALO_PHONE = /^(\+84|0)[0-9]{9}$/;

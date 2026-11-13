@@ -289,6 +289,8 @@ test.describe("user guide", () => {
     await expect(page).toHaveURL(/\/huong-dan$/);
     await expect(page.getByTestId("page-title")).toHaveText("Hướng dẫn sử dụng SHINING");
     await expect(page.locator("#soan-bai img").first()).toBeVisible();
+    await expect(page.getByTestId("guide-overview")).toContainText("Starters");
+    await expect(page.getByTestId("guide-overview")).toContainText("12 chủ đề");
   });
 });
 
@@ -322,12 +324,15 @@ test.describe("pilot feedback", () => {
     await teacher.getByTestId("feedback-fab").click();
     await expect(teacher).toHaveURL(/\/gop-y\?from=%2Fteacher%2Fresults/);
     const description = `Nút Next không bấm được ${run}`;
+    await teacher.getByTestId("feedback-name").fill("Cô Lan");
+    await teacher.getByTestId("feedback-phone").fill("0912 345 678");
+    await teacher.getByTestId("feedback-idea").fill(`Thêm trò thi đua theo nhóm ${run}`);
     await teacher.getByTestId("feedback-description").fill(description);
     await teacher
       .getByTestId("feedback-image")
+      .last()
       .setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: png });
     await expect(teacher.getByRole("img", { name: "Ảnh 1" })).toBeVisible();
-    await teacher.getByRole("radio", { name: "4 sao" }).first().click();
     await teacher.getByTestId("feedback-submit").click();
     await expect(teacher.getByTestId("feedback-sent")).toBeVisible();
 
@@ -339,14 +344,23 @@ test.describe("pilot feedback", () => {
     const entry = admin.getByTestId("feedback-entry").filter({ hasText: description });
     await expect(entry).toBeVisible();
     await expect(entry).toContainText("/teacher/results");
+    await expect(entry).toContainText("Zalo 0912345678");
+    await expect(entry).toContainText(`Thêm trò thi đua theo nhóm ${run}`);
     await expect(entry.getByRole("img", { name: "Ảnh chụp màn hình" })).toBeVisible();
   });
 
   test("the feedback page needs no login; pupils get no floating button", async ({ page }) => {
     await page.goto("/gop-y");
-    await expect(page.getByTestId("page-title")).toHaveText("Cô giúp SHINING tốt hơn nhé!");
+    await expect(page.getByTestId("page-title")).toHaveText("Góp ý dùng thử SHINING");
     await page.getByTestId("feedback-submit").click();
-    await expect(page.getByTestId("feedback-error")).toBeVisible();
+    await expect(page.getByTestId("feedback-error")).toContainText("họ tên");
+    await page.getByTestId("feedback-name").fill("Cô Mai");
+    await page.getByTestId("feedback-phone").fill("123");
+    await page.getByTestId("feedback-submit").click();
+    await expect(page.getByTestId("feedback-error")).toContainText("Zalo");
+    await page.getByTestId("feedback-phone").fill("0987654321");
+    await page.getByTestId("feedback-submit").click();
+    await expect(page.getByTestId("feedback-error")).toContainText("ít nhất một");
     await loginFromScratch(page, "hs.an");
     await expect(page.getByTestId("feedback-fab")).toHaveCount(0);
   });

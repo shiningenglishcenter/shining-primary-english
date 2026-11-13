@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BarChart3, BookOpenCheck, GraduationCap, Lightbulb, LogIn, Send, Star } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { GuideOverview } from "@/features/guide/overview";
 import { KIND_LABEL_VI, PRACTICE_KINDS } from "@/features/practice/model";
 
 export const metadata: Metadata = {
@@ -195,6 +196,9 @@ export default function GuidePage() {
             <b className="text-ink">xem kết quả</b>, và <b className="text-ink">học sinh làm bài</b>. Mỗi bước
             có ảnh minh hoạ — bấm vào ảnh để xem lớn.
           </p>
+          <div className="mt-6">
+            <GuideOverview />
+          </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {(
               [
@@ -259,6 +263,28 @@ export default function GuidePage() {
                 <b>Bài luyện:</b> danh sách bài của chủ đề; chọn <b>Dạng bài mới</b> → <b>Thêm bài</b>.
               </li>
             </ul>
+            <Tip>
+              Lấy emoji: mở{" "}
+              <a
+                href="https://emojipedia.org"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-sky underline"
+              >
+                emojipedia.org
+              </a>{" "}
+              hoặc{" "}
+              <a
+                href="https://getemoji.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-sky underline"
+              >
+                getemoji.com
+              </a>
+              , tìm bằng từ tiếng Anh (ví dụ “cat”), bấm Copy rồi dán vào ô Hình. Trên điện thoại dùng bàn
+              phím emoji; trên Windows bấm Win + dấu chấm.
+            </Tip>
             <Tip>Mỗi bài trong danh sách có nút 🔗 Link để chép nhanh link gửi học sinh.</Tip>
           </Step>
 

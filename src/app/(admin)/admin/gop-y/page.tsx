@@ -11,7 +11,6 @@ import {
   FEEDBACK_AREAS,
   FEEDBACK_KINDS,
   RATINGS,
-  ROLES,
   SEVERITIES,
   STATUSES,
   labelOf,
@@ -135,12 +134,18 @@ async function FeedbackAdmin({ searchParams }: { searchParams: Promise<Search> }
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold">
-                    {f.name ?? "Ẩn danh"}{" "}
-                    <span className="font-normal text-ink-soft">
-                      · {labelOf(ROLES, f.role)}
-                      {f.contact ? ` · ${f.contact}` : ""}
-                    </span>
+                  <p className="text-lg font-semibold">
+                    {f.name ?? "Ẩn danh"}
+                    {f.contact ? (
+                      <a
+                        href={`https://zalo.me/${f.contact.replace(/^\+84/, "0")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-3 text-base font-semibold text-sky hover:underline"
+                      >
+                        Zalo {f.contact}
+                      </a>
+                    ) : null}
                   </p>
                   <p className="text-sm text-ink-soft">
                     {when(f.createdAt)}
@@ -174,7 +179,13 @@ async function FeedbackAdmin({ searchParams }: { searchParams: Promise<Search> }
               {f.items.length ? (
                 <ul className="mt-4 flex flex-col gap-3">
                   {f.items.map((i) => (
-                    <li key={i.id} className="rounded-lg border border-line bg-paper p-3">
+                    <li
+                      key={i.id}
+                      className={cn(
+                        "rounded-lg border p-3",
+                        i.kind === "idea" ? "border-2 border-sun bg-sun-soft/50" : "border-line bg-paper",
+                      )}
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="flex flex-wrap items-center gap-2 text-sm">
                           <span className="rounded-full bg-surface px-2 py-0.5 font-semibold">
@@ -234,7 +245,7 @@ async function FeedbackAdmin({ searchParams }: { searchParams: Promise<Search> }
                   ) : null}
                   {f.change ? (
                     <div>
-                      <dt className="font-semibold">Muốn thay đổi nhất</dt>
+                      <dt className="font-semibold">Nhận xét khác</dt>
                       <dd className="whitespace-pre-line text-ink-soft">{f.change}</dd>
                     </div>
                   ) : null}
