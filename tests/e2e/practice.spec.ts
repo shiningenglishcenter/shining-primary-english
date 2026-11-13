@@ -282,6 +282,16 @@ test.describe("guest links (no login needed)", () => {
   });
 });
 
+test.describe("user guide", () => {
+  test("opens without logging in and is linked from the login screen", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Xem hướng dẫn sử dụng" }).click();
+    await expect(page).toHaveURL(/\/huong-dan$/);
+    await expect(page.getByTestId("page-title")).toHaveText("Hướng dẫn sử dụng SHINING");
+    await expect(page.locator("#soan-bai img").first()).toBeVisible();
+  });
+});
+
 test.describe("login screen", () => {
   test("Vietnamese by default, English on request @mobile", async ({ page }) => {
     await page.goto("/login");

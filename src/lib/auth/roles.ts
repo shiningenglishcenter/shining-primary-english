@@ -24,8 +24,15 @@ export const ROLE_LABEL_VI: Record<AppRole, string> = {
   parent: "Phụ huynh",
 };
 
-/** Pages anyone can open without a session. `/p/<token>`: guest links (D35). */
-export const PUBLIC_PATHS = ["/login", "/forbidden", "/api/health", "/auth/end-session", "/p"] as const;
+/** Pages anyone can open without a session. `/p/<token>`: guest links (D35); `/huong-dan`: guide (D37). */
+export const PUBLIC_PATHS = [
+  "/login",
+  "/forbidden",
+  "/api/health",
+  "/auth/end-session",
+  "/p",
+  "/huong-dan",
+] as const;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

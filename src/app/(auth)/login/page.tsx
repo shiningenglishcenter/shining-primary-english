@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { Info, TriangleAlert } from "lucide-react";
 import { LoginForm } from "@/features/auth/login-form";
 import { loginText } from "@/features/auth/login-text";
@@ -76,7 +77,12 @@ async function LoginScreen({ searchParams }: { searchParams: Promise<{ reason?: 
                 <LoginForm t={t} />
               </Suspense>
             </div>
-            <p className="mt-5 text-center text-sm font-bold text-k-soft">{t.staff}</p>
+            <p className="mt-5 text-center text-sm font-bold text-k-soft">
+              {t.staff}{" "}
+              <Link href="/huong-dan" className="underline">
+                {t.guide}
+              </Link>
+            </p>
           </section>
         </div>
       </main>

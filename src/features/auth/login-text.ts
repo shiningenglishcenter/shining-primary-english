@@ -26,6 +26,7 @@ const vi = {
   pending: "Đang đăng nhập…",
   forgot: "Quên mật khẩu? Hãy nhờ thầy cô hoặc trung tâm đặt lại cho con.",
   staff: "Giáo viên, phụ huynh và quản trị viên cũng đăng nhập ở đây.",
+  guide: "Xem hướng dẫn sử dụng",
   notice: {
     expired: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
     signed_out: "Bạn đã đăng xuất.",
@@ -50,6 +51,7 @@ const en: LoginText = {
   pending: "Logging in…",
   forgot: "Forgot your password? Ask your teacher or the centre to reset it.",
   staff: "Teachers, parents and admins log in here too.",
+  guide: "How to use (Vietnamese guide)",
   notice: {
     expired: "Your session has expired. Please log in again.",
     signed_out: "You have logged out.",

@@ -14,12 +14,14 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: "/admin/classes", label: "Lớp học" },
   { href: "/admin/content", label: "Bài luyện" },
   { href: "/admin/results", label: "Kết quả" },
+  { href: "/huong-dan", label: "Hướng dẫn" },
 ];
 
 const TEACHER_ITEMS: NavItem[] = [
   { href: "/teacher", label: "Lớp của tôi", exact: true },
   { href: "/teacher/results", label: "Kết quả" },
   { href: "/teacher/content", label: "Bài luyện" },
+  { href: "/huong-dan", label: "Hướng dẫn" },
 ];
 
 /** The active tab depends on the URL, which streams in after the static shell. */

@@ -93,6 +93,7 @@ From the owner's demo with teachers:
 - **Guest links** (D35): "no login needed" switch per activity (off by default), permanent public link,
   first name before playing, results under Kết quả → "Link không cần đăng nhập"; new link stops the old.
 - **Login screen** (D36) redesigned in the kids' theme with EN/VI.
+- **User guide** (D37): public page `/huong-dan` with screenshots.
 - 12 trial student accounts (`hs.thu01`–`hs.thu12`) in class `SAMPLE-TRIAL` on `shining-dev`.
 
 ### To deploy to the preview (owner)
