@@ -8,6 +8,7 @@ import {
   FormStatus,
   PasswordField,
   SubmitButton,
+  useKeepValues,
 } from "@/components/forms/form-parts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,10 +119,11 @@ export function CreateStudentAccountForm({
   initialPassword: string;
 }) {
   const [state, formAction, pending] = useActionState(createAccountForStudent, initial);
+  const keep = useKeepValues(formAction);
   if (state.credentials) return <CredentialsCard credentials={state.credentials} />;
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate data-testid="create-account-form">
+    <form onSubmit={keep} className="flex flex-col gap-4" noValidate data-testid="create-account-form">
       <p className="text-sm text-ink-soft">Học sinh này chưa có tài khoản đăng nhập.</p>
       <FormStatus state={state} />
       <input type="hidden" name="studentId" value={studentId} />

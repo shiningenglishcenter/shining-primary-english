@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { usernameToEmail } from "@/lib/auth/identifier";
 import { nextUsernameCandidate } from "@/features/people/credentials";
@@ -20,6 +20,9 @@ const MESSAGES = {
   taken: "Tên đăng nhập hoặc email này đã có người dùng.",
   weak: "Mật khẩu quá yếu. Hãy dùng mật khẩu khác dài hơn.",
   failed: "Không tạo được tài khoản. Vui lòng thử lại.",
+  // Shown instead of a server crash when SUPABASE_SERVICE_ROLE_KEY is missing.
+  noAdminKey:
+    "Máy chủ chưa được cấu hình để quản lý tài khoản (thiếu SUPABASE_SERVICE_ROLE_KEY). Báo quản trị kỹ thuật thêm biến này trên Vercel rồi thử lại.",
 };
 
 function isTaken(error: { code?: string; status?: number; message?: string }): boolean {
@@ -64,6 +67,10 @@ export async function createLoginAccount(input: {
 }): Promise<AccountResult> {
   const email = input.username ? usernameToEmail(input.username) : input.email;
   if (!email) return { ok: false, error: MESSAGES.failed };
+  if (!adminConfigured()) {
+    console.error("[accounts] SUPABASE_SERVICE_ROLE_KEY is not set");
+    return { ok: false, error: MESSAGES.noAdminKey };
+  }
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({
@@ -91,6 +98,7 @@ export async function createLoginAccount(input: {
 
 /** Undo a just-created account when the rest of the record could not be saved. */
 export async function deleteLoginAccount(userId: string): Promise<void> {
+  if (!adminConfigured()) return;
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) console.error("[accounts] rollback deleteUser failed", { status: error.status });
@@ -100,6 +108,10 @@ export async function setPassword(
   userId: string,
   password: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!adminConfigured()) {
+    console.error("[accounts] SUPABASE_SERVICE_ROLE_KEY is not set");
+    return { ok: false, error: MESSAGES.noAdminKey };
+  }
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(userId, { password });
   if (error) {
@@ -113,6 +125,7 @@ export async function setPassword(
 
 /** Email of a teacher who signs in with a real address (shown on their page). */
 export async function getLoginEmail(userId: string): Promise<string | null> {
+  if (!adminConfigured()) return null;
   const admin = createAdminClient();
   const { data } = await admin.auth.admin.getUserById(userId);
   return data.user?.email ?? null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, Copy, KeyRound, LoaderCircle, RefreshCw } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
@@ -182,4 +182,21 @@ export function CredentialsCard({
       </div>
     </div>
   );
+}
+
+/**
+ * Submit handler that keeps what the person typed. With `<form action>`,
+ * React 19 resets uncontrolled fields after every submission — including a
+ * failed one, so a validation error would wipe the form (and e.g. flip a
+ * "published" select back to its default). Dispatching the action ourselves
+ * avoids the reset; `pending` from useActionState still works.
+ */
+export function useKeepValues(dispatch: (formData: FormData) => void) {
+  const [, startTransition] = useTransition();
+  return (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+    const formData = new FormData(event.currentTarget, submitter);
+    startTransition(() => dispatch(formData));
+  };
 }

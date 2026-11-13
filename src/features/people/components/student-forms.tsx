@@ -10,6 +10,7 @@ import {
   FormStatus,
   PasswordField,
   SubmitButton,
+  useKeepValues,
 } from "@/components/forms/form-parts";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -104,6 +105,7 @@ function NewStudentFormInner({
   onAnother,
 }: NewStudentProps & { onAnother: () => void }) {
   const [state, formAction, pending] = useActionState(createStudent, initial);
+  const keep = useKeepValues(formAction);
   const [createAccount, setCreateAccount] = useState(true);
   const [username, setUsername] = useState("");
   const [usernameEdited, setUsernameEdited] = useState(false);
@@ -132,7 +134,7 @@ function NewStudentFormInner({
   }
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex max-w-2xl flex-col gap-5" noValidate>
       <FormStatus state={state} />
       <StudentFields
         state={state}
@@ -216,8 +218,9 @@ export function EditStudentForm({
   };
 }) {
   const [state, formAction, pending] = useActionState(updateStudent, initial);
+  const keep = useKeepValues(formAction);
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="id" value={student.id} />
       <FormStatus state={state} />
       <StudentFields state={state} values={student} />

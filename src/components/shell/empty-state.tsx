@@ -37,3 +37,18 @@ export function PageHeading({ title, children }: { title: string; children?: Rea
 export function SectionSkeleton() {
   return <div className="h-40 animate-pulse rounded-lg bg-muted" aria-label="Đang tải" />;
 }
+
+/** Route-level fallback for staff pages (`loading.tsx`): heading + content blocks. */
+export function PageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6" aria-label="Đang tải" aria-busy="true" data-testid="page-skeleton">
+      <div className="h-8 w-56 animate-pulse rounded-md bg-muted" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+      <div className="h-64 animate-pulse rounded-lg bg-muted" />
+    </div>
+  );
+}

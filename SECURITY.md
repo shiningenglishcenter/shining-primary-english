@@ -32,6 +32,9 @@ non-admins.
 - **Roles live in `app_metadata`** (server-only), never `user_metadata`. New users without an admin-assigned
   role are rejected by the provisioning trigger. Only admins can change roles, names or activation; role
   changes are audited.
+- **Practice vs tests**: practice activities (D23) are self-study; their answers are in the activity
+  content and are scored in the browser — only stars are stored, via `record_practice()` (student only,
+  published activity only, score ≤ max, rate-limited). Anything graded uses the question bank below.
 - **Answer secrecy**: keys exist only in `question_answer_keys` (staff-only). The paper RPC omits keys and
   explanations; tests assert the paper JSON contains none.
 - **Integrity**: attempted tests and answered keys are frozen; submitted attempts are immutable; time limits

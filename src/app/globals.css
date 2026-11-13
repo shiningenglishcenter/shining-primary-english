@@ -5,6 +5,11 @@
 @import "@fontsource/be-vietnam-pro/500.css";
 @import "@fontsource/be-vietnam-pro/600.css";
 @import "@fontsource/be-vietnam-pro/800.css";
+/* Student area: rounded, friendly faces with Vietnamese support (self-hosted). */
+@import "@fontsource/nunito/700.css";
+@import "@fontsource/nunito/800.css";
+@import "@fontsource/nunito/900.css";
+@import "@fontsource/quicksand/700.css";
 
 /*
  * SHINING design tokens
@@ -32,10 +37,60 @@
   --berry-soft: #fbe7ea;
 
   --radius: 0.625rem;
+
+  /* Student "kid" theme (D27): one shared theme for every programme and level,
+     pale yellow + leaf green (owner decision 2026-11-11). */
+  --k-bg: #fff8dc;
+  --k-surface: #ffffff;
+  --k-ink: #2f3b1f;
+  --k-soft: #5f6e48;
+  --k-line: #eadfa8;
+  --k-primary: #3a9a47;
+  --k-primary-ink: #ffffff;
+  --k-primary-shadow: #2e7d32;
+  --k-accent: #ffc93c;
+  --k-accent-shadow: #e0a800;
+  --k-accent-soft: #fff0c2;
+  --k-accent-ink: #7a5600;
+  --k-tile: #eef7e4;
+  --k-good: #2e7d32;
+  --k-good-soft: #e3f3dd;
+  --k-bad: #c0504d;
+  --k-bad-soft: #fde4e1;
+  --k-star: #ffb400;
+  --k-star-off: #ede3c0;
+  --k-nav: #2e7d32;
+  --k-nav-ink: #f1f8e9;
+  --k-nav-active: #ffc93c;
 }
 
 @theme inline {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-kid: "Nunito", "Be Vietnam Pro", ui-rounded, system-ui, sans-serif;
+  --font-kid-display: "Quicksand", "Nunito", ui-rounded, system-ui, sans-serif;
+
+  --color-k-bg: var(--k-bg);
+  --color-k-surface: var(--k-surface);
+  --color-k-ink: var(--k-ink);
+  --color-k-soft: var(--k-soft);
+  --color-k-line: var(--k-line);
+  --color-k-primary: var(--k-primary);
+  --color-k-primary-ink: var(--k-primary-ink);
+  --color-k-primary-shadow: var(--k-primary-shadow);
+  --color-k-accent: var(--k-accent);
+  --color-k-accent-shadow: var(--k-accent-shadow);
+  --color-k-accent-soft: var(--k-accent-soft);
+  --color-k-accent-ink: var(--k-accent-ink);
+  --color-k-tile: var(--k-tile);
+  --color-k-good: var(--k-good);
+  --color-k-good-soft: var(--k-good-soft);
+  --color-k-bad: var(--k-bad);
+  --color-k-bad-soft: var(--k-bad-soft);
+  --color-k-star: var(--k-star);
+  --color-k-star-off: var(--k-star-off);
+  --color-k-nav: var(--k-nav);
+  --color-k-nav-ink: var(--k-nav-ink);
+  --color-k-nav-active: var(--k-nav-active);
 
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
@@ -118,4 +173,199 @@
 }
 .animate-sun-rise {
   animation: sun-rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* ---------------------------------------------------------- student games */
+/* Chunky "press-down" buttons: the shadow is the button's bottom edge. */
+.kid-press {
+  box-shadow: 0 5px 0 var(--press, var(--k-line));
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease;
+}
+.kid-press:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--press, var(--k-line));
+}
+@keyframes kid-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-kid-pop {
+  animation: kid-pop 320ms ease-out;
+}
+@keyframes kid-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+.animate-kid-shake {
+  animation: kid-shake 380ms ease-in-out;
+}
+@keyframes kid-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-kid-in {
+  animation: kid-in 260ms ease-out both;
+}
+@keyframes kid-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-kid-float {
+  animation: kid-float 2.4s ease-in-out infinite;
+}
+@keyframes kid-confetti {
+  from {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+.kid-confetti {
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 14px;
+  border-radius: 3px;
+  animation: kid-confetti 2.6s linear forwards;
+}
+
+/* Extra liveliness (D34): stars pop in one by one, "+2" rises, Sunny jumps. */
+@keyframes kid-star-in {
+  0% {
+    transform: scale(0) rotate(-40deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.3) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+.kid-stars-reveal > * {
+  animation: kid-star-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+.kid-stars-reveal > *:nth-child(1) {
+  animation-delay: 0.9s;
+}
+.kid-stars-reveal > *:nth-child(2) {
+  animation-delay: 1.3s;
+}
+.kid-stars-reveal > *:nth-child(3) {
+  animation-delay: 1.7s;
+}
+@keyframes kid-rise {
+  0% {
+    transform: translateY(6px) scale(0.6);
+    opacity: 0;
+  }
+  25% {
+    transform: translateY(-4px) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-34px) scale(1);
+    opacity: 0;
+  }
+}
+.animate-kid-rise {
+  animation: kid-rise 1.1s ease-out forwards;
+}
+@keyframes kid-jump {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(-12px) rotate(-8deg);
+  }
+  60% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+.animate-kid-jump {
+  animation: kid-jump 600ms ease-out;
+}
+/* Every tappable kid button gives a little squish. */
+.kid-press:active:not(:disabled) {
+  scale: 0.97;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kid-stars-reveal > *,
+  .animate-kid-rise,
+  .animate-kid-jump,
+  .animate-kid-pop,
+  .animate-kid-shake,
+  .animate-kid-float,
+  .kid-confetti {
+    animation: none !important;
+  }
+  .kid-confetti {
+    display: none;
+  }
+}
+
+/* Navigation progress bar (D25): grows while loading, fills and fades when done. */
+.nav-progress-bar {
+  width: 0;
+  opacity: 0;
+  background: #3a9a47;
+  box-shadow: 0 0 6px rgb(58 154 71 / 0.6);
+}
+.nav-progress[data-phase="loading"] .nav-progress-bar {
+  opacity: 1;
+  width: 85%;
+  transition: width 8s cubic-bezier(0.1, 0.7, 0.2, 1);
+}
+.nav-progress[data-phase="done"] .nav-progress-bar {
+  opacity: 0;
+  width: 100%;
+  transition:
+    width 0.2s ease-out,
+    opacity 0.3s ease 0.15s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress[data-phase="loading"] .nav-progress-bar {
+    transition: none;
+    width: 85%;
+  }
 }

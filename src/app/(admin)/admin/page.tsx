@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { BookOpen, School, Users } from "lucide-react";
+import { BookOpen, MessageSquareHeart, School, Users } from "lucide-react";
+import { newFeedbackCount } from "@/features/feedback/queries";
 import { EmptyState, PageHeading, SectionSkeleton } from "@/components/shell/empty-state";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -24,16 +25,18 @@ async function CentreOverview() {
       .is("deleted_at", null),
     supabase.from("teachers").select("id", { count: "exact", head: true }).is("deleted_at", null),
   ]);
+  const feedback = await newFeedbackCount();
 
   const figures = [
     { label: "Học sinh đang học", value: students.count ?? 0, icon: Users, href: "/admin/students" },
     { label: "Lớp đang mở", value: classes.count ?? 0, icon: School, href: "/admin/classes" },
     { label: "Giáo viên", value: teachers.count ?? 0, icon: BookOpen, href: "/admin/teachers" },
+    { label: "Góp ý mới", value: feedback, icon: MessageSquareHeart, href: "/admin/gop-y" },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className="grid gap-4 sm:grid-cols-3" data-testid="admin-figures">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="admin-figures">
         {figures.map(({ label, value, icon: Icon, href }) => (
           <li key={label}>
             <Link

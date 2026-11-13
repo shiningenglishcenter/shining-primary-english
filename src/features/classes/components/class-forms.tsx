@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { Search, UserMinus } from "lucide-react";
-import { Field, FormStatus, SubmitButton } from "@/components/forms/form-parts";
+import { Field, FormStatus, SubmitButton, useKeepValues } from "@/components/forms/form-parts";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toAscii } from "@/features/people/credentials";
@@ -51,9 +51,10 @@ function LevelSelect({
 
 export function NewClassForm({ levels }: { levels: Level[] }) {
   const [state, formAction, pending] = useActionState(createClass, initial);
+  const keep = useKeepValues(formAction);
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex max-w-2xl flex-col gap-5" noValidate>
       <FormStatus state={state} />
       <Field id="name" label="Tên lớp" hint="Ví dụ: Movers A – Tối 3-5" error={e.name}>
         <Input id="name" name="name" maxLength={120} aria-invalid={Boolean(e.name)} />
@@ -90,9 +91,10 @@ export function EditClassForm({
   cls: { id: string; name: string; code: string; levelId: string | null; isActive: boolean };
 }) {
   const [state, formAction, pending] = useActionState(updateClass, initial);
+  const keep = useKeepValues(formAction);
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="id" value={cls.id} />
       <FormStatus state={state} />
       <Field id="name" label="Tên lớp" error={e.name}>
