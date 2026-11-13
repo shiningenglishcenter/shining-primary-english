@@ -7,7 +7,7 @@ const MUTE_KEY = "shining-sound-off";
 /**
  * Reads English aloud with the device's own voice (free; owner decision
  * 2026-11-10 — pre-recorded voices may come later) and plays short
- * "correct"/"try again" tones generated with Web Audio (no sound files).
+ * soft effect sounds generated with Web Audio (no sound files, D34).
  */
 export function useSound() {
   const [muted, setMuted] = useState(false);
@@ -50,25 +50,32 @@ export function useSound() {
     window.speechSynthesis.speak(u);
   }, []);
 
-  const tone = useCallback(
-    (notes: [number, number][]) => {
+  /**
+   * Tiny synthesiser (D34): soft notes with a bell-like decay, played one
+   * after another (`at` = start offset in seconds). Quiet on purpose: these
+   * sit under the voice and must never startle a child.
+   */
+  const play = useCallback(
+    (notes: { f: number; at: number; dur: number; type?: OscillatorType; vol?: number; to?: number }[]) => {
       if (muted || typeof window === "undefined") return;
       try {
         ctxRef.current ??= new AudioContext();
         const ctx = ctxRef.current;
-        let t = ctx.currentTime;
-        for (const [freq, dur] of notes) {
+        if (ctx.state === "suspended") void ctx.resume();
+        const t0 = ctx.currentTime + 0.01;
+        for (const n of notes) {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.0001, t);
-          gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          osc.type = n.type ?? "sine";
+          osc.frequency.setValueAtTime(n.f, t0 + n.at);
+          if (n.to) osc.frequency.exponentialRampToValueAtTime(n.to, t0 + n.at + n.dur);
+          const peak = n.vol ?? 0.12;
+          gain.gain.setValueAtTime(0.0001, t0 + n.at);
+          gain.gain.exponentialRampToValueAtTime(peak, t0 + n.at + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.dur);
           osc.connect(gain).connect(ctx.destination);
-          osc.start(t);
-          osc.stop(t + dur);
-          t += dur * 0.8;
+          osc.start(t0 + n.at);
+          osc.stop(t0 + n.at + n.dur + 0.02);
         }
       } catch {
         /* audio unavailable */
@@ -77,31 +84,60 @@ export function useSound() {
     [muted],
   );
 
+  /** Soft "tock" for any tap on a button. */
+  const tap = useCallback(
+    () => play([{ f: 900, to: 600, at: 0, dur: 0.06, type: "triangle", vol: 0.05 }]),
+    [play],
+  );
+  /** Bright two-bell chime: C6 → G6, with a quiet octave shimmer. */
   const correct = useCallback(
     () =>
-      tone([
-        [660, 0.12],
-        [880, 0.18],
+      play([
+        { f: 1047, at: 0, dur: 0.35 },
+        { f: 1568, at: 0.09, dur: 0.5 },
+        { f: 3136, at: 0.09, dur: 0.3, vol: 0.03 },
       ]),
-    [tone],
+    [play],
   );
+  /** Gentle "bloop" that slides down — a nudge, not a buzzer. */
   const wrong = useCallback(
-    () =>
-      tone([
-        [300, 0.18],
-        [240, 0.22],
-      ]),
-    [tone],
+    () => play([{ f: 392, to: 262, at: 0, dur: 0.28, type: "triangle", vol: 0.09 }]),
+    [play],
   );
+  /** Little sparkle when a hint opens. */
+  const hint = useCallback(
+    () =>
+      play([
+        { f: 1760, at: 0, dur: 0.12, type: "triangle", vol: 0.05 },
+        { f: 2349, at: 0.06, dur: 0.12, type: "triangle", vol: 0.05 },
+        { f: 2794, at: 0.12, dur: 0.2, type: "triangle", vol: 0.05 },
+      ]),
+    [play],
+  );
+  /** Soft rising swish when the next question slides in. */
+  const swish = useCallback(() => play([{ f: 500, to: 1100, at: 0, dur: 0.16, vol: 0.03 }]), [play]);
+  /** One "ding" per star on the results screen; higher for each star. */
+  const star = useCallback(
+    (i: number) =>
+      play([
+        { f: [1319, 1568, 2093][i] ?? 2093, at: 0, dur: 0.45, vol: 0.1 },
+        { f: ([1319, 1568, 2093][i] ?? 2093) * 2, at: 0, dur: 0.25, vol: 0.025 },
+      ]),
+    [play],
+  );
+  /** End-of-round tune: C–E–G–C arpeggio over a soft chord. */
   const fanfare = useCallback(
     () =>
-      tone([
-        [523, 0.14],
-        [659, 0.14],
-        [784, 0.14],
-        [1047, 0.3],
+      play([
+        { f: 523, at: 0, dur: 0.2 },
+        { f: 659, at: 0.13, dur: 0.2 },
+        { f: 784, at: 0.26, dur: 0.2 },
+        { f: 1047, at: 0.39, dur: 0.7, vol: 0.13 },
+        { f: 262, at: 0.39, dur: 0.8, type: "triangle", vol: 0.05 },
+        { f: 330, at: 0.39, dur: 0.8, type: "triangle", vol: 0.04 },
+        { f: 392, at: 0.39, dur: 0.8, type: "triangle", vol: 0.04 },
       ]),
-    [tone],
+    [play],
   );
 
   const toggleMute = useCallback(() => {
@@ -117,7 +153,7 @@ export function useSound() {
   }, []);
 
   return useMemo(
-    () => ({ speak, correct, wrong, fanfare, muted, toggleMute }),
-    [speak, correct, wrong, fanfare, muted, toggleMute],
+    () => ({ speak, tap, correct, wrong, hint, swish, star, fanfare, muted, toggleMute }),
+    [speak, tap, correct, wrong, hint, swish, star, fanfare, muted, toggleMute],
   );
 }

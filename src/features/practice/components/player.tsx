@@ -99,8 +99,14 @@ export function Player({
       setSeconds(started.current ? Math.round((Date.now() - started.current) / 1000) : 0);
       setFinished(true);
     } else {
+      sound.swish();
       setIndex(index + 1);
     }
+  };
+  /** A soft tap sound for every button press inside the game (D34). */
+  const onPointerDown = (e: React.PointerEvent) => {
+    const button = (e.target as Element).closest("button, a");
+    if (button && !(button as HTMLButtonElement).disabled) sound.tap();
   };
 
   if (finished) {
@@ -112,6 +118,7 @@ export function Player({
         maxScore={maxScore}
         seconds={seconds}
         details={details}
+        sound={sound}
         topicHref={topicHref}
         nextHref={nextHref}
       />
@@ -131,7 +138,12 @@ export function Player({
 
   return (
     <SettingsContext value={settings}>
-      <div className="flex flex-1 flex-col" data-testid="player" data-kind={kind}>
+      <div
+        className="flex flex-1 flex-col"
+        data-testid="player"
+        data-kind={kind}
+        onPointerDown={onPointerDown}
+      >
         <div className="flex items-center gap-3 pt-4 pb-2">
           <Link
             href={topicHref}
@@ -296,7 +308,9 @@ function Footer({
   hint,
   answer,
 }: {
-  a: Pick<Answer, "status" | "triesLeft" | "hintText" | "hintOn" | "showHint" | "misses">;
+  a: Pick<Answer, "status" | "triesLeft" | "hintText" | "hintOn" | "showHint" | "misses"> & {
+    points: number;
+  };
   last: boolean;
   onNext: () => void;
   rightText?: string;
@@ -326,7 +340,17 @@ function Footer({
           role="status"
           data-testid="feedback-right"
         >
-          <Sunny mood="cheer" size={56} />
+          <span className="relative">
+            <Sunny mood="cheer" size={56} className="animate-kid-jump" />
+            {a.points > 0 ? (
+              <span
+                className="animate-kid-rise absolute -top-2 left-8 rounded-full bg-k-accent px-2 py-0.5 text-sm font-black whitespace-nowrap text-k-ink shadow"
+                aria-hidden="true"
+              >
+                +{a.points} ⭐
+              </span>
+            ) : null}
+          </span>
           <div>
             <p className="font-kid-display text-2xl font-bold text-k-good">
               {a.misses === 0 ? (rightText ?? t.great) : t.correct}
@@ -421,6 +445,7 @@ function useAnswer(sound: Sound, opts: { hint?: string; onFail?: () => void } = 
     /** Hint is on only after a mistake and the child asked for it. */
     hintOn: settings.hints && hintOn && status !== "right",
     showHint() {
+      sound.hint();
       setHintOn(true);
     },
     /** The teacher's hint, else the automatic one; null when hints are off. */
@@ -771,6 +796,7 @@ function MatchQ({
           a={{
             status: done ? "right" : "idle",
             misses: anyMiss ? 1 : 0,
+            points,
             triesLeft: 0,
             hintText: () => null,
             hintOn: false,
@@ -1484,6 +1510,7 @@ function Finish({
   maxScore,
   seconds,
   details,
+  sound,
   topicHref,
   nextHref,
 }: {
@@ -1493,6 +1520,7 @@ function Finish({
   maxScore: number;
   seconds: number;
   details: QuestionResult[];
+  sound: Sound;
   topicHref: string;
   nextHref: string | null;
 }) {
@@ -1509,6 +1537,14 @@ function Finish({
       await recordPractice({ activityId, score, maxScore, seconds, details });
     });
   }, [activityId, score, maxScore, seconds, details]);
+
+  // One "ding" per star, in time with the stars popping in (globals.css).
+  useEffect(() => {
+    const timers = Array.from({ length: stars }, (_, i) =>
+      window.setTimeout(() => sound.star(i), 900 + i * 400),
+    );
+    return () => timers.forEach((x) => window.clearTimeout(x));
+  }, [stars, sound]);
 
   const message = t.cheer(stars);
 
@@ -1536,7 +1572,7 @@ function Finish({
       <h1 className="font-kid-display text-4xl font-bold" data-testid="page-title">
         {message}
       </h1>
-      <Stars value={stars} size={52} label={t.starsOf(stars)} />
+      <Stars value={stars} size={52} label={t.starsOf(stars)} className="kid-stars-reveal" />
       <p className="text-xl font-bold" data-testid="score">
         {kind === "flashcards" ? t.flashSeen(maxScore / POINTS.first) : t.score(score, maxScore)}
       </p>

@@ -136,14 +136,16 @@ export function Stars({
   of = 3,
   size = 18,
   label,
+  className,
 }: {
   value: number;
   of?: number;
   size?: number;
   label: string;
+  className?: string;
 }) {
   return (
-    <span className="inline-flex gap-0.5" role="img" aria-label={label}>
+    <span className={cn("inline-flex gap-0.5", className)} role="img" aria-label={label}>
       {Array.from({ length: of }, (_, i) => (
         <StarIcon key={i} on={i < value} size={size} />
       ))}
