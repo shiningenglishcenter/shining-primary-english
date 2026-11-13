@@ -22,6 +22,11 @@ create table auth.users (
   created_at          timestamptz not null default now()
 );
 
+-- Minimal auth.sessions (only what current_profile() reads).
+create table auth.sessions (
+  id uuid primary key, user_id uuid not null, not_after timestamptz
+);
+
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
                          (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')), '')::uuid

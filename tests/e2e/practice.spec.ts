@@ -83,6 +83,8 @@ test.describe("student practice library", () => {
   });
 
   test("a student plays every game of a topic and earns stars", async ({ page }) => {
+    test.setTimeout(150_000); // 11 activities, played to the end
+
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Transport" }).click();

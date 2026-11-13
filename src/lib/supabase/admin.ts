@@ -8,6 +8,11 @@ import { publicEnv } from "@/lib/env";
  * already called requireRole("admin"). Never import from client code: the
  * `server-only` import makes that a build error.
  */
+/** False when the server has no service-role key (e.g. a Vercel environment without it). */
+export function adminConfigured(): boolean {
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 export function createAdminClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) {
