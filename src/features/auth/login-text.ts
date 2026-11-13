@@ -13,7 +13,7 @@ import type { Lang } from "@/features/i18n/messages";
  */
 const vi = {
   welcome: "Chào mừng con!",
-  welcomeSub: "Đăng nhập để học tiếng Anh cùng Sunny.",
+  welcomeSub: "Đăng nhập để học tiếng Anh cùng Shining.",
   tagline: "Mỗi ngày một chút, tiếng Anh sáng lên.",
   programmes: "Starters · Movers · Flyers · Global Success",
   username: "Tên đăng nhập",
@@ -37,7 +37,7 @@ type LoginText = typeof vi;
 
 const en: LoginText = {
   welcome: "Welcome!",
-  welcomeSub: "Log in to learn English with Sunny.",
+  welcomeSub: "Log in to learn English with Shining.",
   tagline: "A little every day, and your English shines.",
   programmes: "Starters · Movers · Flyers · Global Success",
   username: "Username",

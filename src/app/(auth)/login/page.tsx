@@ -10,7 +10,7 @@ import { Sunny, Wordmark } from "@/features/practice/components/kid-ui";
 export const metadata: Metadata = { title: "Đăng nhập" };
 
 /**
- * Login (D36): the children's look (pale yellow + green, Sunny), big touch
+ * Login (D36): the children's look (pale yellow + green, the sun mascot), big touch
  * targets for phones, EN | VI. Vietnamese unless English was chosen.
  */
 async function LoginScreen({ searchParams }: { searchParams: Promise<{ reason?: string | string[] }> }) {
