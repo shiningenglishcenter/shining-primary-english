@@ -14,6 +14,7 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: "/admin/classes", label: "Lớp học" },
   { href: "/admin/content", label: "Bài luyện" },
   { href: "/admin/results", label: "Kết quả" },
+  { href: "/admin/gop-y", label: "Góp ý" },
   { href: "/huong-dan", label: "Hướng dẫn" },
 ];
 

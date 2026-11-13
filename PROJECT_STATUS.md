@@ -94,6 +94,8 @@ From the owner's demo with teachers:
   first name before playing, results under Kết quả → "Link không cần đăng nhập"; new link stops the old.
 - **Login screen** (D36) redesigned in the kids' theme with EN/VI.
 - **User guide** (D37): public page `/huong-dan` with screenshots.
+- **Pilot feedback** (D38): public page `/gop-y`, floating button for teachers/admins, admin triage at
+  `/admin/gop-y` with CSV export.
 - 12 trial student accounts (`hs.thu01`–`hs.thu12`) in class `SAMPLE-TRIAL` on `shining-dev`.
 
 ### To deploy to the preview (owner)
@@ -108,6 +110,7 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 8. `supabase/migrations/20261112000020_practice_details.sql`
 9. `supabase/migrations/20261113000021_current_profile.sql`
 10. `supabase/migrations/20261113000022_guest_links.sql`
+11. `supabase/migrations/20261113000023_feedback.sql`
 
 Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` must be set for **Preview** too
 (account creation and password reset need it). Settings → Deployment Protection: turn off Vercel
@@ -124,11 +127,11 @@ Flyers and G2–G5 content, as the owner decides.
 ## Test status
 | Suite | Result |
 |---|---|
-| DB (migrations + RLS/grading/reports/health/account audit/practice) | 243/243 |
+| DB (migrations + RLS/grading/reports/health/account audit/practice) | 258/258 |
 | Unit (Vitest) | 88/88 |
 | End-to-end (Playwright, real local Supabase): M1 login/session/redirect suite + M2: every admin screen refused for teacher/student/parent and signed-out visitors; create class → student with login → student signs in; numbered usernames; teacher by username and by email, assigned → sees class; lock/unlock; password reset; name edit shows after login; login created later; enrol/remove; search | 49/49 (desktop + phone viewport) |
 
-Phase 1.3: full e2e suite **54/54** on a local Supabase stack (2026-11-13), incl. guest links and login.
+Phase 1.3: full e2e suite **57/57** on a local Supabase stack (2026-11-13), incl. guest links and login.
 
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
@@ -145,7 +148,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D36; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D36). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D38; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D38). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

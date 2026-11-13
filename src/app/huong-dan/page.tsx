@@ -171,6 +171,9 @@ export default function GuidePage() {
             <a href="#hoi-dap" className="rounded-md px-3 py-2 hover:bg-muted">
               Hỏi đáp
             </a>
+            <Link href="/gop-y" className="rounded-md bg-sun-soft px-3 py-2 hover:bg-sun/40">
+              💬 Góp ý
+            </Link>
           </nav>
           <Link
             href="/login"
@@ -519,6 +522,22 @@ export default function GuidePage() {
           </dl>
         </section>
       </main>
+
+      <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+        <div className="flex flex-col items-start gap-3 rounded-2xl border-2 border-sun bg-sun-soft p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-lg font-semibold">Cô đã dùng thử? Hãy cho chúng tôi biết!</p>
+            <p className="text-ink-soft">Báo lỗi và chia sẻ ý tưởng từ lớp học — không cần đăng nhập.</p>
+          </div>
+          <Link
+            href="/gop-y"
+            className="inline-flex h-11 items-center rounded-md bg-ink px-5 font-semibold text-white"
+            data-testid="guide-feedback"
+          >
+            💬 Gửi góp ý
+          </Link>
+        </div>
+      </div>
 
       <footer className="border-t border-line bg-surface py-6 text-center text-sm text-ink-soft">
         SHINING Primary English · Ảnh minh hoạ dùng dữ liệu mẫu [SAMPLE].

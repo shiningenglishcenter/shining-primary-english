@@ -306,3 +306,48 @@ test.describe("login screen", () => {
     await expect(page.getByTestId("login-title")).toHaveText("Chào mừng con!");
   });
 });
+
+test.describe("pilot feedback", () => {
+  // 1×1 PNG
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  test("a teacher sends a bug with a screenshot from the floating button; only admins read it", async ({
+    browser,
+  }) => {
+    const teacher = await as(browser, "gv.lan");
+    await teacher.goto("/teacher/results");
+    await teacher.getByTestId("feedback-fab").click();
+    await expect(teacher).toHaveURL(/\/gop-y\?from=%2Fteacher%2Fresults/);
+    const description = `Nút Next không bấm được ${run}`;
+    await teacher.getByTestId("feedback-description").fill(description);
+    await teacher
+      .getByTestId("feedback-image")
+      .setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: png });
+    await expect(teacher.getByRole("img", { name: "Ảnh 1" })).toBeVisible();
+    await teacher.getByRole("radio", { name: "4 sao" }).first().click();
+    await teacher.getByTestId("feedback-submit").click();
+    await expect(teacher.getByTestId("feedback-sent")).toBeVisible();
+
+    await teacher.goto("/admin/gop-y");
+    await expect(teacher).toHaveURL(/\/forbidden/);
+
+    const admin = await as(browser, "admin@example.com");
+    await admin.goto("/admin/gop-y");
+    const entry = admin.getByTestId("feedback-entry").filter({ hasText: description });
+    await expect(entry).toBeVisible();
+    await expect(entry).toContainText("/teacher/results");
+    await expect(entry.getByRole("img", { name: "Ảnh chụp màn hình" })).toBeVisible();
+  });
+
+  test("the feedback page needs no login; pupils get no floating button", async ({ page }) => {
+    await page.goto("/gop-y");
+    await expect(page.getByTestId("page-title")).toHaveText("Cô giúp SHINING tốt hơn nhé!");
+    await page.getByTestId("feedback-submit").click();
+    await expect(page.getByTestId("feedback-error")).toBeVisible();
+    await loginFromScratch(page, "hs.an");
+    await expect(page.getByTestId("feedback-fab")).toHaveCount(0);
+  });
+});
