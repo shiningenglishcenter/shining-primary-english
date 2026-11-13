@@ -112,6 +112,17 @@ const vi = {
   starsOf: (n: number) => `${n} trên 3 sao`,
   saving: "Đang lưu…",
   saveFailed: "Chưa lưu được kết quả.",
+  // guest links (D35)
+  loginToSave: "Đăng nhập để lưu điểm",
+  guestAsk: "Con tên là gì?",
+  guestHint: "Nhập tên gọi của con để thầy cô biết ai đã làm bài.",
+  guestPlaceholder: "Ví dụ: Bin",
+  guestStart: "Bắt đầu",
+  guestNotYou: (name: string) => `Không phải ${name}? Đổi tên`,
+  guestHello: (name: string) => `Chào ${name}!`,
+  linkOff: "Link này không còn mở được",
+  linkOffHint: "Có thể thầy cô đã tắt link hoặc gửi link mới. Hãy hỏi lại thầy cô nhé.",
+  haveAccount: "Con có tài khoản? Đăng nhập",
 };
 export type Messages = typeof vi;
 
@@ -213,6 +224,16 @@ const en: Messages = {
   starsOf: (n) => `${n} out of 3 stars`,
   saving: "Saving…",
   saveFailed: "Couldn't save your score.",
+  loginToSave: "Log in to save your score",
+  guestAsk: "What's your name?",
+  guestHint: "Type your first name so your teacher knows who played.",
+  guestPlaceholder: "e.g. Bin",
+  guestStart: "Start",
+  guestNotYou: (name) => `Not ${name}? Change name`,
+  guestHello: (name) => `Hi, ${name}!`,
+  linkOff: "This link is not available",
+  linkOffHint: "Your teacher may have turned it off or sent a new one. Please ask them.",
+  haveAccount: "Have an account? Log in",
 };
 
 export const MESSAGES: Record<Lang, Messages> = { en, vi };

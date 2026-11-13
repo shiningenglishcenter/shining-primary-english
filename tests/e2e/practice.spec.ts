@@ -236,3 +236,63 @@ test.describe("practice content editor", () => {
     }
   });
 });
+
+test.describe("guest links (no login needed)", () => {
+  test("off by default; a guest plays under a first name; the teacher sees it; switching off stops the link", async ({
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const teacher = await as(browser, "gv.lan");
+    await teacher.goto("/teacher/content?level=starters");
+    await teacher.getByRole("link", { name: "Colours" }).first().click();
+    await teacher
+      .getByRole("link", { name: /Nhìn hình chọn từ/ })
+      .locator("visible=true")
+      .first()
+      .click();
+    await expect(teacher).toHaveURL(/\/teacher\/content\/activities\//);
+    const editorUrl = teacher.url();
+    const panel = teacher.getByTestId("guest-link").locator("visible=true");
+    const toggle = panel.getByTestId("guest-switch");
+    if ((await toggle.getAttribute("aria-checked")) === "true") await toggle.click(); // clean state from a rerun
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    const url = await panel.getByTestId("share-url").inputValue();
+    expect(url).toMatch(/\/p\/[A-Za-z0-9_-]{16,40}$/);
+
+    const guest = await (await browser.newContext()).newPage();
+    await guest.goto(url);
+    const name = `Bin${run}`;
+    await guest.getByTestId("guest-name").fill(name);
+    await guest.getByTestId("guest-start").click();
+    await expect(guest.getByTestId("guest-hello")).toContainText(name);
+    await playThrough(guest);
+    await expect(guest.getByTestId("guest-login")).toBeVisible();
+
+    await teacher.goto("/teacher/results?view=guests");
+    await expect(teacher.getByTestId("results-guests")).toContainText(name);
+
+    await teacher.goto(editorUrl);
+    const toggle2 = teacher.getByTestId("guest-link").locator("visible=true").getByTestId("guest-switch");
+    await toggle2.click();
+    await expect(toggle2).toHaveAttribute("aria-checked", "false");
+    await guest.goto(url);
+    await expect(guest.getByTestId("guest-link-off")).toBeVisible();
+  });
+});
+
+test.describe("login screen", () => {
+  test("Vietnamese by default, English on request @mobile", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByTestId("login-title")).toHaveText("Chào mừng con!");
+    await page.getByTestId("lang-switch").getByRole("button", { name: "en" }).click();
+    await expect(page.getByTestId("login-title")).toHaveText("Welcome!");
+    await page.getByLabel("Username").fill("hs.an");
+    await page.getByLabel("Password", { exact: true }).fill("wrong-password");
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page.getByTestId("login-error")).toHaveText("The username or password is not right.");
+    await page.getByTestId("lang-switch").getByRole("button", { name: "vi" }).click();
+    await expect(page.getByTestId("login-title")).toHaveText("Chào mừng con!");
+  });
+});

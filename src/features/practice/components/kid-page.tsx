@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { signOut } from "@/features/auth/actions";
 import { LangProvider, LangSwitch } from "@/features/i18n/client";
 import { getMessages } from "@/features/i18n/server";
@@ -15,10 +15,13 @@ export async function KidPage({
   level,
   children,
   header = true,
+  guest,
 }: {
   level: PracticeLevel;
   children: React.ReactNode;
   header?: boolean;
+  /** Guest link page (D35): no account menu, a login link instead. */
+  guest?: { loginHref: string };
 }) {
   const { lang, t } = await getMessages();
   return (
@@ -27,21 +30,35 @@ export async function KidPage({
         <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 pb-8 sm:px-6">
           {header ? (
             <header className="flex items-center justify-between gap-3 pt-4 pb-2">
-              <Link href={`/learn?level=${level.slug}`} aria-label={t.home} className="rounded-lg">
+              {guest ? (
                 <Wordmark />
-              </Link>
+              ) : (
+                <Link href={`/learn?level=${level.slug}`} aria-label={t.home} className="rounded-lg">
+                  <Wordmark />
+                </Link>
+              )}
               <div className="flex items-center gap-2">
                 <LangSwitch />
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    data-testid="sign-out"
+                {guest ? (
+                  <Link
+                    href={guest.loginHref}
                     className="flex h-11 items-center gap-2 rounded-full bg-k-surface px-4 text-sm font-extrabold text-k-ink shadow-[0_3px_0_var(--k-line)]"
                   >
-                    <LogOut className="size-4" aria-hidden="true" />
-                    {t.signOut}
-                  </button>
-                </form>
+                    <LogIn className="size-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">{t.haveAccount}</span>
+                  </Link>
+                ) : (
+                  <form action={signOut}>
+                    <button
+                      type="submit"
+                      data-testid="sign-out"
+                      className="flex h-11 items-center gap-2 rounded-full bg-k-surface px-4 text-sm font-extrabold text-k-ink shadow-[0_3px_0_var(--k-line)]"
+                    >
+                      <LogOut className="size-4" aria-hidden="true" />
+                      {t.signOut}
+                    </button>
+                  </form>
+                )}
               </div>
             </header>
           ) : null}

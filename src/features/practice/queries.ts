@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import type { PlayerContext, RoundContext } from "@/features/practice/round";
 import {
   levelByCode,
@@ -184,14 +185,21 @@ const AUDIO_URL_SECONDS = 2 * 60 * 60;
  * a short-lived signed URL (the bucket is private; RLS lets any signed-in
  * user read it).
  */
-export async function resolveContexts(contexts: RoundContext[]): Promise<PlayerContext[]> {
+export async function resolveContexts(
+  contexts: RoundContext[],
+  opts: { guest?: boolean } = {},
+): Promise<PlayerContext[]> {
   const paths = contexts.flatMap((c) =>
     c.type === "listening" && c.media.source === "file" ? [c.media.path] : [],
   );
   const urls = new Map<string, string>();
   if (paths.length) {
-    const supabase = await createClient();
-    const { data } = await supabase.storage.from("learning-media").createSignedUrls(paths, AUDIO_URL_SECONDS);
+    // Guests have no session: their audio of a verified public activity (D35) is
+    // signed with the service role; without that key the player says it can't open.
+    const supabase = opts.guest ? (adminConfigured() ? createAdminClient() : null) : await createClient();
+    const { data } = supabase
+      ? await supabase.storage.from("learning-media").createSignedUrls(paths, AUDIO_URL_SECONDS)
+      : { data: [] };
     for (const row of data ?? []) if (row.path && row.signedUrl) urls.set(row.path, row.signedUrl);
   }
   return contexts.map((c): PlayerContext => {

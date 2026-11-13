@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Delete, Lightbulb, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { recordPractice, type QuestionResult } from "@/features/practice/actions";
+
+export type RoundResult = { score: number; maxScore: number; seconds: number; details: QuestionResult[] };
 import { Pic, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import {
   DEFAULT_SETTINGS,
@@ -63,6 +65,9 @@ export function Player({
   questions,
   contexts = [],
   settings = DEFAULT_SETTINGS,
+  record,
+  playHref,
+  guest,
   maxScore,
   topicHref,
   nextHref,
@@ -73,6 +78,12 @@ export function Player({
   questions: Question[];
   contexts?: PlayerContext[];
   settings?: PlaySettings;
+  /** Saves the finished round; default: the signed-in student's progress. */
+  record?: (r: RoundResult) => Promise<unknown>;
+  /** "Play again" target (default /learn/play/<id>). */
+  playHref?: string;
+  /** Guest link (D35): no topic page, offer to log in instead. */
+  guest?: { loginHref: string };
   maxScore: number;
   topicHref: string;
   nextHref: string | null;
@@ -119,6 +130,9 @@ export function Player({
         seconds={seconds}
         details={details}
         sound={sound}
+        record={record}
+        playHref={playHref ?? `/learn/play/${activityId}`}
+        guest={guest}
         topicHref={topicHref}
         nextHref={nextHref}
       />
@@ -1511,6 +1525,9 @@ function Finish({
   seconds,
   details,
   sound,
+  record,
+  playHref,
+  guest,
   topicHref,
   nextHref,
 }: {
@@ -1521,6 +1538,9 @@ function Finish({
   seconds: number;
   details: QuestionResult[];
   sound: Sound;
+  record?: (r: RoundResult) => Promise<unknown>;
+  playHref: string;
+  guest?: { loginHref: string };
   topicHref: string;
   nextHref: string | null;
 }) {
@@ -1534,9 +1554,10 @@ function Finish({
     if (sent.current || maxScore < 1) return;
     sent.current = true;
     startTransition(async () => {
-      await recordPractice({ activityId, score, maxScore, seconds, details });
+      const result = { score, maxScore, seconds, details };
+      await (record ? record(result) : recordPractice({ activityId, ...result }));
     });
-  }, [activityId, score, maxScore, seconds, details]);
+  }, [activityId, score, maxScore, seconds, details, record]);
 
   // One "ding" per star, in time with the stars popping in (globals.css).
   useEffect(() => {
@@ -1587,17 +1608,27 @@ function Finish({
         ) : null}
         <button
           type="button"
-          onClick={() => router.push(`/learn/play/${activityId}?r=${Math.floor(Math.random() * 1e6)}`)}
+          onClick={() => router.push(`${playHref}?r=${Math.floor(Math.random() * 1e6)}`)}
           className="kid-press h-14 rounded-2xl bg-k-surface text-lg font-black"
         >
           {t.playAgain}
         </button>
-        <Link
-          href={topicHref}
-          className="kid-press flex h-14 items-center justify-center rounded-2xl bg-k-surface text-lg font-black"
-        >
-          {t.aboutTopic}
-        </Link>
+        {guest ? (
+          <Link
+            href={guest.loginHref}
+            className="kid-press flex h-14 items-center justify-center rounded-2xl bg-k-surface text-lg font-black"
+            data-testid="guest-login"
+          >
+            {t.loginToSave}
+          </Link>
+        ) : (
+          <Link
+            href={topicHref}
+            className="kid-press flex h-14 items-center justify-center rounded-2xl bg-k-surface text-lg font-black"
+          >
+            {t.aboutTopic}
+          </Link>
+        )}
       </div>
     </div>
   );

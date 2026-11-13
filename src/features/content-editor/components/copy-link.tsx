@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { Check, Copy, Link2, MessageSquareText } from "lucide-react";
+import { useState, useSyncExternalStore, useTransition } from "react";
+import { Check, Copy, Link2, MessageSquareText, RefreshCw } from "lucide-react";
+import { setGuestLink } from "@/features/guest/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -35,22 +36,30 @@ function useCopied() {
   };
 }
 
-const TEMPLATE_KEY = "shining-share-template";
-/** {ten} = the activity / topic name, {link} = its address. */
-const DEFAULT_TEMPLATE =
-  "Con vào link này để làm {loai} “{ten}” trên SHINING nhé (đăng nhập bằng tài khoản học sinh của con):\n{link}";
+/** {ten} = the activity / topic name, {link} = its address. One template per kind of link. */
+const TEMPLATES = {
+  student: {
+    key: "shining-share-template",
+    text: "Con vào link này để làm {loai} “{ten}” trên SHINING nhé (đăng nhập bằng tài khoản học sinh của con):\n{link}",
+  },
+  guest: {
+    key: "shining-share-template-guest",
+    text: "Con vào link này để làm {loai} “{ten}” trên SHINING nhé (không cần đăng nhập, chỉ cần nhập tên của con):\n{link}",
+  },
+} as const;
+type Variant = keyof typeof TEMPLATES;
 
-function loadTemplate(): string {
+function loadTemplate(v: Variant): string {
   try {
-    return localStorage.getItem(TEMPLATE_KEY) || DEFAULT_TEMPLATE;
+    return localStorage.getItem(TEMPLATES[v].key) || TEMPLATES[v].text;
   } catch {
-    return DEFAULT_TEMPLATE;
+    return TEMPLATES[v].text;
   }
 }
-function saveTemplate(t: string) {
+function saveTemplate(v: Variant, t: string) {
   try {
-    if (t === DEFAULT_TEMPLATE) localStorage.removeItem(TEMPLATE_KEY);
-    else localStorage.setItem(TEMPLATE_KEY, t);
+    if (t === TEMPLATES[v].text) localStorage.removeItem(TEMPLATES[v].key);
+    else localStorage.setItem(TEMPLATES[v].key, t);
   } catch {
     /* storage blocked: the edit still works for this page */
   }
@@ -64,7 +73,20 @@ const fill = (t: string, v: { link: string; ten: string; loai: string }) =>
  * teacher's wording is remembered on this device for every other activity;
  * {ten} and {link} are filled in per activity, so it is edited only once.
  */
-export function ShareLink({ path, title, what = "bài" }: { path: string; title: string; what?: string }) {
+export function ShareLink({
+  path,
+  title,
+  what = "bài",
+  variant = "student",
+  heading = "Link gửi phụ huynh / học sinh",
+}: {
+  path: string;
+  title: string;
+  what?: string;
+  variant?: Variant;
+  heading?: string;
+}) {
+  const DEFAULT_TEMPLATE = TEMPLATES[variant].text;
   const origin = useOrigin();
   const url = `${origin}${path}`;
   const { copied, copy } = useCopied();
@@ -73,7 +95,7 @@ export function ShareLink({ path, title, what = "bài" }: { path: string; title:
   const [draft, setDraft] = useState<string | null>(null);
   const template = useSyncExternalStore(
     () => () => {},
-    loadTemplate,
+    () => loadTemplate(variant),
     () => DEFAULT_TEMPLATE,
   );
   const message = draft ?? fill(template, vars);
@@ -83,10 +105,10 @@ export function ShareLink({ path, title, what = "bài" }: { path: string; title:
     let t = text;
     if (url) t = t.replaceAll(url, "{link}");
     if (title) t = t.replaceAll(title, "{ten}");
-    saveTemplate(t);
+    saveTemplate(variant, t);
   };
   const reset = () => {
-    saveTemplate(DEFAULT_TEMPLATE);
+    saveTemplate(variant, DEFAULT_TEMPLATE);
     setDraft(fill(DEFAULT_TEMPLATE, vars));
   };
   const edited = message !== fill(DEFAULT_TEMPLATE, vars);
@@ -96,7 +118,7 @@ export function ShareLink({ path, title, what = "bài" }: { path: string; title:
       data-testid="share-link"
     >
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold">Link gửi phụ huynh / học sinh</p>
+        <p className="text-sm font-semibold">{heading}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             readOnly
@@ -186,5 +208,97 @@ export function CopyLinkIcon({ path, label }: { path: string; label: string }) {
       {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
       <span className="hidden sm:inline">{copied ? "Đã chép" : "Link"}</span>
     </Button>
+  );
+}
+
+/**
+ * "No login needed" switch for one activity (D35), off by default. On: a
+ * public link that never expires; "new link" stops the old one.
+ */
+export function GuestLinkPanel({
+  activityId,
+  token,
+  title,
+  canShare,
+}: {
+  activityId: string;
+  token: string | null;
+  title: string;
+  canShare: boolean;
+}) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const run = (mode: "on" | "off" | "renew") =>
+    start(async () => {
+      setError(null);
+      const r = await setGuestLink({ activityId, mode });
+      if (!r.ok) setError(r.error ?? "Không lưu được.");
+    });
+  const on = Boolean(token);
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
+      data-testid="guest-link"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">Cho làm không cần đăng nhập</p>
+          <p className="text-xs text-ink-soft">
+            Bật lên để có một link ai cũng làm được (chỉ cần nhập tên). Điểm không vào tài khoản học sinh;
+            thầy cô xem ở <span className="font-medium">Kết quả → Link không cần đăng nhập</span>.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label="Cho làm không cần đăng nhập"
+          disabled={pending || (!on && !canShare)}
+          onClick={() => run(on ? "off" : "on")}
+          className={cn(
+            "relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50",
+            on ? "bg-leaf" : "bg-line",
+          )}
+          data-testid="guest-switch"
+        >
+          <span
+            className={cn(
+              "absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform",
+              on && "translate-x-5",
+            )}
+          />
+        </button>
+      </div>
+      {!canShare && !on ? (
+        <p className="text-xs text-ink-soft">Xuất bản bài và chủ đề trước khi bật.</p>
+      ) : null}
+      {error ? <p className="text-sm text-berry">{error}</p> : null}
+      {on && token ? (
+        <>
+          <ShareLink
+            key={token}
+            path={`/p/${token}`}
+            title={title}
+            variant="guest"
+            heading="Link không cần đăng nhập"
+          />
+          <div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              onClick={() => {
+                if (confirm("Tạo link mới? Link cũ sẽ không mở được nữa.")) run("renew");
+              }}
+              data-testid="guest-renew"
+            >
+              <RefreshCw aria-hidden="true" />
+              Tạo link mới (link cũ sẽ ngừng hoạt động)
+            </Button>
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }

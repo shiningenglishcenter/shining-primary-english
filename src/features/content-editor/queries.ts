@@ -107,6 +107,32 @@ export async function getActivityForStaff(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("practice_activities")
+    .select("id, kind, title_en, title_vi, status, sort_order, content, settings, public_token, topic_id")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error?.code === "42703") return getActivityForStaffWithoutToken(id); // before migration 0022
+  if (error || !data) return null;
+  const topic = await getTopicForStaff(data.topic_id as string);
+  if (!topic) return null;
+  return {
+    id: data.id as string,
+    kind: data.kind as PracticeKind,
+    titleEn: data.title_en as string,
+    titleVi: data.title_vi as string,
+    status: data.status as Status,
+    sortOrder: data.sort_order as number,
+    content: (data.content ?? {}) as Record<string, unknown>,
+    settings: settingsOf(data.settings),
+    publicToken: ((data as { public_token?: string | null }).public_token ?? null) as string | null,
+    topic,
+  };
+}
+
+async function getActivityForStaffWithoutToken(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("practice_activities")
     .select("id, kind, title_en, title_vi, status, sort_order, content, settings, topic_id")
     .eq("id", id)
     .is("deleted_at", null)
@@ -123,6 +149,7 @@ export async function getActivityForStaff(id: string) {
     sortOrder: data.sort_order as number,
     content: (data.content ?? {}) as Record<string, unknown>,
     settings: settingsOf(data.settings),
+    publicToken: null as string | null,
     topic,
   };
 }

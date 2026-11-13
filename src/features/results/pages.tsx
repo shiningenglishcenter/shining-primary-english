@@ -22,7 +22,9 @@ import {
   getStudent,
   listResultClasses,
   practiceRecords,
+  guestAttempts,
   type ActivityInfo,
+  type GuestAttempt,
   type TopicInfo,
 } from "@/features/results/queries";
 import {
@@ -67,6 +69,7 @@ const VIEWS = [
   ["students", "Theo học sinh"],
   ["topics", "Theo chủ đề"],
   ["activities", "Theo bài"],
+  ["guests", "Link không cần đăng nhập"],
 ] as const;
 type View = (typeof VIEWS)[number][0];
 
@@ -404,7 +407,9 @@ export async function ResultsHome({
         ]}
       />
 
-      {students.length === 0 ? (
+      {f.view === "guests" ? (
+        <GuestTable attempts={await guestAttempts(f.since, f.level?.code ?? null)} nav={nav} />
+      ) : students.length === 0 ? (
         <p className="text-ink-soft">Lớp này chưa có học sinh.</p>
       ) : f.view === "students" ? (
         <StudentsTable
@@ -721,6 +726,72 @@ function ActivitiesTable({
                 {s.students}/{classSize}
               </td>
               <td className={cn(td, "font-semibold tabular-nums", textTone(s.average))}>{pct(s.average)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
+      <Pager nav={nav} {...paging} />
+    </div>
+  );
+}
+
+/** Rounds played through guest links (D35), newest first by default. */
+function GuestTable({ attempts, nav }: { attempts: GuestAttempt[]; nav: Nav }) {
+  if (attempts.length === 0) {
+    return (
+      <p className="text-ink-soft">
+        Chưa có ai làm bài qua link không cần đăng nhập trong khoảng này. Bật link ở trang sửa bài (Bài luyện
+        → bài → “Cho làm không cần đăng nhập”).
+      </p>
+    );
+  }
+  const rows = sortRows<GuestAttempt>(
+    attempts,
+    nav,
+    {
+      name: (r) => r.name,
+      activity: (r) => r.activityTitle,
+      topic: (r) => r.topicEn,
+      score: (r) => r.ratio,
+      time: (r) => r.seconds,
+      when: (r) => r.recordedAt,
+      default: (r) => -Date.parse(r.recordedAt),
+    },
+    "default",
+  );
+  const { items, ...paging } = paginate(rows, nav);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-ink-soft">
+        Tên do trẻ tự nhập nên có thể trùng hoặc viết khác nhau. Mục này không theo lớp và không tính vào kết
+        quả của học sinh có tài khoản.
+      </p>
+      <DataTable testId="results-guests">
+        <thead>
+          <tr>
+            <SortHead nav={nav} k="name" label="Tên" />
+            <SortHead nav={nav} k="activity" label="Bài" />
+            <SortHead nav={nav} k="topic" label="Chủ đề / Unit" />
+            <SortHead nav={nav} k="score" label="Điểm" first="desc" />
+            <SortHead nav={nav} k="time" label="Thời gian" first="desc" />
+            <SortHead nav={nav} k="when" label="Lúc làm" first="desc" />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((r) => (
+            <tr key={r.id} className="hover:bg-muted/40">
+              <td className={cn(td, "font-semibold")}>{r.name}</td>
+              <td className={td}>
+                {r.activityTitle}
+                <span className="block text-xs text-ink-soft">{KIND_LABEL_VI[r.kind]}</span>
+              </td>
+              <td className={td}>
+                {r.topicEn}
+                {r.level ? <span className="block text-xs text-ink-soft">{r.level.name}</span> : null}
+              </td>
+              <td className={cn(td, "font-semibold tabular-nums", textTone(r.ratio))}>{pct(r.ratio)}</td>
+              <td className={`${td} tabular-nums`}>{r.seconds ? durationVi(r.seconds) : "—"}</td>
+              <td className={`${td} whitespace-nowrap text-ink-soft`}>{when(r.recordedAt)}</td>
             </tr>
           ))}
         </tbody>

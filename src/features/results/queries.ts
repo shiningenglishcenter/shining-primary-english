@@ -181,3 +181,54 @@ export async function practiceRecords(
     topics: [...topics.values()].sort((x, y) => x.sortKey.localeCompare(y.sortKey)),
   };
 }
+
+export type GuestAttempt = {
+  id: string;
+  name: string;
+  activityTitle: string;
+  kind: PracticeKind;
+  topicEn: string;
+  level: PracticeLevel | null;
+  ratio: number;
+  seconds: number;
+  recordedAt: string;
+};
+
+/** Rounds played through guest links (D35); staff only (RLS). Empty before migration 0022. */
+export async function guestAttempts(
+  sinceIso: string | null,
+  levelCode: string | null,
+): Promise<GuestAttempt[]> {
+  const supabase = await createClient();
+  let q = supabase
+    .from("guest_attempts")
+    .select(
+      "id, player_name, score, max_score, duration_seconds, recorded_at, activity:practice_activities!inner(title_vi, kind, topic:topics!inner(title_en, level:levels!inner(code)))",
+    )
+    .order("recorded_at", { ascending: false })
+    .limit(2000);
+  if (sinceIso) q = q.gte("recorded_at", sinceIso);
+  const { data, error } = await q;
+  if (error) return [];
+  return (data ?? []).flatMap((r) => {
+    const a = r.activity as unknown as {
+      title_vi: string;
+      kind: PracticeKind;
+      topic: { title_en: string; level: { code: string } };
+    };
+    if (levelCode && a.topic.level.code !== levelCode) return [];
+    return [
+      {
+        id: r.id as string,
+        name: r.player_name as string,
+        activityTitle: a.title_vi,
+        kind: a.kind,
+        topicEn: a.topic.title_en,
+        level: levelByCode(a.topic.level.code),
+        ratio: Number(r.score) / Number(r.max_score),
+        seconds: Number(r.duration_seconds ?? 0),
+        recordedAt: r.recorded_at as string,
+      },
+    ];
+  });
+}

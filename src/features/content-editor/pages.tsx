@@ -23,7 +23,7 @@ import {
   TopicForm,
   WordsEditor,
 } from "@/features/content-editor/components/editor-forms";
-import { CopyLinkIcon, ShareLink } from "@/features/content-editor/components/copy-link";
+import { CopyLinkIcon, GuestLinkPanel, ShareLink } from "@/features/content-editor/components/copy-link";
 import { cn } from "@/lib/utils";
 
 /**
@@ -240,7 +240,7 @@ export async function ActivityEditorPage({
         description={`${KIND_LABEL_VI[activity.kind]} · ${activity.topic.titleEn}`}
         back={{ href: `${base}/topics/${activity.topic.id}`, label: activity.topic.titleEn }}
       />
-      <div className="mb-6 max-w-3xl">
+      <div className="mb-6 flex max-w-3xl flex-col gap-4">
         {activity.status === "published" && activity.topic.status === "published" ? (
           <ShareLink
             path={`/learn/play/${activity.id}`}
@@ -249,6 +249,12 @@ export async function ActivityEditorPage({
         ) : (
           <p className="text-sm text-ink-soft">Xuất bản bài và chủ đề để lấy link gửi học sinh.</p>
         )}
+        <GuestLinkPanel
+          activityId={activity.id}
+          token={activity.publicToken}
+          title={`${activity.topic.titleEn}: ${activity.titleEn}`}
+          canShare={activity.status === "published" && activity.topic.status === "published"}
+        />
       </div>
       <div className="max-w-3xl">
         <Section title="Sửa bài">

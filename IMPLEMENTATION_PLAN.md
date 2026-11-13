@@ -21,7 +21,7 @@ The main purpose is students doing exercises. New order:
 **Phase 1 ✅ practice library + Starters pack + content editor** → pilot & feedback →
 **Phase 1.1 ✅ feedback: programmes (Cambridge / Global Success), one theme, 4 new kinds, G1 pack, speed,
 loading** (2026-11-11) → **Phase 1.2 ✅ hints/tries, results pages, EN/VI, video exercises** (2026-11-12) →
-**Phase 1.3 (next): guest links + new login screen** — owner decisions 2026-11-13: per-activity switch
+**Phase 1.3 ✅ guest links + new login screen** — owner decisions 2026-11-13: per-activity switch
 "no login needed", **off by default**; a public link with a random token that **does not expire** (the
 teacher can turn it off or make a new one); the child **types a first name before starting**; scores of
 guest rounds are kept per link (name, score, time) for the teacher's results, never in a student account;
