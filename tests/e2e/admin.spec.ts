@@ -9,7 +9,8 @@ import { loginFromScratch, signInAs } from "./helpers";
 /** Next.js keeps the previous page mounted but hidden; match the visible one. */
 const title = (page: Page) => page.getByTestId("page-title").locator("visible=true");
 
-const run = Date.now().toString(36).slice(-5);
+// Ends in a letter: a trailing digit would be bumped by the username generator (q4j98 -> q4j99)
+const run = `${Date.now().toString(36).slice(-4)}x`;
 const ANY_ID = "00000000-0000-4000-8000-000000000000";
 
 const ADMIN_PAGES = [
