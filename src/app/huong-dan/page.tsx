@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 const SIZES: Record<string, [number, number]> = {
   "t1-content": [1400, 941],
   "t2-topic": [1400, 941],
-  "t3-activities": [968, 1646],
   "t5-settings": [1400, 316],
   "t6-items": [1400, 868],
   "t7-media": [1400, 503],
