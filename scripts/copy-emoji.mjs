@@ -35,7 +35,11 @@ const rows = [];
 for (const e of read("en").sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9))) {
   if (e.group === 2 || e.group === 9) continue; // skin-tone components, flags
   const full = codeOf(e.emoji);
-  const code = have.has(full) ? full : have.has(full.replace(/-fe0f/g, "")) ? full.replace(/-fe0f/g, "") : null;
+  const code = have.has(full)
+    ? full
+    : have.has(full.replace(/-fe0f/g, ""))
+      ? full.replace(/-fe0f/g, "")
+      : null;
   if (!code) continue;
   const v = vi.get(e.hexcode);
   const words = (x) => [x?.label ?? "", ...(x?.tags ?? [])].join(" | ");
