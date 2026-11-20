@@ -83,12 +83,12 @@ test.describe("student practice library", () => {
   });
 
   test("a student plays every game of a topic and earns stars", async ({ page }) => {
-    test.setTimeout(150_000); // 11 activities, played to the end
+    test.setTimeout(160_000); // 12 activities, played to the end
 
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Transport" }).click();
-    await expect(page.getByTestId("activity")).toHaveCount(11);
+    await expect(page.getByTestId("activity")).toHaveCount(12);
     const hrefs = await page
       .getByTestId("activity")
       .evaluateAll((els) => els.map((e) => e.getAttribute("href")!));
@@ -102,7 +102,7 @@ test.describe("student practice library", () => {
       page.getByTestId("activity").first().getByRole("img", { name: "3 out of 3 stars" }),
     ).toBeVisible();
     await page.goto("/learn?level=starters");
-    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("11/11");
+    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("12/12");
   });
 
   test("a wrong answer offers a hint and earns 1 point instead of 2", async ({ page }) => {

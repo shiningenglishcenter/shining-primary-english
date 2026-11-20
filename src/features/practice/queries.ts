@@ -97,7 +97,7 @@ export async function getTopic(topicId: string) {
   const { data, error } = await supabase
     .from("topics")
     .select(
-      `id, code, title_en, title_vi, emoji, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at, ${PROGRESS_EMBED})`,
+      `id, code, title_en, title_vi, emoji, patterns, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at, ${PROGRESS_EMBED})`,
     )
     .eq("id", topicId)
     .eq("status", "published")
@@ -122,6 +122,7 @@ export async function getTopic(topicId: string) {
     titleEn: data.title_en as string,
     titleVi: data.title_vi as string,
     emoji: (data.emoji as string | null) ?? null,
+    patterns: patternsOf(data.patterns),
     level,
     activities: rows.map((a): ActivitySummary => ({
       id: a.id,
@@ -133,15 +134,52 @@ export async function getTopic(topicId: string) {
   };
 }
 
-export async function getTopicWords(topicId: string): Promise<VocabWord[]> {
+export type Pattern = { en: string; vi: string };
+export function patternsOf(raw: unknown): Pattern[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((p) =>
+    p && typeof p === "object" && typeof (p as Pattern).en === "string"
+      ? [{ en: (p as Pattern).en, vi: typeof (p as Pattern).vi === "string" ? (p as Pattern).vi : "" }]
+      : [],
+  );
+}
+
+/** Topic codes a review activity draws its words from (D51), anywhere in its content. */
+export function unitsOf(content: unknown): string[] {
+  const out = new Set<string>();
+  const walk = (v: unknown) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") {
+      for (const [k, x] of Object.entries(v)) {
+        if (k === "units" && Array.isArray(x)) x.forEach((u) => typeof u === "string" && out.add(u));
+        else walk(x);
+      }
+    }
+  };
+  walk(content);
+  return [...out];
+}
+
+/** Words of a topic, or (review activities) of other topics of the same level. */
+export async function getTopicWords(
+  topicId: string,
+  units: string[] = [],
+  levelCode?: string,
+): Promise<VocabWord[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const base = supabase
     .from("vocabulary")
-    .select("word, meaning_vi, emoji, image_path")
-    .eq("topic_id", topicId)
+    .select(
+      "word, meaning_vi, emoji, image_path, topic:topics!inner(code, deleted_at, level:levels!inner(code))",
+    )
     .eq("status", "published")
     .is("deleted_at", null)
+    .is("topic.deleted_at", null)
     .order("word");
+  const { data, error } =
+    units.length && levelCode
+      ? await base.in("topic.code", units).eq("topic.level.code", levelCode)
+      : await base.eq("topic_id", topicId);
   if (error) throw new Error(`getTopicWords: ${error.code}`);
   return withImages(
     (data ?? []).map((w) => ({
@@ -183,16 +221,19 @@ export async function getActivity(activityId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("practice_activities")
-    .select("id, kind, title_en, title_vi, content, settings, topic_id")
+    .select(
+      "id, kind, title_en, title_vi, content, settings, topic_id, topic:topics!inner(level:levels!inner(code))",
+    )
     .eq("id", activityId)
     .eq("status", "published")
     .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return null;
   // The topic (with stars) and its words only need the topic id: fetch together.
+  const levelCode = (data.topic as unknown as { level: { code: string } }).level.code;
   const [topic, words] = await Promise.all([
     getTopic(data.topic_id as string),
-    getTopicWords(data.topic_id as string),
+    getTopicWords(data.topic_id as string, unitsOf(data.content), levelCode),
   ]);
   if (!topic) return null;
   const index = topic.activities.findIndex((a) => a.id === data.id);

@@ -57,11 +57,23 @@ export function ContentFields({
 }) {
   if (WORD_KINDS.includes(kind)) {
     return (
-      <WordPicker
-        topicWords={topicWords}
-        value={Array.isArray(content.words) ? (content.words as string[]) : []}
-        onChange={(words) => onChange(words.length ? { words } : {})}
-      />
+      <>
+        {Array.isArray(content.units) && content.units.length ? (
+          <p className="rounded-md bg-sky-soft px-3 py-2 text-sm" data-testid="review-units">
+            Bài ôn tập: lấy từ vựng của {(content.units as string[]).join(", ")}.
+          </p>
+        ) : null}
+        <WordPicker
+          topicWords={topicWords}
+          value={Array.isArray(content.words) ? (content.words as string[]) : []}
+          onChange={(words) =>
+            onChange({
+              ...(content.units ? { units: content.units } : {}),
+              ...(words.length ? { words } : {}),
+            })
+          }
+        />
+      </>
     );
   }
   if (isSentenceKind(kind)) {
@@ -172,7 +184,9 @@ export function ContentFields({
 export function serializeContent(kind: PracticeKind, content: Content): Content {
   if (WORD_KINDS.includes(kind)) {
     const words = Array.isArray(content.words) ? (content.words as string[]) : [];
-    return words.length ? { words } : {};
+    // Review activities (D51) keep the topics they draw words from.
+    const units = Array.isArray(content.units) && content.units.length ? { units: content.units } : {};
+    return { ...units, ...(words.length ? { words } : {}) };
   }
   if (isSentenceKind(kind)) {
     const items = ((content.items as SentenceDraft[] | undefined) ?? []).map((i) =>

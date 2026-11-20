@@ -180,6 +180,11 @@ export const POINTS = { first: 2, retry: 1, none: 0 } as const;
 
 export const wordContentSchema = z.object({
   words: z.array(z.string().trim().min(1).max(80)).max(100).optional(),
+  /** Review topics (D51): take the words of these topics (codes, same level) instead of this topic's. */
+  units: z
+    .array(z.string().regex(/^[a-z0-9-]{1,40}$/))
+    .max(30)
+    .optional(),
 });
 export const trueFalseItemSchema = z.object({ emoji, sentence, answer: z.boolean(), hint, explain });
 export const fillBlankItemSchema = z

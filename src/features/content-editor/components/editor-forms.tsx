@@ -135,6 +135,7 @@ export function TopicForm({
     emoji: string | null;
     status: string;
     sortOrder: number;
+    patterns: { en: string; vi: string }[];
   };
 }) {
   const [state, action, pending] = useActionState(updateTopic, initial);
@@ -159,6 +160,22 @@ export function TopicForm({
         </Field>
         <StatusSelect id="topic-status" defaultValue={topic.status} />
       </div>
+      <Field
+        id="topic-patterns"
+        label="Mẫu câu của chủ đề"
+        hint="Mỗi dòng một câu: Tiếng Anh | Nghĩa tiếng Việt. Học sinh thấy ở đầu trang chủ đề, có giọng đọc. Tối đa 10."
+        error={e.patterns}
+      >
+        <textarea
+          id="topic-patterns"
+          name="patterns"
+          rows={4}
+          defaultValue={topic.patterns.map((p) => (p.vi ? `${p.en} | ${p.vi}` : p.en)).join("\n")}
+          placeholder={"I have got a cat. | Tớ có một con mèo.\nWhat colour is it? | Nó màu gì?"}
+          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
+          data-testid="patterns-input"
+        />
+      </Field>
       <div>
         <SubmitButton pending={pending}>Lưu chủ đề</SubmitButton>
       </div>

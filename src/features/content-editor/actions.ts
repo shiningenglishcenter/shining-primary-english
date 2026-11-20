@@ -117,6 +117,29 @@ export async function createTopic(_prev: FormState, formData: FormData): Promise
   redirect(`${baseOf(formData)}/topics/${created.id}`);
 }
 
+/**
+ * Sentence patterns (D51), one per line: "English | Tiếng Việt". At most 10;
+ * blank lines are ignored.
+ */
+const patternsField = z
+  .string()
+  .max(4000)
+  .transform((text, ctx) => {
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length > 10) {
+      ctx.addIssue({ code: "custom", message: "Tối đa 10 mẫu câu." });
+      return z.NEVER;
+    }
+    return lines.map((l) => {
+      const [en, ...vi] = l.split("|");
+      return { en: en!.trim().slice(0, 200), vi: vi.join("|").trim().slice(0, 200) };
+    });
+  })
+  .refine((ps) => ps.every((p) => p.en), "Mỗi dòng cần có câu tiếng Anh trước dấu |.");
+
 export async function updateTopic(_prev: FormState, formData: FormData): Promise<FormState> {
   await staff();
   const id = z.uuid().safeParse(formData.get("id"));
@@ -127,8 +150,10 @@ export async function updateTopic(_prev: FormState, formData: FormData): Promise
     status: formData.get("status"),
     sortOrder: formData.get("sortOrder") || 0,
   });
+  const patterns = patternsField.safeParse(String(formData.get("patterns") ?? ""));
   if (!id.success) return { error: "Yêu cầu không hợp lệ." };
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
+  if (!patterns.success) return { fieldErrors: { patterns: patterns.error.issues[0]?.message ?? "" } };
   const supabase = await createClient();
   const { error } = await supabase
     .from("topics")
@@ -138,6 +163,7 @@ export async function updateTopic(_prev: FormState, formData: FormData): Promise
       emoji: parsed.data.emoji,
       status: parsed.data.status,
       sort_order: parsed.data.sortOrder,
+      patterns: patterns.data,
     })
     .eq("id", id.data)
     .is("deleted_at", null);

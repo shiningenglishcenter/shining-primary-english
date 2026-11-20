@@ -11,6 +11,7 @@ import { getMessages } from "@/features/i18n/server";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { KIND_ICON } from "@/features/practice/components/kind-icon";
 import { getTopic } from "@/features/practice/queries";
+import { PatternsCard } from "@/features/practice/components/patterns-card";
 
 export const metadata: Metadata = { title: "Chủ đề" };
 
@@ -41,6 +42,8 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
           {lang === "vi" ? <p className="text-lg font-bold text-k-soft">{topic.titleVi}</p> : null}
         </div>
       </section>
+
+      <PatternsCard patterns={topic.patterns} />
 
       <ol className="mt-6 flex flex-col gap-3" data-testid="activity-list">
         {topic.activities.map((a, i) => {

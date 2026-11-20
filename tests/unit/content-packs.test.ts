@@ -105,3 +105,32 @@ describe("20261120000028_clearer_pictures.sql", () => {
     expect(sql.match(/and p\.content = '/g)?.length).toBe(acts);
   });
 });
+
+/** Round 3 (D47, D51): patterns, meaning games and GS1 reviews. */
+describe("20261121000031_round3_content.sql", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase", "migrations", "20261121000031_round3_content.sql"),
+    "utf8",
+  );
+  const acts = [
+    ...sql.matchAll(
+      /(?:select |values \()v_topic, '([a-z_]+)', '(?:[^']|'')*', '(?:[^']|'')*', \d+, 'published', '((?:[^']|'')*)'::jsonb/g,
+    ),
+  ].map((m) => ({ kind: m[1] as PracticeKind, content: JSON.parse(m[2]!.replace(/''/g, "'")) as unknown }));
+  it("adds a meaning game per topic and 2 × 8 review activities", () => {
+    expect(acts.filter((a) => a.kind === "match_meaning")).toHaveLength(28 + 2);
+    expect(acts).toHaveLength(28 + 16);
+  });
+  it("every activity is valid and reviews name their units", () => {
+    for (const a of acts) {
+      const parsed = contentSchemaFor(a.kind).safeParse(a.content);
+      expect(parsed.success, `${a.kind}: ${JSON.stringify(parsed.error?.issues[0])}`).toBe(true);
+    }
+    const review = acts.filter((a) => JSON.stringify(a.content).includes('"units"'));
+    expect(review.length).toBe(2 * 5); // 4 word games + the challenge, per review
+  });
+  it("only fills empty patterns and never re-adds a deleted game", () => {
+    expect(sql.match(/and patterns = '\[\]'::jsonb;/g)?.length).toBe(28);
+    expect(sql).not.toMatch(/match_meaning'\s+and p\.deleted_at is null/);
+  });
+});

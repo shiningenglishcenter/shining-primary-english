@@ -51,15 +51,15 @@ select tests.login('stu_an');
 set local role authenticated;
 select tests.ok(tests.n($$select * from public.topics t join public.levels l on l.id = t.level_id where l.code = 'STARTERS' and t.code not like 't-%'$$) = 12,
   'student sees the 12 Starters topics');
-select tests.ok(tests.n($$select * from public.practice_activities a join public.topics t on t.id = a.topic_id where t.code = 'animals'$$) = 12,
-  'Starters Animals has 12 activities (8 + listen-and-write + skills challenge, 0017 + 2 videos, 0019)');
+select tests.ok(tests.n($$select * from public.practice_activities a join public.topics t on t.id = a.topic_id where t.code = 'animals'$$) = 13,
+  'Starters Animals has 13 activities (8 + listen-and-write + skills challenge, 0017 + 2 videos, 0019 + meanings, 0031)');
 select tests.ok(tests.n($$select * from public.practice_activities a join public.topics t on t.id = a.topic_id
   where t.code = 'transport' and a.kind = 'listening'$$) = 1, 'Starters Transport has a video activity');
 select tests.ok(tests.n($$select * from public.topics t join public.levels l on l.id = t.level_id where l.code = 'GS1' and t.code like 'unit-%'$$) = 16,
   'student sees the 16 Global Success 1 units');
 select tests.ok(tests.n($$select * from public.practice_activities a join public.topics t on t.id = a.topic_id
-  join public.levels l on l.id = t.level_id where l.code = 'GS1' and t.code = 'unit-01'$$) = 11,
-  'each GS1 unit has 11 activities, reading and mixed included');
+  join public.levels l on l.id = t.level_id where l.code = 'GS1' and t.code = 'unit-01'$$) = 12,
+  'each GS1 unit has 12 activities, reading, mixed and meanings included');
 reset role;
 
 -- topic withdrawn: everything under it disappears for students
