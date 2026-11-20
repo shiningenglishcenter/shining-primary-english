@@ -99,7 +99,9 @@ describe("listening and reading", () => {
       words,
       rand,
     );
-    expect(r.contexts).toEqual([{ type: "listening", media: { source: "youtube", videoId: "dQw4w9WgXcQ" } }]);
+    expect(r.contexts).toEqual([
+      { type: "listening", media: { source: "youtube", videoId: "dQw4w9WgXcQ" }, gate: false },
+    ]);
     expect(r.questions.map((q) => [q.type, q.ctx])).toEqual([
       ["true_false", 0],
       ["choice", 0],
@@ -253,5 +255,25 @@ describe("explanations (D49)", () => {
       contentSchemaFor("fill_blank").safeParse({ items: [{ ...content.items[0], explain: "x".repeat(401) }] })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("video gate (D50)", () => {
+  it("carries the gate and per-question times", () => {
+    const content = {
+      media: { source: "youtube", videoId: "dQw4w9WgXcQ" },
+      gate: true,
+      items: [
+        { type: "tf", sentence: "The cat sings.", answer: true, at: 75 },
+        { type: "tf", sentence: "The dog sings.", answer: false },
+      ],
+    };
+    expect(contentSchemaFor("listening").safeParse(content).success).toBe(true);
+    const r = buildRound("listening", content, [], rand);
+    expect(r.contexts[0]).toMatchObject({ type: "listening", gate: true });
+    expect(r.questions[0]).toMatchObject({ at: 75 });
+    expect(r.questions[1]!.at).toBeUndefined();
+    const old = buildRound("listening", { ...content, gate: undefined }, [], rand);
+    expect(old.contexts[0]).toMatchObject({ gate: false });
   });
 });

@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Delete, Lightbulb, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
@@ -130,6 +139,15 @@ export function Player({
   }, []);
 
   const q = questions[index];
+  /** How far each recording has been watched/listened (D50), by context index. */
+  const [progress, setProgress] = useState<Record<number, MediaProgress>>({});
+  const ctx = q?.ctx !== undefined ? contexts[q.ctx] : undefined;
+  const p = q?.ctx !== undefined ? progress[q.ctx] : undefined;
+  const locked =
+    ctx?.type === "listening" &&
+    !p?.watched &&
+    !p?.ended &&
+    (q!.at !== undefined ? (p?.time ?? 0) < q!.at : ctx.gate);
   const advance = (points: number) => {
     setScore((s) => s + points);
     if (q && q.type !== "flash") {
@@ -252,16 +270,29 @@ export function Player({
         {soundTip ? <SoundTipBanner tip={soundTip} onClose={() => setSoundTip(null)} /> : null}
         {q.ctx !== undefined && contexts[q.ctx] ? (
           // Keyed by context: the video / passage stays put across its questions.
-          <ContextPanel key={`ctx-${q.ctx}`} ctx={contexts[q.ctx]!} sound={sound} />
+          <ContextPanel
+            key={`ctx-${q.ctx}`}
+            ctx={contexts[q.ctx]!}
+            sound={sound}
+            onProgress={(p) => setProgress((all) => ({ ...all, [q.ctx!]: { ...all[q.ctx!], ...p } }))}
+          />
         ) : null}
-        <QuestionView
-          key={index}
-          q={q}
-          ctxType={q.ctx !== undefined ? contexts[q.ctx]?.type : undefined}
-          sound={sound}
-          last={index + 1 >= questions.length}
-          onDone={advance}
-        />
+        {locked ? (
+          <WatchFirst
+            key={`wait-${index}`}
+            at={q.at}
+            watched={() => setProgress((all) => ({ ...all, [q.ctx!]: { ...all[q.ctx!], watched: true } }))}
+          />
+        ) : (
+          <QuestionView
+            key={index}
+            q={q}
+            ctxType={q.ctx !== undefined ? contexts[q.ctx]?.type : undefined}
+            sound={sound}
+            last={index + 1 >= questions.length}
+            onDone={advance}
+          />
+        )}
       </div>
     </SettingsContext>
   );
@@ -1706,14 +1737,106 @@ function ChoiceQ({
   );
 }
 
+type MediaProgress = { time?: number; ended?: boolean; watched?: boolean };
+
+/** "Watch first" (D50): shown instead of a question until the recording gets there. */
+function WatchFirst({ at, watched }: { at?: number; watched: () => void }) {
+  const t = useT();
+  // Fallback when the player can't report its time (old browsers, blocked messages).
+  const [canSkip, setCanSkip] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setCanSkip(true), WATCH_FALLBACK_MS);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <div
+      className="animate-kid-in flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center"
+      data-testid="watch-first"
+    >
+      <Sunny mood="think" size={88} />
+      <p className="font-kid-display text-2xl font-bold">
+        {at !== undefined ? t.watchUntil(at) : t.watchFirst}
+      </p>
+      {canSkip ? (
+        <button
+          type="button"
+          onClick={watched}
+          data-testid="watched"
+          className="kid-press h-14 rounded-2xl bg-k-surface px-6 text-lg font-black"
+        >
+          {t.watchedIt}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+const WATCH_FALLBACK_MS = 20_000;
+
+/** Reports playing time from a youtube-nocookie iframe (postMessage "infoDelivery") or an <audio>. */
+function useMediaProgress(onProgress?: (p: MediaProgress) => void) {
+  const report = useRef(onProgress);
+  useEffect(() => {
+    report.current = onProgress;
+  });
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://www.youtube-nocookie.com" || e.source !== frame.current?.contentWindow)
+        return;
+      let data: { event?: string; info?: { currentTime?: number; playerState?: number } } | null = null;
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (data?.event !== "infoDelivery" || !data.info) return;
+      const { currentTime, playerState } = data.info;
+      report.current?.({
+        ...(typeof currentTime === "number" ? { time: currentTime } : {}),
+        ...(playerState === 0 ? { ended: true } : {}),
+      });
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+  /** Ask the embedded player to send its state (YouTube iframe API, no script needed). */
+  const listen = useCallback(
+    () =>
+      frame.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "listening", id: 1, channel: "widget" }),
+        "https://www.youtube-nocookie.com",
+      ),
+    [],
+  );
+  const onTimeUpdate = useCallback(
+    (e: React.SyntheticEvent<HTMLAudioElement>) => report.current?.({ time: e.currentTarget.currentTime }),
+    [],
+  );
+  const onEnded = useCallback(() => report.current?.({ ended: true }), []);
+  return { frame, listen, onTimeUpdate, onEnded };
+}
+
 /** The recording or passage a run of questions is about; stays mounted between them. */
-function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
+function ContextPanel({
+  ctx,
+  sound,
+  onProgress,
+}: {
+  ctx: PlayerContext;
+  sound: Sound;
+  onProgress?: (p: MediaProgress) => void;
+}) {
   const [open, setOpen] = useState(true);
   const t = useT();
   const listening = ctx.type === "listening";
+  const { frame, listen, onTimeUpdate, onEnded } = useMediaProgress(onProgress);
   return (
     <section
-      className="mt-2 rounded-3xl bg-k-surface p-3 shadow-[0_3px_0_var(--k-line)]"
+      className={cn(
+        "mt-2 rounded-3xl bg-k-surface p-3 shadow-[0_3px_0_var(--k-line)]",
+        // Pinned (D50): the video stays in view while the questions scroll.
+        listening && "sticky top-0 z-20",
+      )}
       data-testid="context"
     >
       <div className="flex items-center justify-between gap-2">
@@ -1736,7 +1859,9 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
           ctx.youtube ? (
             <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${ctx.youtube.videoId}?rel=0&playsinline=1${ctx.youtube.start ? `&start=${ctx.youtube.start}` : ""}`}
+                ref={frame}
+                onLoad={listen}
+                src={`https://www.youtube-nocookie.com/embed/${ctx.youtube.videoId}?rel=0&playsinline=1&enablejsapi=1${ctx.youtube.start ? `&start=${ctx.youtube.start}` : ""}`}
                 title={t.videoTitle}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
@@ -1746,7 +1871,15 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
               />
             </div>
           ) : ctx.audioUrl ? (
-            <audio controls preload="metadata" src={ctx.audioUrl} className="w-full" data-testid="audio">
+            <audio
+              controls
+              preload="metadata"
+              src={ctx.audioUrl}
+              className="w-full"
+              data-testid="audio"
+              onTimeUpdate={onTimeUpdate}
+              onEnded={onEnded}
+            >
               {t.noAudio}
             </audio>
           ) : (

@@ -240,8 +240,9 @@ export async function resolveContexts(
         type: "listening",
         youtube: { videoId: c.media.videoId, start: c.media.start ?? 0 },
         audioUrl: null,
+        gate: c.gate,
       };
     }
-    return { type: "listening", youtube: null, audioUrl: urls.get(c.media.path) ?? null };
+    return { type: "listening", youtube: null, audioUrl: urls.get(c.media.path) ?? null, gate: c.gate };
   });
 }

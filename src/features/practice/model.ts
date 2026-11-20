@@ -125,6 +125,8 @@ const hint = z
   .max(160)
   .optional()
   .transform((v) => v || undefined);
+/** Seconds into the recording (listening questions only, D50). */
+const at = z.number().int().min(0).max(36_000).optional();
 /** Optional explanation in Vietnamese (grammar, meaning), shown after answering (D49). */
 const explain = z
   .string()
@@ -229,10 +231,11 @@ export const itemsSchemaByKind = {
 
 /** A question about a passage or a recording: Yes/No, or pick one answer. */
 export const quizItemSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean(), hint, explain }),
+  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean(), hint, explain, at }),
   z
     .object({
       type: z.literal("mc"),
+      at,
       emoji,
       question: sentence,
       answer: z.string().trim().min(1).max(80),
@@ -243,6 +246,7 @@ export const quizItemSchema = z.discriminatedUnion("type", [
     .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn"),
 ]);
 export type QuizItem = z.infer<typeof quizItemSchema>;
+/** Video/audio questions: open this question once the recording reaches `at` seconds (D50). */
 const quizItems = z.array(quizItemSchema).min(1, "Thêm ít nhất 1 câu hỏi").max(20);
 
 export const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -272,6 +276,8 @@ export type Media = z.infer<typeof mediaSchema>;
 
 export const listeningContentSchema = z.object({
   media: mediaSchema,
+  /** D50: questions open only after the pupil has watched/listened (to the end, or to each `at`). */
+  gate: z.boolean().optional(),
   items: quizItems,
 });
 export const readingContentSchema = z.object({

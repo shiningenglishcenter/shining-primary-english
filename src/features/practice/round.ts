@@ -51,16 +51,23 @@ type QuestionBody =
  * A question; `ctx` points into `Round.contexts` when it is about a passage
  * or a recording, which the player keeps on screen above the question.
  */
-export type Question = QuestionBody & { ctx?: number; hint?: string; explain?: string };
+/** `at`: a listening question opens when the recording reaches this second (D50). */
+export type Question = QuestionBody & { ctx?: number; hint?: string; explain?: string; at?: number };
 
 /** Server-side context: an audio file is still a storage path here. */
 export type RoundContext =
-  | { type: "listening"; media: Media }
+  | { type: "listening"; media: Media; gate: boolean }
   | { type: "reading"; emoji: string | null; title: string | null; passage: string };
 
 /** What the player receives: files resolved to short-lived URLs. */
 export type PlayerContext =
-  | { type: "listening"; youtube: { videoId: string; start: number } | null; audioUrl: string | null }
+  | {
+      type: "listening";
+      youtube: { videoId: string; start: number } | null;
+      audioUrl: string | null;
+      /** Questions wait until the pupil has watched/listened (D50). */
+      gate: boolean;
+    }
   | { type: "reading"; emoji: string | null; title: string | null; passage: string };
 
 export type Round = { questions: Question[]; maxScore: number; contexts: RoundContext[] };
@@ -139,6 +146,7 @@ export function buildRound(
     if (!parsed.success) return EMPTY;
     const data = parsed.data as {
       media?: Media;
+      gate?: boolean;
       emoji?: string | null;
       title?: string;
       passage?: string;
@@ -146,7 +154,7 @@ export function buildRound(
     };
     const context: RoundContext =
       kind === "listening"
-        ? { type: "listening", media: data.media! }
+        ? { type: "listening", media: data.media!, gate: data.gate === true }
         : { type: "reading", emoji: data.emoji ?? null, title: data.title || null, passage: data.passage! };
     // Questions follow the recording / passage, so keep the teacher's order.
     const questions: Question[] = data.items.map((item) => ({
@@ -154,6 +162,7 @@ export function buildRound(
       ctx: 0,
       ...(item.hint ? { hint: item.hint } : {}),
       ...(item.explain ? { explain: item.explain } : {}),
+      ...(kind === "listening" && item.at !== undefined ? { at: item.at } : {}),
     }));
     return { questions, maxScore: scoreOf(questions), contexts: [context] };
   }

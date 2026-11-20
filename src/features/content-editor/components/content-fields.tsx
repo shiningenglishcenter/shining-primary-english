@@ -97,10 +97,23 @@ export function ContentFields({
           value={(content.media as Media | undefined) ?? null}
           onChange={(media) => onChange({ ...content, media: media ?? undefined })}
         />
+        <label className="flex items-start gap-2 text-sm" data-testid="listening-gate">
+          <input
+            type="checkbox"
+            checked={content.gate === true}
+            onChange={(e) => onChange({ ...content, gate: e.target.checked })}
+            className="mt-0.5 size-4 accent-ink"
+          />
+          <span>
+            Học sinh xem/nghe hết bài mới mở câu hỏi. Câu nào có “mốc giây” thì mở khi video/audio chạy đến
+            mốc đó (dùng được cả khi không bật ô này).
+          </span>
+        </label>
         <QuizItems
           items={(content.items as QuizDraft[] | undefined) ?? []}
           onChange={(items) => onChange({ ...content, items })}
           help="Câu hỏi về nội dung bài nghe, theo đúng thứ tự trong bài."
+          timed
         />
       </div>
     );
@@ -169,7 +182,13 @@ export function serializeContent(kind: PracticeKind, content: Content): Content 
     return { items };
   }
   const items = ((content.items as QuizDraft[] | undefined) ?? []).map(normaliseQuiz);
-  if (kind === "listening") return content.media ? { media: content.media, items } : { items };
+  if (kind === "listening") {
+    return {
+      ...(content.media ? { media: content.media } : {}),
+      ...(content.gate ? { gate: true } : {}),
+      items,
+    };
+  }
   if (kind === "reading") {
     const title = String(content.title ?? "").trim();
     return {
@@ -394,7 +413,15 @@ function normaliseSentence(kind: PracticeKind, it: SentenceDraft) {
 // ------------------------------------------------------------ quiz items ---
 
 type QuizDraft =
-  | { type: "tf"; emoji?: string | null; sentence: string; answer: boolean; hint?: string; explain?: string }
+  | {
+      type: "tf";
+      emoji?: string | null;
+      sentence: string;
+      answer: boolean;
+      hint?: string;
+      explain?: string;
+      at?: number;
+    }
   | {
       type: "mc";
       emoji?: string | null;
@@ -403,12 +430,24 @@ type QuizDraft =
       options: string[];
       hint?: string;
       explain?: string;
+      at?: number;
     };
+
+/** "1:20" / "80" → 80 seconds; "" → undefined (D50). */
+function parseAt(v: string): number | undefined {
+  const m = v.trim().match(/^(?:(\d{1,3}):)?(\d{1,4})$/);
+  if (!m) return undefined;
+  return Number(m[1] ?? 0) * 60 + Number(m[2]);
+}
+function formatAt(s: number): string {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+const atOf = (it: { at?: number }) => (typeof it.at === "number" ? { at: it.at } : {});
 
 function normaliseQuiz(it: QuizDraft) {
   const emoji = emojiCode(it.emoji);
   if (it.type === "tf") {
-    return { type: "tf", emoji, sentence: it.sentence.trim(), answer: it.answer, ...hintOf(it) };
+    return { type: "tf", emoji, sentence: it.sentence.trim(), answer: it.answer, ...hintOf(it), ...atOf(it) };
   }
   const answer = it.answer.trim();
   const wrong = it.options
@@ -422,6 +461,7 @@ function normaliseQuiz(it: QuizDraft) {
     answer,
     options: [answer, ...wrong],
     ...hintOf(it),
+    ...atOf(it),
   };
 }
 
@@ -429,10 +469,13 @@ function QuizItems({
   items,
   onChange,
   help,
+  timed = false,
 }: {
   items: QuizDraft[];
   onChange: (items: QuizDraft[]) => void;
   help: string;
+  /** Listening: each question may open at a time in the recording (D50). */
+  timed?: boolean;
 }) {
   const set = (i: number, item: QuizDraft) => onChange(items.map((it, k) => (k === i ? item : it)));
   return (
@@ -445,6 +488,19 @@ function QuizItems({
             <ItemHeader n={i + 1} onRemove={() => onChange(items.filter((_, k) => k !== i))}>
               <ItemEmoji value={it.emoji ?? null} onChange={(emoji) => set(i, { ...it, emoji })} />
               <span className="text-xs text-ink-soft">(hình không bắt buộc)</span>
+              {timed ? (
+                <label className="ml-auto flex items-center gap-1 text-xs text-ink-soft">
+                  Mở ở
+                  <Input
+                    defaultValue={it.at === undefined ? "" : formatAt(it.at)}
+                    onChange={(e) => set(i, { ...it, at: parseAt(e.target.value) })}
+                    placeholder="1:20"
+                    aria-label={`Mốc thời gian câu ${i + 1}`}
+                    className="h-8 w-16 px-2 text-center text-sm"
+                    inputMode="numeric"
+                  />
+                </label>
+              ) : null}
             </ItemHeader>
             {it.type === "tf" ? (
               <>
