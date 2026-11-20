@@ -218,8 +218,19 @@ function WordRow({ topicId, word }: { topicId: string; word: WordItem }) {
             Lưu
           </SubmitButton>
         </div>
-        <div className="col-span-2 sm:col-span-4">
+        <div className="col-span-2 flex flex-wrap items-center gap-3 sm:col-span-4">
           <WordImageField defaultPath={word.imagePath} defaultUrl={word.imageUrl} />
+          <label className="flex items-center gap-1 text-sm text-ink-soft">
+            Phiên âm
+            <Input
+              name="ipa"
+              defaultValue={word.ipa ?? ""}
+              aria-label={`Phiên âm của ${word.word}`}
+              placeholder="kæt"
+              maxLength={80}
+              className="h-9 w-40"
+            />
+          </label>
         </div>
       </form>
       <div className="flex items-center gap-3">
@@ -289,6 +300,7 @@ type WordItem = {
   emoji: string | null;
   imagePath: string | null;
   imageUrl: string | null;
+  ipa: string | null;
 };
 
 export function WordsEditor({ topicId, words }: { topicId: string; words: WordItem[] }) {
@@ -589,6 +601,20 @@ export function ActivityEditor({
             {activity.settings.explain ? <input type="hidden" name="explain" value="on" /> : null}
           </>
         )}
+
+        {activity.kind === "flashcards" ? (
+          <label className="flex items-center gap-2 text-sm" data-testid="ipa-toggle">
+            <input
+              type="checkbox"
+              name="ipa"
+              defaultChecked={activity.settings.ipa}
+              className="size-4 accent-ink"
+            />
+            Hiện phiên âm (IPA, giọng Anh) dưới từ — cho lớp lớn. Phiên âm sửa ở danh sách từ của chủ đề.
+          </label>
+        ) : activity.settings.ipa ? (
+          <input type="hidden" name="ipa" value="on" />
+        ) : null}
 
         <ContentFields kind={activity.kind} content={draft} onChange={setDraft} topicWords={topicWords} />
 

@@ -3,6 +3,7 @@
 -- content/patterns.mts). Needs 0029 and 0030.
 --   * sentence patterns for every Starters topic and GS1 unit (only where empty)
 --   * a "Match the meanings" game in every topic (unless one exists or was deleted)
+--   * British IPA for the seeded words (content/ipa.mts, from Britfone, MIT)
 --   * GS1 term reviews: "Review 1: Units 1–8", "Review 2: Units 9–16" with word
 --     games drawn from those units and sentences taken from them
 -- Inserts/updates only what is missing; teachers' edits and deletions are kept.
@@ -294,6 +295,314 @@ begin
     where not exists (select 1 from public.practice_activities p where p.topic_id = v_topic
                       and p.kind = 'match_meaning');
   end if;
+  update public.vocabulary v set ipa = 'ˈtiːʃɜːt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'T-shirt' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ænt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ant' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈæpəl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'apple' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ɑːm' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'arm' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈbeɪbi' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'baby' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bæg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bag' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bɔːl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ball' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bəˈluːn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'balloon' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bəˈnɑːnə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'banana' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bɑːθ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bath' and v.ipa is null;
+  update public.vocabulary v set ipa = 'biːtʃ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'beach' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bed' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bed' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bel' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bell' and v.ipa is null;
+  update public.vocabulary v set ipa = 'baɪk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bike' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bɜːd' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bird' and v.ipa is null;
+  update public.vocabulary v set ipa = 'blæk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'black' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bluː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'blue' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bəʊt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'boat' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bʊk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'book' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bɒks' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'box' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bɔɪ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'boy' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bred' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bread' and v.ipa is null;
+  update public.vocabulary v set ipa = 'braʊn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'brown' and v.ipa is null;
+  update public.vocabulary v set ipa = 'bʌs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'bus' and v.ipa is null;
+  update public.vocabulary v set ipa = 'keɪk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'cake' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kɑː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'car' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈkærət' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'carrot' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kæt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'cat' and v.ipa is null;
+  update public.vocabulary v set ipa = 'tʃeə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'chair' and v.ipa is null;
+  update public.vocabulary v set ipa = 'tʃɪps' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'chips' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtʃɒkələt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'chocolate' and v.ipa is null;
+  update public.vocabulary v set ipa = 'klɒk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'clock' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kəmˈpjuːtə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'computer' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈkʊki' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'cookie' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kaʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'cow' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈkreɪɒn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'crayon' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈkrɒkədaɪl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'crocodile' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kʌp' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'cup' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dɒg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'dog' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dɒl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'doll' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dɔː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'door' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dres' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'dress' and v.ipa is null;
+  update public.vocabulary v set ipa = 'drʌm' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'drum' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dʌk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'duck' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ɪə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ear' and v.ipa is null;
+  update public.vocabulary v set ipa = 'eg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'egg' and v.ipa is null;
+  update public.vocabulary v set ipa = 'eɪt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'eight' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈelɪfənt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'elephant' and v.ipa is null;
+  update public.vocabulary v set ipa = 'aɪ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'eye' and v.ipa is null;
+  update public.vocabulary v set ipa = 'feɪs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'face' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈfæmli' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'family' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈfɑːðə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'father' and v.ipa is null;
+  update public.vocabulary v set ipa = 'fɪʃ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'fish' and v.ipa is null;
+  update public.vocabulary v set ipa = 'faɪv' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'five' and v.ipa is null;
+  update public.vocabulary v set ipa = 'flæg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'flag' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈflaʊə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'flower' and v.ipa is null;
+  update public.vocabulary v set ipa = 'fʊt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'foot' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈfʊtˌbɔːl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'football' and v.ipa is null;
+  update public.vocabulary v set ipa = 'fɔː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'four' and v.ipa is null;
+  update public.vocabulary v set ipa = 'frɒg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'frog' and v.ipa is null;
+  update public.vocabulary v set ipa = 'geɪm' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'game' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈgɑːdən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'garden' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dʒɪˈrɑːf' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'giraffe' and v.ipa is null;
+  update public.vocabulary v set ipa = 'gɜːl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'girl' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈglɑːsɪz' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'glasses' and v.ipa is null;
+  update public.vocabulary v set ipa = 'gəʊt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'goat' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈgrænˌfɑːðə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'grandfather' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈgræmˌmɑː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'grandma' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈgrænˌmʌðə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'grandmother' and v.ipa is null;
+  update public.vocabulary v set ipa = 'greɪps' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'grapes' and v.ipa is null;
+  update public.vocabulary v set ipa = 'griːn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'green' and v.ipa is null;
+  update public.vocabulary v set ipa = 'greɪ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'grey' and v.ipa is null;
+  update public.vocabulary v set ipa = 'gɪˈtɑː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'guitar' and v.ipa is null;
+  update public.vocabulary v set ipa = 'hænd' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'hand' and v.ipa is null;
+  update public.vocabulary v set ipa = 'hæt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'hat' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈhelɪˌkɒptə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'helicopter' and v.ipa is null;
+  update public.vocabulary v set ipa = 'hen' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'hen' and v.ipa is null;
+  update public.vocabulary v set ipa = 'hɔːs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'horse' and v.ipa is null;
+  update public.vocabulary v set ipa = 'haʊs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'house' and v.ipa is null;
+  update public.vocabulary v set ipa = 'aɪs kriːm' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ice cream' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈdʒækɪt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'jacket' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dʒiːnz' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'jeans' and v.ipa is null;
+  update public.vocabulary v set ipa = 'dʒuːs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'juice' and v.ipa is null;
+  update public.vocabulary v set ipa = 'kaɪt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'kite' and v.ipa is null;
+  update public.vocabulary v set ipa = 'leɪk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'lake' and v.ipa is null;
+  update public.vocabulary v set ipa = 'liːf' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'leaf' and v.ipa is null;
+  update public.vocabulary v set ipa = 'leg' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'leg' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈlemən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'lemon' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈlaɪən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'lion' and v.ipa is null;
+  update public.vocabulary v set ipa = 'mæn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'man' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈmæŋgəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'mango' and v.ipa is null;
+  update public.vocabulary v set ipa = 'mɪlk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'milk' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈmɪrə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'mirror' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈmʌŋki' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'monkey' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈmʌðə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'mother' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈməʊtəˌbaɪk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'motorbike' and v.ipa is null;
+  update public.vocabulary v set ipa = 'maʊs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'mouse' and v.ipa is null;
+  update public.vocabulary v set ipa = 'maʊθ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'mouth' and v.ipa is null;
+  update public.vocabulary v set ipa = 'naɪn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'nine' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈnuːdəlz' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'noodles' and v.ipa is null;
+  update public.vocabulary v set ipa = 'nəʊz' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'nose' and v.ipa is null;
+  update public.vocabulary v set ipa = 'nʌts' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'nuts' and v.ipa is null;
+  update public.vocabulary v set ipa = 'wʌn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'one' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈɒrɪndʒ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'orange' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈpeɪpə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'paper' and v.ipa is null;
+  update public.vocabulary v set ipa = 'peə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'pear' and v.ipa is null;
+  update public.vocabulary v set ipa = 'pen' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'pen' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈpensəl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'pencil' and v.ipa is null;
+  update public.vocabulary v set ipa = 'fəʊn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'phone' and v.ipa is null;
+  update public.vocabulary v set ipa = 'pɪˈænəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'piano' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈpɪktʃə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'picture' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈpaɪˌnæpəl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'pineapple' and v.ipa is null;
+  update public.vocabulary v set ipa = 'pɪŋk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'pink' and v.ipa is null;
+  update public.vocabulary v set ipa = 'pleɪn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'plane' and v.ipa is null;
+  update public.vocabulary v set ipa = 'pəˈteɪˌtəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'potato' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈpɜːpəl' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'purple' and v.ipa is null;
+  update public.vocabulary v set ipa = 'red' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'red' and v.ipa is null;
+  update public.vocabulary v set ipa = 'raɪs' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'rice' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈrəʊˌbɒt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'robot' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈruːlə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ruler' and v.ipa is null;
+  update public.vocabulary v set ipa = 'siː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'sea' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈsevən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'seven' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʃiːp' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'sheep' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʃel' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'shell' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʃɜːt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'shirt' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʃuː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'shoe' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʃɔːts' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'shorts' and v.ipa is null;
+  update public.vocabulary v set ipa = 'sɪks' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'six' and v.ipa is null;
+  update public.vocabulary v set ipa = 'sneɪk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'snake' and v.ipa is null;
+  update public.vocabulary v set ipa = 'sɒk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'sock' and v.ipa is null;
+  update public.vocabulary v set ipa = 'sɒks' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'socks' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈsəʊfə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'sofa' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈspaɪdə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'spider' and v.ipa is null;
+  update public.vocabulary v set ipa = 'sʌn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'sun' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtæksi' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'taxi' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtiːtʃə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'teacher' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtedi beə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'teddy bear' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtelɪˌvɪʒən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'television' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ten' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'ten' and v.ipa is null;
+  update public.vocabulary v set ipa = 'θriː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'three' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈtaɪgə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'tiger' and v.ipa is null;
+  update public.vocabulary v set ipa = 'təˈmɑːˌtəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'tomato' and v.ipa is null;
+  update public.vocabulary v set ipa = 'treɪn' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'train' and v.ipa is null;
+  update public.vocabulary v set ipa = 'triː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'tree' and v.ipa is null;
+  update public.vocabulary v set ipa = 'trʌk' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'truck' and v.ipa is null;
+  update public.vocabulary v set ipa = 'tuː' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'two' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ʌmˈbrelə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'umbrella' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈwɔːtə' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'water' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈwɔːtəˌmelən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'watermelon' and v.ipa is null;
+  update public.vocabulary v set ipa = 'waɪt' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'white' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈwɪndəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'window' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈwʊmən' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'woman' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈjeləʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'yellow' and v.ipa is null;
+  update public.vocabulary v set ipa = 'ˈjəʊjəʊ' from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = 'yo-yo' and v.ipa is null;
   select id into v_level from public.levels where code = 'GS1' and deleted_at is null;
   -- Review 1: Units 1–8
   if not exists (select 1 from public.topics where level_id = v_level and code = 'review-1') then

@@ -21,5 +21,9 @@ select tests.ok(public.get_public_activity('ReviewToken_0123456789') -> 'words' 
   'including Unit 1 words');
 reset role;
 
+select tests.ok((select v.ipa from public.vocabulary v join public.levels l on l.id = v.level_id
+  where l.code = 'STARTERS' and v.word = 'banana') = 'bəˈnɑːnə', 'seeded words have British IPA');
+select tests.ok(public.get_public_activity('ReviewToken_0123456789') -> 'words' -> 0 ? 'ipa', 'guest words carry the IPA');
+
 select tests.ok((public.health_check() ->> 'schema_version')::int >= 30, 'schema version is current');
 rollback;

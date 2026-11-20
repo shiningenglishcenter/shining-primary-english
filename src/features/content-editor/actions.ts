@@ -180,6 +180,12 @@ const wordSchema = z.object({
   word: z.string().trim().min(1, "Nhập từ.").max(80),
   meaningVi: z.string().trim().min(1, "Nhập nghĩa.").max(300),
   emoji: emojiField,
+  /** British IPA (D53), without slashes; "" = none. */
+  ipa: z
+    .string()
+    .trim()
+    .max(80, "Phiên âm tối đa 80 ký tự.")
+    .transform((v) => v.replace(/^\/+|\/+$/g, "").trim() || null),
   /** Uploaded picture (A1): "" = none; uploads go to practice/images/ from the browser. */
   imagePath: z
     .string()
@@ -197,6 +203,7 @@ export async function saveWord(_prev: FormState, formData: FormData): Promise<Fo
     meaningVi: formData.get("meaningVi"),
     emoji: formData.get("emoji") ?? "",
     imagePath: formData.get("imagePath") ?? "",
+    ipa: formData.get("ipa") ?? "",
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const w = parsed.data;
@@ -209,7 +216,13 @@ export async function saveWord(_prev: FormState, formData: FormData): Promise<Fo
     .maybeSingle();
   if (!topic) return { error: "Không tìm thấy chủ đề." };
 
-  const values = { word: w.word, meaning_vi: w.meaningVi, emoji: w.emoji, image_path: w.imagePath };
+  const values = {
+    word: w.word,
+    meaning_vi: w.meaningVi,
+    emoji: w.emoji,
+    image_path: w.imagePath,
+    ipa: w.ipa,
+  };
   const { error } = w.id
     ? await supabase.from("vocabulary").update(values).eq("id", w.id).eq("topic_id", w.topicId)
     : await supabase.from("vocabulary").insert({
@@ -371,6 +384,7 @@ const activitySchema = z.object({
   content: z.string().max(60_000),
   hints: z.enum(["on", "off"]),
   explain: z.enum(["on", "off"]),
+  ipa: z.enum(["on", "off"]),
   maxTries: z.coerce.number().int().min(1).max(5),
   writeHint: z.enum(WRITE_HINTS),
   yesNo: z.enum(["short", "full"]),
@@ -388,6 +402,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     content: formData.get("content") ?? "{}",
     hints: formData.get("hints") === "on" ? "on" : "off",
     explain: formData.get("explain") === "on" ? "on" : "off",
+    ipa: formData.get("ipa") === "on" ? "on" : "off",
     maxTries: formData.get("maxTries") || 3,
     writeHint: formData.get("writeHint") || "slots",
     yesNo: formData.get("yesNo") === "full" ? "full" : "short",
@@ -431,6 +446,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
       settings: {
         hints: parsed.data.hints === "on",
         explain: parsed.data.explain === "on",
+        ipa: parsed.data.ipa === "on",
         maxTries: parsed.data.maxTries,
         writeHint: parsed.data.writeHint,
         yesNo: parsed.data.yesNo,

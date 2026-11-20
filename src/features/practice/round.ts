@@ -18,7 +18,13 @@ import {
  * and the result is passed to the client player.
  */
 
-export type Card = { word: string; meaningVi: string; emoji: string | null; image?: string | null };
+export type Card = {
+  word: string;
+  meaningVi: string;
+  emoji: string | null;
+  image?: string | null;
+  ipa?: string | null;
+};
 
 type QuestionBody =
   | { type: "flash"; card: Card }

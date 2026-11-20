@@ -717,6 +717,7 @@ function FlashQ({
   const t = useT();
   // Back of the card: the Vietnamese meaning, in both interface languages (C10).
   const [flipped, setFlipped] = useState(false);
+  const showIpa = useContext(SettingsContext).ipa;
   const say = () => sound.speak(q.card.word);
   useEffect(() => {
     sound.speak(q.card.word);
@@ -754,6 +755,11 @@ function FlashQ({
             <span className="font-kid-display text-5xl font-bold" data-testid="flash-word">
               {q.card.word}
             </span>
+            {showIpa && q.card.ipa ? (
+              <span className="text-2xl font-semibold text-k-soft" data-testid="flash-ipa">
+                /{q.card.ipa}/
+              </span>
+            ) : null}
           </span>
           <span
             className="kid-flip-face kid-flip-back flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-k-accent-soft px-6 py-8 shadow-[0_6px_0_var(--k-accent-shadow)]"

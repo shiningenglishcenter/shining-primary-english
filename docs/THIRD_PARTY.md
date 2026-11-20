@@ -30,3 +30,10 @@ books ("Get Ready for Starters", Authentic Exam Papers) or from Global Success.
 ## Composed pictures (C1)
 - `scripts/make-pictures.mjs` combines Fluent Emoji 3D images (MIT, above) with simple drawn shapes (walking
   stick, jump arc, grass) into `public/emoji/f0001.webp`–`f0005.webp` at build time, using `sharp` (Apache-2.0).
+
+## British IPA (Britfone)
+- Source: https://github.com/JoseLlarena/Britfone (version 3.0.1)
+- Licence: MIT (Copyright © 2017 Jose Llarena).
+- How it is used: `scripts/make-ipa.mts` turns the entries for the app's seeded words into dictionary-style IPA
+  in `content/ipa.mts` (154 words; "crayon" and "mango" written by hand). Migration 0031 seeds them into
+  `vocabulary.ipa`; teachers can edit them. The full dictionary is not in the repository.

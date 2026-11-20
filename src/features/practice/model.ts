@@ -161,9 +161,12 @@ export const settingsSchema = z.object({
   writeHint: z.enum(WRITE_HINTS).default("slots"),
   /** Yes/No pictures (D48): "Yes"/"No", or a question with full answers ("Yes, it is."). */
   yesNo: z.enum(["short", "full"]).default("short"),
+  /** Flashcards: show the British IPA under the word, for older classes (D53). */
+  ipa: z.boolean().default(false),
 });
 export type PlaySettings = z.infer<typeof settingsSchema>;
 export const DEFAULT_SETTINGS: PlaySettings = {
+  ipa: false,
   hints: true,
   explain: true,
   maxTries: 3,
@@ -367,7 +370,14 @@ export type FillBlankItem = z.infer<typeof fillBlankItemSchema>;
 export type RearrangeItem = z.infer<typeof rearrangeItemSchema>;
 
 /** `image`: signed URL of a picture the teacher uploaded (A1); shown instead of the emoji. */
-export type VocabWord = { word: string; meaningVi: string; emoji: string | null; image?: string | null };
+export type VocabWord = {
+  word: string;
+  meaningVi: string;
+  emoji: string | null;
+  image?: string | null;
+  /** British IPA (D53), shown on flashcards when the activity asks for it. */
+  ipa?: string | null;
+};
 
 /** Stars for one round: same thresholds as record_practice() in the database. */
 export function starsFor(score: number, max: number): 0 | 1 | 2 | 3 {

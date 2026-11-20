@@ -170,7 +170,7 @@ export async function getTopicWords(
   const base = supabase
     .from("vocabulary")
     .select(
-      "word, meaning_vi, emoji, image_path, topic:topics!inner(code, deleted_at, level:levels!inner(code))",
+      "word, meaning_vi, emoji, image_path, ipa, topic:topics!inner(code, deleted_at, level:levels!inner(code))",
     )
     .eq("status", "published")
     .is("deleted_at", null)
@@ -186,6 +186,7 @@ export async function getTopicWords(
       word: w.word as string,
       meaningVi: w.meaning_vi as string,
       emoji: (w.emoji as string | null) ?? null,
+      ipa: (w.ipa as string | null) ?? null,
       imagePath: (w.image_path as string | null) ?? null,
     })),
   );

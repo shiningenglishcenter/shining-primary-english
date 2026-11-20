@@ -25,6 +25,7 @@ import { VIDEOS } from "../content/videos.mts";
 import * as additions from "../content/additions-c8.mts";
 import * as fixes from "../content/picture-fixes-c1.mts";
 import * as patterns from "../content/patterns.mts";
+import { IPA } from "../content/ipa.mts";
 import type { Topic } from "../content/starters.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -365,6 +366,7 @@ end $$;
 -- content/patterns.mts). Needs 0029 and 0030.
 --   * sentence patterns for every Starters topic and GS1 unit (only where empty)
 --   * a "Match the meanings" game in every topic (unless one exists or was deleted)
+--   * British IPA for the seeded words (content/ipa.mts, from Britfone, MIT)
 --   * GS1 term reviews: "Review 1: Units 1–8", "Review 2: Units 9–16" with word
 --     games drawn from those units and sentences taken from them
 -- Inserts/updates only what is missing; teachers' edits and deletions are kept.
@@ -395,6 +397,12 @@ begin`,
                       and p.kind = 'match_meaning');
   end if;`);
     }
+  }
+
+  // British IPA (D53), only where none is set yet
+  for (const [word, ipa] of Object.entries(IPA)) {
+    lines.push(`  update public.vocabulary v set ipa = ${q(ipa)} from public.levels l
+  where l.id = v.level_id and l.code in ('STARTERS', 'GS1') and lower(v.word) = ${q(word)} and v.ipa is null;`);
   }
 
   // GS1 term reviews

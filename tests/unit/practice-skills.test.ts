@@ -60,6 +60,7 @@ describe("hints and settings", () => {
       maxTries: 3,
       writeHint: "slots",
       yesNo: "short",
+      ipa: false,
     });
     expect(settingsOf({ hints: false, explain: true, maxTries: 9 })).toEqual({
       hints: true,
@@ -67,6 +68,7 @@ describe("hints and settings", () => {
       maxTries: 3,
       writeHint: "slots",
       yesNo: "short",
+      ipa: false,
     });
     expect(settingsOf({ hints: false, explain: true, maxTries: 1 })).toEqual({
       hints: false,
@@ -74,6 +76,7 @@ describe("hints and settings", () => {
       maxTries: 1,
       writeHint: "slots",
       yesNo: "short",
+      ipa: false,
     });
   });
 });

@@ -16,7 +16,13 @@ type Raw = {
     settings: unknown;
   };
   topic: { id: string; title_en: string; title_vi: string; emoji: string | null; level: string };
-  words: { word: string; meaning_vi: string; emoji: string | null; image_path?: string | null }[];
+  words: {
+    word: string;
+    meaning_vi: string;
+    emoji: string | null;
+    image_path?: string | null;
+    ipa?: string | null;
+  }[];
 };
 
 /** The activity behind a live guest link, or null (link off, unknown, or unpublished). */
@@ -47,6 +53,7 @@ export async function getPublicActivity(token: string) {
         word: w.word,
         meaningVi: w.meaning_vi,
         emoji: w.emoji,
+        ipa: w.ipa ?? null,
         imagePath: w.image_path ?? null,
       })),
       { guest: true },

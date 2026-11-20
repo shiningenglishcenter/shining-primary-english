@@ -49,7 +49,7 @@ export async function getTopicForStaff(id: string) {
   const { data, error } = await supabase
     .from("topics")
     .select(
-      "id, code, title_en, title_vi, emoji, status, sort_order, patterns, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, image_path, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, deleted_at)",
+      "id, code, title_en, title_vi, emoji, status, sort_order, patterns, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, image_path, ipa, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, deleted_at)",
     )
     .eq("id", id)
     .is("deleted_at", null)
@@ -83,6 +83,7 @@ export async function getTopicForStaff(id: string) {
         meaning_vi: string;
         emoji: string | null;
         image_path: string | null;
+        ipa: string | null;
         status: Status;
         deleted_at: string | null;
       }[]
@@ -95,6 +96,7 @@ export async function getTopicForStaff(id: string) {
         meaningVi: v.meaning_vi,
         emoji: v.emoji,
         imagePath: v.image_path,
+        ipa: v.ipa,
         imageUrl: v.image_path ? (signed.get(v.image_path) ?? null) : null,
         status: v.status,
       })),
