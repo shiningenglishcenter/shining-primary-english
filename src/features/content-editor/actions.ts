@@ -346,6 +346,7 @@ const activitySchema = z.object({
   hints: z.enum(["on", "off"]),
   maxTries: z.coerce.number().int().min(1).max(5),
   writeHint: z.enum(WRITE_HINTS),
+  yesNo: z.enum(["short", "full"]),
 });
 
 /** `content` arrives as JSON built by the editor; validated per kind here. */
@@ -361,6 +362,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     hints: formData.get("hints") === "on" ? "on" : "off",
     maxTries: formData.get("maxTries") || 3,
     writeHint: formData.get("writeHint") || "slots",
+    yesNo: formData.get("yesNo") === "full" ? "full" : "short",
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
 
@@ -402,6 +404,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
         hints: parsed.data.hints === "on",
         maxTries: parsed.data.maxTries,
         writeHint: parsed.data.writeHint,
+        yesNo: parsed.data.yesNo,
       },
     })
     .eq("id", parsed.data.id);

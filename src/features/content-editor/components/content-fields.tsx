@@ -21,6 +21,7 @@ import {
   type PracticeKind,
 } from "@/features/practice/model";
 import { createClient } from "@/lib/supabase/browser";
+import { toYesNoQuestion } from "@/features/practice/round";
 import { EmojiPickerButton } from "@/features/content-editor/components/emoji-picker";
 
 /**
@@ -284,13 +285,16 @@ function SentenceItems({
               maxLength={200}
             />
             {kind === "true_false" ? (
-              <YesNo
-                name={`answer-${i}`}
-                value={it.answer === true}
-                onChange={(answer) => update(i, { answer })}
-                yes="Đúng với hình (Yes)"
-                no="Sai với hình (No)"
-              />
+              <>
+                <YesNo
+                  name={`answer-${i}`}
+                  value={it.answer === true}
+                  onChange={(answer) => update(i, { answer })}
+                  yes="Đúng với hình (Yes)"
+                  no="Sai với hình (No)"
+                />
+                <FullAnswerPreview sentence={it.sentence} answer={it.answer === true} />
+              </>
             ) : null}
             {kind === "fill_blank" || kind === "translate" ? (
               <div className="grid gap-2 sm:grid-cols-3">
@@ -333,6 +337,24 @@ function SentenceItems({
         }
       />
     </fieldset>
+  );
+}
+
+/** What pupils see when the activity uses full answers (D48). */
+function FullAnswerPreview({ sentence, answer }: { sentence: string; answer: boolean }) {
+  if (!sentence.trim()) return null;
+  const f = toYesNoQuestion(sentence);
+  return (
+    <p className="text-xs text-ink-soft" data-testid="full-answer-preview">
+      {f ? (
+        <>
+          Kiểu trả lời đầy đủ: <span className="font-semibold text-ink">{f.question}</span> →{" "}
+          <span className="font-semibold text-leaf">{answer ? f.yes : f.no}</span>
+        </>
+      ) : (
+        "Kiểu trả lời đầy đủ: câu này chưa đổi được thành câu hỏi, sẽ hiện nút Yes / No."
+      )}
+    </p>
   );
 }
 

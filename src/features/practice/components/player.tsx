@@ -18,6 +18,7 @@ import {
 import {
   letterTiles,
   revealPattern,
+  toYesNoQuestion,
   MATCH_PAIRS_WIDE,
   regroupMatches,
   scoreOf,
@@ -1145,14 +1146,23 @@ function TrueFalseQ({
   const t = useT();
   // Two options: a second try would always be right, so Yes/No allows one answer (C3, D40).
   const a = useAnswer(sound, { hint: q.hint, maxTries: YES_NO_TRIES });
+  const { yesNo } = useContext(SettingsContext);
+  // Full answers (D48) for picture questions only; passages keep Yes / No.
+  const full = useMemo(
+    () => (yesNo === "full" && !ctxType ? toYesNoQuestion(q.sentence) : null),
+    [yesNo, ctxType, q.sentence],
+  );
+  const shown = full?.question ?? q.sentence;
+  const label = (v: boolean) => (full ? (v ? full.yes : full.no) : v ? "Yes" : "No");
   const [picked, setPicked] = useState<boolean | null>(null);
   useEffect(() => {
-    const t = window.setTimeout(() => sound.speak(q.sentence), 300);
+    const t = window.setTimeout(() => sound.speak(shown), 300);
     return () => window.clearTimeout(t);
-  }, [q.sentence, sound]);
+  }, [shown, sound]);
   const choose = (v: boolean) => {
     if (a.done) return;
     setPicked(v);
+    if (full) sound.speak(label(v));
     if (v === q.answer) a.right();
     else a.wrong(String(v));
   };
@@ -1175,7 +1185,8 @@ function TrueFalseQ({
         data-correct={v === q.answer ? "true" : undefined}
         className={cn(
           choiceClass(state),
-          "flex h-20 flex-1 items-center justify-center gap-2 text-2xl font-black",
+          "flex min-h-20 flex-1 items-center justify-center gap-2 px-2 font-black",
+          full ? "text-xl leading-tight" : "text-2xl",
           a.shake === String(v) && "animate-kid-shake",
         )}
       >
@@ -1184,7 +1195,7 @@ function TrueFalseQ({
         ) : (
           <X className="size-8 text-k-bad" aria-hidden="true" />
         )}
-        {v ? "Yes" : "No"}
+        {label(v)}
       </button>
     );
   };
@@ -1198,8 +1209,8 @@ function TrueFalseQ({
           last={last}
           onNext={() => onDone(a.points)}
           hint={t.hintTf(ctxType)}
-          answer={q.answer ? "Yes" : "No"}
-          rightDetail={t.tfRight(q.answer, Boolean(ctxType))}
+          answer={label(q.answer)}
+          rightDetail={full ? undefined : t.tfRight(q.answer, Boolean(ctxType))}
         />
       }
     >
@@ -1214,12 +1225,16 @@ function TrueFalseQ({
         </div>
       ) : null}
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
-        <SpeakButton onClick={() => sound.speak(q.sentence)} label={t.listenSentence} />
-        <p className="font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
-          {q.sentence}
+        <SpeakButton onClick={() => sound.speak(shown)} label={t.listenSentence} />
+        <p
+          className="font-kid-display text-2xl leading-snug font-bold"
+          data-testid="sentence"
+          data-full={full ? "true" : undefined}
+        >
+          {shown}
         </p>
       </div>
-      <div className="flex w-full max-w-md gap-3">
+      <div className={cn("flex w-full max-w-md gap-3", full && "flex-col sm:flex-row")}>
         {btn(true)}
         {btn(false)}
       </div>

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { contentSchemaFor, parseYouTube, settingsOf } from "@/features/practice/model";
-import { buildRound, letterTiles, MIXED_STEP_SIZE, revealPattern, sameWord } from "@/features/practice/round";
+import {
+  buildRound,
+  letterTiles,
+  MIXED_STEP_SIZE,
+  revealPattern,
+  sameWord,
+  toYesNoQuestion,
+} from "@/features/practice/round";
 
 const words = [
   { word: "cat", meaningVi: "con mèo", emoji: "1f408" },
@@ -47,16 +54,18 @@ describe("hints and settings", () => {
       rand,
     );
     expect(r.questions[0]).toMatchObject({ type: "true_false", hint: "Look at the colour." });
-    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3, writeHint: "slots" });
+    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3, writeHint: "slots", yesNo: "short" });
     expect(settingsOf({ hints: false, maxTries: 9 })).toEqual({
       hints: true,
       maxTries: 3,
       writeHint: "slots",
+      yesNo: "short",
     });
     expect(settingsOf({ hints: false, maxTries: 1 })).toEqual({
       hints: false,
       maxTries: 1,
       writeHint: "slots",
+      yesNo: "short",
     });
   });
 });
@@ -188,5 +197,29 @@ describe("meaning activities (D47)", () => {
         items: [{ sentence: "x", answer: "a", options: ["b", "c"] }],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("full Yes/No answers (D48)", () => {
+  const cases: [string, string, string, string][] = [
+    ["This is a dog.", "Is this a dog?", "Yes, it is.", "No, it isn't."],
+    ["This is my nose.", "Is this your nose?", "Yes, it is.", "No, it isn't."],
+    ["These are socks.", "Are these socks?", "Yes, they are.", "No, they aren't."],
+    ["She is my mother.", "Is she your mother?", "Yes, she is.", "No, she isn't."],
+    ["I can see a cat.", "Can you see a cat?", "Yes, I can.", "No, I can't."],
+    ["I have got a kite.", "Have you got a kite?", "Yes, I have.", "No, I haven't."],
+    ["I like ice cream.", "Do you like ice cream?", "Yes, I do.", "No, I don't."],
+    ["The frog is green.", "Is the frog green?", "Yes, it is.", "No, it isn't."],
+    ["A plane can fly.", "Can a plane fly?", "Yes, it can.", "No, it can't."],
+    ["A snake has got four legs.", "Has a snake got four legs?", "Yes, it has.", "No, it hasn't."],
+    ["There are three apples.", "Are there three apples?", "Yes, there are.", "No, there aren't."],
+  ];
+  it.each(cases)("%s", (s, question, yes, no) => {
+    expect(toYesNoQuestion(s)).toEqual({ question, yes, no });
+  });
+  it("leaves other sentences alone", () => {
+    expect(toYesNoQuestion("One and one is two.")).toBeNull();
+    expect(toYesNoQuestion("This isn't a dog.")).toBeNull();
+    expect(toYesNoQuestion("Is this a dog?")).toBeNull();
   });
 });

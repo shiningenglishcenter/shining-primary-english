@@ -148,9 +148,16 @@ export const settingsSchema = z.object({
   hints: z.boolean().default(true),
   maxTries: z.number().int().min(1).max(5).default(3),
   writeHint: z.enum(WRITE_HINTS).default("slots"),
+  /** Yes/No pictures (D48): "Yes"/"No", or a question with full answers ("Yes, it is."). */
+  yesNo: z.enum(["short", "full"]).default("short"),
 });
 export type PlaySettings = z.infer<typeof settingsSchema>;
-export const DEFAULT_SETTINGS: PlaySettings = { hints: true, maxTries: 3, writeHint: "slots" };
+export const DEFAULT_SETTINGS: PlaySettings = {
+  hints: true,
+  maxTries: 3,
+  writeHint: "slots",
+  yesNo: "short",
+};
 export function settingsOf(raw: unknown): PlaySettings {
   const r = settingsSchema.safeParse(raw ?? {});
   return r.success ? r.data : DEFAULT_SETTINGS;

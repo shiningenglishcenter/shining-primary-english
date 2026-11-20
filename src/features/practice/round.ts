@@ -409,3 +409,119 @@ export function letterTiles(word: string, extra = 3): string[] {
   ).slice(0, extra);
   return shuffle([...letters, ...others], rand);
 }
+
+// ------------------------------------------------- full Yes/No answers (D48) ---
+
+export type YesNoForm = { question: string; yes: string; no: string };
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** The child answers about themselves: "my nose" → "your nose". */
+const toYou = (s: string) =>
+  s
+    .replace(/\bmy\b/gi, "your")
+    .replace(/\bI\b/g, "you")
+    .replace(/\bme\b/gi, "you");
+
+/**
+ * Turns a picture statement into a question with full short answers:
+ * "This is a dog." → "Is this a dog?" / "Yes, it is." / "No, it isn't.".
+ * Covers the Starters/GS1 patterns; null when the sentence doesn't fit one
+ * (the plain Yes/No buttons are used then).
+ */
+export function toYesNoQuestion(sentence: string): YesNoForm | null {
+  const s = sentence.trim().replace(/\s+/g, " ").replace(/[.!]$/, "");
+  if (!s || /\?$/.test(s) || /\b(not|n't)\b/i.test(s)) return null;
+  const rules: [RegExp, (m: RegExpMatchArray) => YesNoForm][] = [
+    [
+      /^(this|that) is (.+)$/i,
+      (m) => ({
+        question: `Is ${m[1]!.toLowerCase()} ${toYou(m[2]!)}?`,
+        yes: "Yes, it is.",
+        no: "No, it isn't.",
+      }),
+    ],
+    [
+      /^it(?: is|'s) (.+)$/i,
+      (m) => ({ question: `Is it ${toYou(m[1]!)}?`, yes: "Yes, it is.", no: "No, it isn't." }),
+    ],
+    [
+      /^(these|those) are (.+)$/i,
+      (m) => ({
+        question: `Are ${m[1]!.toLowerCase()} ${toYou(m[2]!)}?`,
+        yes: "Yes, they are.",
+        no: "No, they aren't.",
+      }),
+    ],
+    [
+      /^(he|she) is (.+)$/i,
+      (m) => {
+        const p = m[1]!.toLowerCase();
+        return { question: `Is ${p} ${toYou(m[2]!)}?`, yes: `Yes, ${p} is.`, no: `No, ${p} isn't.` };
+      },
+    ],
+    [
+      /^there is (.+)$/i,
+      (m) => ({ question: `Is there ${m[1]}?`, yes: "Yes, there is.", no: "No, there isn't." }),
+    ],
+    [
+      /^there are (.+)$/i,
+      (m) => ({ question: `Are there ${m[1]}?`, yes: "Yes, there are.", no: "No, there aren't." }),
+    ],
+    [
+      /^i can (.+)$/i,
+      (m) => ({ question: `Can you ${toYou(m[1]!)}?`, yes: "Yes, I can.", no: "No, I can't." }),
+    ],
+    [
+      /^i(?: have|'ve) got (.+)$/i,
+      (m) => ({ question: `Have you got ${toYou(m[1]!)}?`, yes: "Yes, I have.", no: "No, I haven't." }),
+    ],
+    [
+      /^i (?!am\b|was\b)([a-z]+) (.+)$/i,
+      (m) => ({
+        question: `Do you ${m[1]!.toLowerCase()} ${toYou(m[2]!)}?`,
+        yes: "Yes, I do.",
+        no: "No, I don't.",
+      }),
+    ],
+    [
+      /^((?:the|a|an|this|my|your) [a-z]+(?: [a-z]+)?) has got (.+)$/i,
+      (m) => ({
+        question: `Has ${toYou(m[1]!).replace(/^./, (c) => c.toLowerCase())} got ${m[2]}?`,
+        yes: "Yes, it has.",
+        no: "No, it hasn't.",
+      }),
+    ],
+    [
+      /^((?:the|my|your|a|an) [a-z]+(?: [a-z]+)?) can (.+)$/i,
+      (m) => ({
+        question: `Can ${toYou(m[1]!).replace(/^./, (c) => c.toLowerCase())} ${m[2]}?`,
+        yes: "Yes, it can.",
+        no: "No, it can't.",
+      }),
+    ],
+    [
+      /^((?:the|my|your) [a-z]+(?: [a-z]+)?) are (.+)$/i,
+      (m) => ({
+        question: `Are ${toYou(m[1]!).replace(/^./, (c) => c.toLowerCase())} ${m[2]}?`,
+        yes: "Yes, they are.",
+        no: "No, they aren't.",
+      }),
+    ],
+    [
+      /^((?:the|my|your) [a-z]+) is (.+)$/i,
+      (m) => ({
+        question: `Is ${toYou(m[1]!).replace(/^./, (c) => c.toLowerCase())} ${toYou(m[2]!)}?`,
+        yes: "Yes, it is.",
+        no: "No, it isn't.",
+      }),
+    ],
+  ];
+  for (const [re, make] of rules) {
+    const m = s.match(re);
+    if (m) {
+      const f = make(m);
+      return { ...f, question: cap(f.question) };
+    }
+  }
+  return null;
+}

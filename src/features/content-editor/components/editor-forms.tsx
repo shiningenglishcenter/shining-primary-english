@@ -529,6 +529,22 @@ export function ActivityEditor({
             ) : (
               <input type="hidden" name="writeHint" value={activity.settings.writeHint} />
             )}
+            {activity.kind === "true_false" || activity.kind === "mixed" ? (
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                Câu Đúng/Sai theo hình:
+                <Select
+                  name="yesNo"
+                  defaultValue={activity.settings.yesNo}
+                  className="w-auto"
+                  data-testid="yes-no-style"
+                >
+                  <option value="short">Chọn Yes / No</option>
+                  <option value="full">Câu hỏi + câu trả lời đầy đủ (Is this a dog? → Yes, it is.)</option>
+                </Select>
+              </label>
+            ) : (
+              <input type="hidden" name="yesNo" value={activity.settings.yesNo} />
+            )}
             {["true_false", "listening", "reading", "mixed"].includes(activity.kind) ? (
               <p className="text-xs text-ink-soft" data-testid="yes-no-note">
                 Câu Đúng/Sai (Yes/No) chỉ được chọn 1 lần: chỉ có 2 đáp án nên thử lại luôn đoán đúng. Chọn
@@ -540,6 +556,7 @@ export function ActivityEditor({
           <>
             <input type="hidden" name="maxTries" value={activity.settings.maxTries} />
             <input type="hidden" name="writeHint" value={activity.settings.writeHint} />
+            <input type="hidden" name="yesNo" value={activity.settings.yesNo} />
           </>
         )}
 
