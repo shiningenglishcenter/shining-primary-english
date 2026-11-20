@@ -203,6 +203,14 @@ usernames, passwords).
    assessment for overseas hosting; confirm Decree 333/2026 localisation does not apply.
 
 ## Resolved decisions
+- 2026-11-20 — **Pronunciation deferred** (recording, browser speech recognition, paid scoring): too many open
+  questions (consent for children's voices sent abroad, iPhone support, cost). Researched options kept for later:
+  Azure Speech Pronunciation Assessment (~$1–1.32 per audio hour, 5 free hours/month; ≈ $35–45/month for 200
+  pupils), SpeechSuper (≈ $150–180), Speechace (≈ $240). Round 3 without pronunciation: hints for listen-and-write,
+  match Vietnamese meanings, full Yes/No answers, grammar explanations, video pinned/questions after watching,
+  sentence patterns and term reviews.
+- 2026-11-20 — Teacher feedback rounds 1–2: Yes/No one answer; uploads ≤ 2 MB, visible on guest links;
+  "practise the mistakes" earns no stars but is recorded (D40–D45).
 - 2026-11-12 — Hints configurable, default on, move on after 3 wrong answers; 2/1/0 points per question;
   results use the latest attempt; results pages for teachers; student UI EN (default) / VI only for
   students; video exercises published directly, teachers fix later (D29–D31).
