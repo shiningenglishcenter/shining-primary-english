@@ -42,14 +42,20 @@ export function Section({
   description,
   children,
   testId,
+  id,
 }: {
   title: string;
   description?: React.ReactNode;
   children: React.ReactNode;
   testId?: string;
+  id?: string;
 }) {
   return (
-    <section className="rounded-lg border border-line bg-surface p-5 sm:p-6" data-testid={testId}>
+    <section
+      id={id}
+      className="scroll-mt-20 rounded-lg border border-line bg-surface p-5 sm:p-6"
+      data-testid={testId}
+    >
       <h2 className="text-lg font-semibold">{title}</h2>
       {description ? <p className="mt-1 text-sm text-ink-soft">{description}</p> : null}
       <div className="mt-5">{children}</div>

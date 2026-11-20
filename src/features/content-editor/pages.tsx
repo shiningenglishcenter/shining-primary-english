@@ -19,6 +19,7 @@ import { getActivityForStaff, getTopicForStaff, listTopicsForStaff } from "@/fea
 import {
   ActivityEditor,
   NewActivityForm,
+  NextStepCard,
   NewTopicForm,
   TopicForm,
   WordsEditor,
@@ -187,12 +188,21 @@ export async function TopicEditorPage({
           >
             <WordsEditor topicId={topic.id} words={topic.words} />
           </Section>
+          <NextStepCard
+            topicId={topic.id}
+            wordsWithPicture={topic.words.filter((w) => w.emoji).length}
+            existingKinds={topic.activities.map((a) => a.kind)}
+          />
         </div>
         <div className="flex flex-col gap-6">
           <Section title="Thông tin chủ đề">
             <TopicForm topic={topic} />
           </Section>
-          <Section title={`Bài luyện (${topic.activities.length})`} testId="topic-activities">
+          <Section
+            title={`Bài luyện (${topic.activities.length})`}
+            testId="topic-activities"
+            id="topic-activities"
+          >
             <ul className="mb-5 divide-y divide-line rounded-md border border-line">
               {topic.activities.map((a) => (
                 <li key={a.id} className="flex items-center gap-2 pr-2 hover:bg-muted">

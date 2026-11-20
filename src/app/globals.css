@@ -369,3 +369,37 @@
     width: 85%;
   }
 }
+
+/* Flashcard flip (C10, D40): both faces share one grid cell; the back shows the Vietnamese meaning. */
+.kid-flip {
+  perspective: 1200px;
+}
+.kid-flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.kid-flip-inner[data-flipped="true"] {
+  transform: rotateY(180deg);
+}
+.kid-flip-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.kid-flip-back {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No turning: the faces simply swap. */
+  .kid-flip-inner,
+  .kid-flip-inner[data-flipped="true"],
+  .kid-flip-back {
+    transform: none;
+    transition: none;
+  }
+  .kid-flip-inner[data-flipped="true"] > .kid-flip-face:not(.kid-flip-back),
+  .kid-flip-inner[data-flipped="false"] > .kid-flip-back {
+    visibility: hidden;
+  }
+}

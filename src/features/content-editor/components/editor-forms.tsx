@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Image from "next/image";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Field, FormStatus, SubmitButton, useKeepValues } from "@/components/forms/form-parts";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import {
   createTopic,
   deleteActivity,
   deleteWord,
+  quickCreateWordActivities,
   saveWord,
   updateActivity,
   updateTopic,
@@ -19,6 +20,8 @@ import { codeToEmoji, emojiSrc } from "@/features/practice/emoji";
 import {
   KIND_LABEL_VI,
   PRACTICE_KINDS,
+  QUICK_MIN_WORDS,
+  QUICK_WORD_KINDS,
   type PlaySettings,
   type PracticeKind,
 } from "@/features/practice/model";
@@ -29,6 +32,7 @@ import {
   type Content,
 } from "@/features/content-editor/components/content-fields";
 import type { FormState } from "@/features/people/schemas";
+import { cn } from "@/lib/utils";
 
 const initial: FormState = {};
 type Base = "/admin/content" | "/teacher/content";
@@ -331,6 +335,75 @@ export function WordsEditor({
 
 // ------------------------------------------------------------- activities ---
 
+/**
+ * A2 (D40): after the word list, a clear next step — make practice from the
+ * words in one click (draft word games), or add activities one by one.
+ */
+export function NextStepCard({
+  topicId,
+  wordsWithPicture,
+  existingKinds,
+}: {
+  topicId: string;
+  wordsWithPicture: number;
+  existingKinds: PracticeKind[];
+}) {
+  const [state, action, pending] = useActionState(quickCreateWordActivities, initial);
+  const enough = wordsWithPicture >= QUICK_MIN_WORDS;
+  const missing = QUICK_WORD_KINDS.filter((k) => !existingKinds.includes(k));
+  return (
+    <section
+      className="rounded-xl border-2 border-sky/40 bg-sky-soft p-5"
+      aria-labelledby="next-step-title"
+      data-testid="next-step"
+    >
+      <h2 id="next-step-title" className="flex items-center gap-2 text-lg font-bold">
+        <ArrowRight className="size-5 text-sky" aria-hidden="true" />
+        Bước tiếp theo: tạo bài luyện
+      </h2>
+      <p className="mt-1 text-sm text-ink-soft">
+        {enough
+          ? `Chủ đề có ${wordsWithPicture} từ có hình. Tạo nhanh các trò chơi từ vựng từ danh sách này (dạng nháp), xem lại rồi xuất bản.`
+          : `Thêm ít nhất ${QUICK_MIN_WORDS} từ có hình để tạo bài từ vựng (hiện có ${wordsWithPicture}).`}
+      </p>
+      <ul className="mt-3 flex flex-wrap gap-2" aria-label="Các dạng bài sẽ tạo">
+        {QUICK_WORD_KINDS.map((k) => {
+          const has = existingKinds.includes(k);
+          return (
+            <li
+              key={k}
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-3 py-1 text-sm",
+                has ? "border-leaf/40 bg-leaf-soft text-leaf" : "border-line bg-surface",
+              )}
+            >
+              {has ? <Check className="size-4" aria-hidden="true" /> : null}
+              {KIND_LABEL_VI[k]}
+              {has ? <span className="sr-only"> (đã có)</span> : null}
+            </li>
+          );
+        })}
+      </ul>
+      <form action={action} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input type="hidden" name="topicId" value={topicId} />
+        <SubmitButton
+          pending={pending}
+          disabled={pending || !enough || missing.length === 0}
+          className="h-11"
+          data-testid="quick-create"
+        >
+          <Sparkles aria-hidden="true" />
+          {missing.length === 0 ? "Đã có đủ bài từ vựng" : `Tạo nhanh ${missing.length} bài từ danh sách từ`}
+        </SubmitButton>
+        <a href="#topic-activities" className="text-sm font-semibold text-sky underline underline-offset-4">
+          hoặc thêm từng bài
+        </a>
+      </form>
+      <FormStatus state={state} />
+    </section>
+  );
+}
+
 export function NewActivityForm({ topicId, base }: { topicId: string; base: Base }) {
   const [state, action, pending] = useActionState(createActivity, initial);
   return (
@@ -438,6 +511,12 @@ export function ActivityEditor({
             <p className="text-xs text-ink-soft">
               Điểm mỗi câu: đúng ngay lần đầu 2 điểm, đúng sau khi sai 1 điểm, hết lượt 0 điểm.
             </p>
+            {["true_false", "listening", "reading", "mixed"].includes(activity.kind) ? (
+              <p className="text-xs text-ink-soft" data-testid="yes-no-note">
+                Câu Đúng/Sai (Yes/No) chỉ được chọn 1 lần: chỉ có 2 đáp án nên thử lại luôn đoán đúng. Chọn
+                sai thì hiện đáp án đúng rồi sang câu tiếp theo.
+              </p>
+            ) : null}
           </fieldset>
         ) : (
           <input type="hidden" name="maxTries" value={activity.settings.maxTries} />

@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-20_
 
 ## Completed milestones
 **Milestone 0 — Discovery & architecture** ✅
@@ -99,6 +99,24 @@ From the owner's demo with teachers:
   guide overview of all programmes and topics; links to emoji sites.
 - 12 trial student accounts (`hs.thu01`–`hs.thu12`) in class `SAMPLE-TRIAL` on `shining-dev`.
 
+### Phase 1.4 — Teacher feedback, round 1 (2026-11-20, branch `milestone-2-feedback`)
+From the 9 pilot teachers' feedback (`/admin/gop-y`; averages: pupils like it 4.6, ready 4.0, easy to prepare 2.8,
+results page 2.8). D40, D41.
+- **C3** Yes/No (also inside listening, reading and skills challenge): one answer only; wrong → answer shown,
+  next question after 3 s. The editor explains this under "Sai … lần".
+- **C4** Sounds checked on Listen Yes/No; a small one-time "Bật tiếng để nghe" / "Turn the sound on" tip when
+  the browser blocks audio, and once per iPhone/iPad (silent switch).
+- **C5** Match: 4 pairs per screen on phones, up to 6 on tablets/desktops (12 words per activity).
+- **C8** Every seeded Starters/GS1 sentence activity now has ≥ 6 questions (Starters: +1 fill-in, +2 sentences
+  per topic; GS1: +2 Yes/No, +3 fill-in, +3 sentences, +3 reading questions per unit) — migration 0025 leaves
+  activities a teacher edited alone. Word games with fewer than 6 words repeat words up to 6 questions.
+  **Not changed**: the 13 video activities (4 questions each) — questions must match each song; teachers who
+  watch them can add questions in the editor.
+- **C10** Flashcards flip to show the Vietnamese meaning.
+- **A2** Topic editor: "Bước tiếp theo: tạo bài luyện" box after the word list with **"Tạo nhanh … bài từ danh
+  sách từ"** (5 draft word games, kinds already in the topic skipped).
+- `docs/DESIGN_SYSTEM.md` and the UI/UX Pro Max skill (`.claude/skills/ui-ux-pro-max/`, MIT).
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
@@ -113,6 +131,7 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 10. `supabase/migrations/20261113000022_guest_links.sql`
 11. `supabase/migrations/20261113000023_feedback.sql`
 12. `supabase/migrations/20261113000024_feedback_required_catalog.sql`
+13. `supabase/migrations/20261120000025_more_questions.sql` (C8; safe to re-run, touches only unedited activities)
 
 Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` must be set for **Preview** too
 (account creation and password reset need it). Settings → Deployment Protection: turn off Vercel
@@ -135,6 +154,9 @@ Flyers and G2–G5 content, as the owner decides.
 
 Phase 1.3: full e2e suite **57/57** on a local Supabase stack (2026-11-13), incl. guest links and login.
 
+Phase 1.4 (2026-11-20): DB **267/267**, unit **99/99**, e2e **64/64** on a local Supabase stack, incl. Yes/No single
+answer, flashcard flip, match 6/4 pairs (desktop/phone), sound tip, GS1 ≥ 6 questions, quick create.
+
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
 word game, sentence game with validation) and students see it only after publishing.
@@ -150,7 +172,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D39; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D41; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

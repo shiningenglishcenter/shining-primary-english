@@ -56,11 +56,11 @@ describe("hints and settings", () => {
 describe("listen_type", () => {
   it("uses single-word vocabulary and compares typed words loosely", () => {
     const r = buildRound("listen_type", {}, words, rand);
-    expect(r.questions.map((q) => q.type === "listen_type" && q.answer.word).sort()).toEqual([
-      "cat",
-      "dog",
-      "fish",
-    ]);
+    // Three usable words, repeated to six questions (C8).
+    expect(r.questions).toHaveLength(6);
+    expect(new Set(r.questions.map((q) => q.type === "listen_type" && q.answer.word))).toEqual(
+      new Set(["cat", "dog", "fish"]),
+    );
     expect(sameWord("  Cat ", "cat")).toBe(true);
     expect(sameWord("cats", "cat")).toBe(false);
   });

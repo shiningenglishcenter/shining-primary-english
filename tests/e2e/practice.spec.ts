@@ -109,8 +109,9 @@ test.describe("student practice library", () => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Colours" }).click();
-    await page.getByTestId("activity").filter({ hasText: "Yes or no?" }).click();
-    await page.locator("[data-testid=option]:not([data-correct])").click();
+    // Yes/No allows a single answer (C3), so use a three-option game.
+    await page.getByTestId("activity").filter({ hasText: "Complete the sentence" }).click();
+    await page.locator("[data-testid=option]:not([data-correct])").first().click();
     await expect(page.getByTestId("feedback-wrong")).toContainText("2 tries left");
     await page.getByTestId("hint-button").click();
     await expect(page.getByTestId("hint-text")).toBeVisible();

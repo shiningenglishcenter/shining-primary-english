@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { codeToEmoji, emojiSrc, emojiToCode } from "@/features/practice/emoji";
 import { levelBySlug, starsFor } from "@/features/practice/model";
-import { buildRound, sameSentence, shuffle, splitBlank } from "@/features/practice/round";
+import {
+  atLeast,
+  buildRound,
+  groupPairs,
+  MIN_QUESTIONS,
+  regroupMatches,
+  sameSentence,
+  shuffle,
+  splitBlank,
+  type Card,
+  type Question,
+} from "@/features/practice/round";
 
 const words = [
   { word: "cat", meaningVi: "con mèo", emoji: "1f408" },
@@ -56,8 +67,9 @@ describe("levelBySlug", () => {
 describe("buildRound — word games", () => {
   it("listen_choose: 3 picture options including the answer, never pictureless words", () => {
     const r = buildRound("listen_choose", {}, words, seeded());
-    expect(r.questions).toHaveLength(5);
-    expect(r.maxScore).toBe(10);
+    // 5 words with pictures, repeated up to 6 questions (C8).
+    expect(r.questions).toHaveLength(MIN_QUESTIONS);
+    expect(r.maxScore).toBe(12);
     for (const q of r.questions) {
       if (q.type !== "listen_choose") throw new Error("wrong type");
       expect(q.options).toHaveLength(3);
@@ -69,10 +81,9 @@ describe("buildRound — word games", () => {
 
   it("uses only the listed words when the activity names some", () => {
     const r = buildRound("look_choose", { words: ["cat", "DOG"] }, words, seeded());
-    expect(r.questions.map((q) => (q.type === "look_choose" ? q.answer.word : "")).sort()).toEqual([
-      "cat",
-      "dog",
-    ]);
+    expect(new Set(r.questions.map((q) => (q.type === "look_choose" ? q.answer.word : "")))).toEqual(
+      new Set(["cat", "dog"]),
+    );
   });
 
   it("spell skips multi-word entries and scrambles letters", () => {
@@ -89,6 +100,17 @@ describe("buildRound — word games", () => {
     const r = buildRound("match", {}, words, seeded());
     expect(r.questions.every((q) => q.type === "match" && q.pairs.length <= 4)).toBe(true);
     expect(r.maxScore).toBe(10);
+  });
+
+  it("match: up to 12 words in even phone screens of at most 4", () => {
+    const many: Card[] = Array.from({ length: 14 }, (_, i) => ({
+      word: `w${String.fromCharCode(97 + i)}`,
+      meaningVi: "",
+      emoji: "1f408",
+    }));
+    const r = buildRound("match", {}, many, seeded());
+    expect(r.questions.map((q) => (q.type === "match" ? q.pairs.length : 0))).toEqual([4, 4, 4]);
+    expect(r.maxScore).toBe(24);
   });
 
   it("returns an empty round when there are no usable words", () => {
@@ -129,6 +151,45 @@ describe("buildRound — sentence games", () => {
     expect(q.answer).toEqual(["I", "have", "got", "a", "cat."]);
     expect(q.words.join(" ")).not.toBe("I have got a cat.");
     expect(sameSentence(q.answer, ["i", "have", "got", "a", "cat."])).toBe(true);
+  });
+});
+
+describe("C5/C8 helpers (D40)", () => {
+  const cards = (n: number): Card[] =>
+    Array.from({ length: n }, (_, i) => ({ word: `w${i}`, meaningVi: "", emoji: "1f408" }));
+  const sizes = (qs: Question[]) => qs.map((q) => (q.type === "match" ? q.pairs.length : -1));
+
+  it("groupPairs splits evenly and never leaves a single pair", () => {
+    expect(groupPairs(cards(10), 4).map((g) => g.length)).toEqual([4, 3, 3]);
+    expect(groupPairs(cards(11), 6).map((g) => g.length)).toEqual([6, 5]);
+    expect(groupPairs(cards(5), 4).map((g) => g.length)).toEqual([3, 2]);
+    expect(groupPairs(cards(1), 4)).toEqual([]);
+  });
+
+  it("regroupMatches: wide screens show up to 6 pairs, same pairs and order of other questions", () => {
+    const phone = groupPairs(cards(12), 4).map((pairs): Question => ({ type: "match", pairs }));
+    const wide = regroupMatches(phone, 6);
+    expect(sizes(wide)).toEqual([6, 6]);
+    expect(wide.flatMap((q) => (q.type === "match" ? q.pairs : []))).toEqual(cards(12));
+    const flash: Question = { type: "flash", card: cards(1)[0]! };
+    // A lone match question (e.g. inside a skills challenge) is left as it is.
+    expect(regroupMatches([flash, phone[0]!, flash], 6)).toEqual([flash, phone[0]!, flash]);
+  });
+
+  it("atLeast repeats short lists to 6 without the same word twice in a row", () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const out = atLeast(["a", "b", "c"], seeded(seed));
+      expect(out).toHaveLength(MIN_QUESTIONS);
+      expect(new Set(out)).toEqual(new Set(["a", "b", "c"]));
+      out.forEach((x, i) => expect(x).not.toBe(out[i - 1]));
+    }
+    expect(atLeast(["a"], seeded())).toEqual(["a"]);
+    expect(
+      atLeast(
+        Array.from({ length: 20 }, (_, i) => i),
+        seeded(),
+      ),
+    ).toHaveLength(8);
   });
 });
 

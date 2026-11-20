@@ -3,14 +3,43 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const MUTE_KEY = "shining-sound-off";
+/** Set once the iPhone/iPad "silent switch" tip was shown on this device (C4). */
+const TIP_KEY = "shining-sound-tip";
+
+export type SoundTip = "blocked" | "ios";
+
+/**
+ * Which "turn the sound on" tip to show, if any (C4, D40). The browser
+ * blocking audio is detected; an iPhone's silent switch cannot be, so iOS
+ * devices get the tip once per device instead.
+ */
+export function soundTipFor(o: {
+  ctxState: AudioContextState | "unavailable" | null;
+  ios: boolean;
+  iosTipSeen: boolean;
+}): SoundTip | null {
+  if (o.ctxState === "suspended" || o.ctxState === "unavailable") return "blocked";
+  if (o.ios && !o.iosTipSeen) return "ios";
+  return null;
+}
+
+function isIos(): boolean {
+  const n = navigator as Navigator & { maxTouchPoints?: number };
+  return /iP(hone|ad|od)/.test(n.userAgent) || (n.platform === "MacIntel" && (n.maxTouchPoints ?? 0) > 1);
+}
 
 /**
  * Reads English aloud with the device's own voice (free; owner decision
  * 2026-11-10 — pre-recorded voices may come later) and plays short
  * soft effect sounds generated with Web Audio (no sound files, D34).
  */
-export function useSound() {
+export function useSound(opts: { onTip?: (tip: SoundTip) => void } = {}) {
   const [muted, setMuted] = useState(false);
+  const tipDone = useRef(false);
+  const onTip = useRef(opts.onTip);
+  useEffect(() => {
+    onTip.current = opts.onTip;
+  });
   const ctxRef = useRef<AudioContext | null>(null);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
@@ -21,6 +50,15 @@ export function useSound() {
       setMuted(localStorage.getItem(MUTE_KEY) === "1");
     } catch {
       /* storage blocked: keep sound on */
+    }
+    // Safari 17+: let Web Audio play even with the silent switch on.
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) {
+      try {
+        session.type = "playback";
+      } catch {
+        /* not supported */
+      }
     }
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const pick = () => {
@@ -50,6 +88,28 @@ export function useSound() {
     window.speechSynthesis.speak(u);
   }, []);
 
+  /** Shows the "turn the sound on" tip at most once per round (and the iOS one once per device). */
+  const checkTip = useCallback((ctxState: AudioContextState | "unavailable") => {
+    if (tipDone.current) return;
+    let iosTipSeen = true;
+    try {
+      iosTipSeen = localStorage.getItem(TIP_KEY) === "1";
+    } catch {
+      /* storage blocked: treat as seen, never nag */
+    }
+    const next = soundTipFor({ ctxState, ios: isIos(), iosTipSeen });
+    if (!next) return;
+    tipDone.current = true;
+    onTip.current?.(next);
+    if (next === "ios") {
+      try {
+        localStorage.setItem(TIP_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
   /**
    * Tiny synthesiser (D34): soft notes with a bell-like decay, played one
    * after another (`at` = start offset in seconds). Quiet on purpose: these
@@ -61,7 +121,11 @@ export function useSound() {
       try {
         ctxRef.current ??= new AudioContext();
         const ctx = ctxRef.current;
-        if (ctx.state === "suspended") void ctx.resume();
+        if (ctx.state === "suspended") {
+          void ctx.resume().catch(() => {});
+          // Still not running shortly after a tap: the browser blocks sound (C4).
+          window.setTimeout(() => checkTip(ctx.state), 600);
+        } else checkTip(ctx.state);
         const t0 = ctx.currentTime + 0.01;
         for (const n of notes) {
           const osc = ctx.createOscillator();
@@ -78,10 +142,10 @@ export function useSound() {
           osc.stop(t0 + n.at + n.dur + 0.02);
         }
       } catch {
-        /* audio unavailable */
+        checkTip("unavailable");
       }
     },
-    [muted],
+    [muted, checkTip],
   );
 
   /** Soft "tock" for any tap on a button. */

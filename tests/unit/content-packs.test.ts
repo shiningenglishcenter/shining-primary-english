@@ -47,3 +47,37 @@ describe.each(PACKS)("%s", (file) => {
     }
   });
 });
+
+/** Teacher feedback C8 (D40): seeded sentence activities have at least 6 questions. */
+describe("20261120000025_more_questions.sql", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase", "migrations", "20261120000025_more_questions.sql"),
+    "utf8",
+  );
+  const UPDATE =
+    /set content = '((?:[^']|'')*)'::jsonb, updated_at = now\(\)[\s\S]*?p\.kind = '([a-z_]+)'[\s\S]*?p\.content = '((?:[^']|'')*)'::jsonb;/g;
+  const updates = [...sql.matchAll(UPDATE)].map((m) => ({
+    kind: m[2] as PracticeKind,
+    next: JSON.parse(m[1]!.replace(/''/g, "'")) as { items?: unknown[] },
+    prev: JSON.parse(m[3]!.replace(/''/g, "'")) as { items?: unknown[] },
+  }));
+
+  it("tops up every Starters and GS1 sentence activity", () => expect(updates.length).toBe(116));
+  it("only touches activities still holding the seeded content", () => {
+    const statements = sql.split("update public.practice_activities").length - 1;
+    expect(statements).toBe(updates.length);
+    expect(sql.match(/and p\.content = '/g)?.length).toBe(statements);
+  });
+  it("new content is valid, playable and has at least 6 questions", () => {
+    for (const u of updates) {
+      const parsed = contentSchemaFor(u.kind).safeParse(u.next);
+      expect(parsed.success, `${u.kind}: ${JSON.stringify(parsed.error?.issues[0])}`).toBe(true);
+      expect(buildRound(u.kind, u.next, words).questions.length).toBeGreaterThan(0);
+      if (u.next.items) {
+        expect(u.next.items.length, u.kind).toBeGreaterThanOrEqual(6);
+        // Appended, never rewritten: the seeded questions come first, unchanged.
+        expect(u.next.items.slice(0, u.prev.items!.length)).toEqual(u.prev.items);
+      }
+    }
+  });
+});

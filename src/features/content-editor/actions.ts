@@ -9,6 +9,8 @@ import { EMOJI_CODE_PATTERN, emojiToCode } from "@/features/practice/emoji";
 import {
   contentSchemaFor,
   emptyContentFor,
+  QUICK_WORD_KINDS,
+  QUICK_MIN_WORDS,
   levelByCode,
   PRACTICE_KINDS,
   KIND_LABEL_VI,
@@ -230,6 +232,59 @@ export async function createActivity(_prev: FormState, formData: FormData): Prom
     .single();
   if (error || !data) return { error: SAVE_FAILED };
   redirect(`${baseOf(formData)}/activities/${data.id}`);
+}
+
+/**
+ * A2 (D40): one click turns the topic's word list into draft word games
+ * (flashcards, look/listen and choose, match, spell). Empty content = "use
+ * every topic word with a picture", so words added later join in. Kinds the
+ * topic already has are skipped.
+ */
+export async function quickCreateWordActivities(_prev: FormState, formData: FormData): Promise<FormState> {
+  const me = await staff();
+  const topicId = z.uuid().safeParse(formData.get("topicId"));
+  if (!topicId.success) return { error: SAVE_FAILED };
+  const supabase = await createClient();
+  const [words, existing] = await Promise.all([
+    supabase
+      .from("vocabulary")
+      .select("id", { count: "exact", head: true })
+      .eq("topic_id", topicId.data)
+      .not("emoji", "is", null)
+      .is("deleted_at", null),
+    supabase
+      .from("practice_activities")
+      .select("kind, sort_order")
+      .eq("topic_id", topicId.data)
+      .is("deleted_at", null),
+  ]);
+  if (words.error || existing.error) return { error: SAVE_FAILED };
+  if ((words.count ?? 0) < QUICK_MIN_WORDS) {
+    return { error: `Cần ít nhất ${QUICK_MIN_WORDS} từ có hình để tạo bài.` };
+  }
+  const have = new Set((existing.data ?? []).map((a) => a.kind as string));
+  const todo = QUICK_WORD_KINDS.filter((k) => !have.has(k));
+  if (todo.length === 0) return { ok: true, message: "Chủ đề đã có đủ các dạng bài từ vựng." };
+  const start = Math.max(0, ...(existing.data ?? []).map((a) => (a.sort_order as number) ?? 0));
+  const { error } = await supabase.from("practice_activities").insert(
+    todo.map((kind, i) => ({
+      topic_id: topicId.data,
+      kind,
+      title_en: defaultTitleEn(kind),
+      title_vi: KIND_LABEL_VI[kind],
+      sort_order: start + (i + 1) * 10,
+      status: "draft",
+      content: emptyContentFor(kind),
+      created_by: me.id,
+    })),
+  );
+  if (error) return { error: SAVE_FAILED };
+  refresh();
+  const skipped = QUICK_WORD_KINDS.length - todo.length;
+  return {
+    ok: true,
+    message: `Đã tạo ${todo.length} bài nháp${skipped ? ` (bỏ qua ${skipped} dạng đã có)` : ""}. Mở từng bài để xem lại rồi xuất bản.`,
+  };
 }
 
 function isEmptyContent(content: unknown): boolean {

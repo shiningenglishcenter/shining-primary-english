@@ -60,7 +60,13 @@ export type Round = { questions: Question[]; maxScore: number; contexts: RoundCo
 export const ROUND_SIZE = 8;
 /** Questions taken from each step of a "mixed" activity. */
 export const MIXED_STEP_SIZE = 3;
-const MATCH_PAIRS = 4;
+/** Match pairs per screen: phones (the default) and wide screens (C5, D40). */
+export const MATCH_PAIRS = 4;
+export const MATCH_PAIRS_WIDE = 6;
+/** Words a match activity uses in all (3 phone screens or 2 wide ones). */
+const MATCH_WORDS = 12;
+/** Word games repeat words when a topic has fewer (C8, D40). */
+export const MIN_QUESTIONS = 6;
 
 type Rand = () => number;
 
@@ -217,36 +223,25 @@ function buildSimple(
     return { questions, maxScore: questions.length };
   }
   if (kind === "match") {
-    const chosen = shuffle(pool, rand).slice(0, MATCH_PAIRS * 2);
-    // Split evenly (5 words → 3 + 2, never a lonely single pair).
-    const groups = Math.ceil(chosen.length / MATCH_PAIRS);
-    const size = Math.ceil(chosen.length / groups);
-    const questions: Question[] = [];
-    for (let i = 0; i < chosen.length; i += size) {
-      const pairs = chosen.slice(i, i + size);
-      if (pairs.length >= 2) questions.push({ type: "match", pairs });
-    }
+    const chosen = shuffle(pool, rand).slice(0, MATCH_WORDS);
+    const questions: Question[] = groupPairs(chosen, MATCH_PAIRS).map((pairs) => ({ type: "match", pairs }));
     return { questions, maxScore: scoreOf(questions) };
   }
   if (kind === "listen_type") {
     const writable = pool.filter((w) => /^[a-z]{2,12}$/i.test(w.word));
-    const questions: Question[] = shuffle(writable, rand)
-      .slice(0, ROUND_SIZE)
-      .map((answer) => ({ type: "listen_type", answer }));
+    const questions: Question[] = atLeast(writable, rand).map((answer) => ({ type: "listen_type", answer }));
     return { questions, maxScore: questions.length };
   }
   if (kind === "spell") {
     const spellable = pool.filter((w) => /^[a-z]{2,10}$/i.test(w.word));
-    const questions: Question[] = shuffle(spellable, rand)
-      .slice(0, ROUND_SIZE)
-      .map((answer) => ({
-        type: "spell",
-        answer,
-        letters: scramble(answer.word.toLowerCase().split(""), rand),
-      }));
+    const questions: Question[] = atLeast(spellable, rand).map((answer) => ({
+      type: "spell",
+      answer,
+      letters: scramble(answer.word.toLowerCase().split(""), rand),
+    }));
     return { questions, maxScore: questions.length };
   }
-  const answers = shuffle(pool, rand).slice(0, ROUND_SIZE);
+  const answers = atLeast(pool, rand);
   const questions: Question[] = answers.map((answer) => {
     const others = pickOthers(all, answer, 2, rand);
     if (kind === "listen_choose") {
@@ -262,6 +257,67 @@ function buildSimple(
     };
   });
   return { questions, maxScore: questions.length };
+}
+
+/**
+ * Up to ROUND_SIZE cards in random order; a short list (2–5 words) is
+ * repeated to reach MIN_QUESTIONS, never the same word twice in a row.
+ */
+export function atLeast<T>(cards: readonly T[], rand: Rand = Math.random): T[] {
+  const first = shuffle(cards, rand).slice(0, ROUND_SIZE);
+  if (first.length >= MIN_QUESTIONS || first.length < 2) return first;
+  const out = [...first];
+  while (out.length < MIN_QUESTIONS) {
+    let next = shuffle(first, rand);
+    if (next[0] === out[out.length - 1]) next = [...next.slice(1), next[0]!];
+    out.push(...next.slice(0, MIN_QUESTIONS - out.length));
+  }
+  return out;
+}
+
+/** Splits cards into screens of at most `size` pairs, as evenly as possible (10 → 4 + 3 + 3). */
+export function groupPairs(cards: readonly Card[], size: number): Card[][] {
+  if (cards.length < 2) return [];
+  const groups = Math.ceil(cards.length / size);
+  const base = Math.floor(cards.length / groups);
+  const extra = cards.length % groups;
+  const out: Card[][] = [];
+  let at = 0;
+  for (let g = 0; g < groups; g++) {
+    const n = base + (g < extra ? 1 : 0);
+    out.push(cards.slice(at, at + n));
+    at += n;
+  }
+  return out;
+}
+
+/**
+ * Wide screens show up to 6 pairs at once (C5): consecutive match questions
+ * are merged and split again. The number of pairs, and so the score, stays.
+ */
+export function regroupMatches(questions: Question[], size: number): Question[] {
+  const out: Question[] = [];
+  let run: Extract<Question, { type: "match" }>[] = [];
+  const flush = () => {
+    if (run.length > 1) {
+      for (const pairs of groupPairs(
+        run.flatMap((q) => q.pairs),
+        size,
+      )) {
+        out.push({ type: "match", pairs, ...(run[0]!.ctx !== undefined ? { ctx: run[0]!.ctx } : {}) });
+      }
+    } else out.push(...run);
+    run = [];
+  };
+  for (const q of questions) {
+    if (q.type === "match") run.push(q);
+    else {
+      flush();
+      out.push(q);
+    }
+  }
+  flush();
+  return out;
 }
 
 export function splitBlank(sentence: string): [string, string] {

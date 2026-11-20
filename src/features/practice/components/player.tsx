@@ -16,13 +16,15 @@ import {
   type PracticeKind,
 } from "@/features/practice/model";
 import {
+  MATCH_PAIRS_WIDE,
+  regroupMatches,
   sameSentence,
   sameWord,
   type Card,
   type PlayerContext,
   type Question,
 } from "@/features/practice/round";
-import { useSound } from "@/features/practice/use-sound";
+import { useSound, type SoundTip } from "@/features/practice/use-sound";
 import { useLang, useT } from "@/features/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +64,7 @@ export function Player({
   activityId,
   kind,
   title,
-  questions,
+  questions: phoneQuestions,
   contexts = [],
   settings = DEFAULT_SETTINGS,
   record,
@@ -89,7 +91,14 @@ export function Player({
   nextHref: string | null;
 }) {
   const t = useT();
-  const sound = useSound();
+  const [soundTip, setSoundTip] = useState<SoundTip | null>(null);
+  const sound = useSound({ onTip: setSoundTip });
+  const wide = useWideScreen();
+  // Match screens hold 4 pairs on phones, up to 6 on tablets/desktops (C5).
+  const questions = useMemo(
+    () => (wide ? regroupMatches(phoneQuestions, MATCH_PAIRS_WIDE) : phoneQuestions),
+    [wide, phoneQuestions],
+  );
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
@@ -202,6 +211,7 @@ export function Player({
           </button>
         </div>
         <p className="sr-only">{title}</p>
+        {soundTip ? <SoundTipBanner tip={soundTip} onClose={() => setSoundTip(null)} /> : null}
         {q.ctx !== undefined && contexts[q.ctx] ? (
           // Keyed by context: the video / passage stays put across its questions.
           <ContextPanel key={`ctx-${q.ctx}`} ctx={contexts[q.ctx]!} sound={sound} />
@@ -217,6 +227,50 @@ export function Player({
       </div>
     </SettingsContext>
   );
+}
+
+/** "Turn the sound on" (C4): shown once when audio is blocked, or once per iPhone/iPad. */
+function SoundTipBanner({ tip, onClose }: { tip: SoundTip; onClose: () => void }) {
+  const t = useT();
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const id = window.setTimeout(() => close.current(), 8000);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <div
+      role="status"
+      data-testid="sound-tip"
+      data-tip={tip}
+      className="animate-kid-in mb-2 flex items-center gap-2 rounded-2xl bg-k-accent-soft px-3 py-2 text-base font-bold text-k-accent-ink"
+    >
+      <Volume2 className="size-5 shrink-0" aria-hidden="true" />
+      <span className="flex-1">{tip === "ios" ? t.soundTipIos : t.soundTip}</span>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={t.closeTip}
+        className="flex size-10 shrink-0 items-center justify-center rounded-full"
+      >
+        <X className="size-5" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+/** Wide enough (and tall enough) for 6 match pairs; read once, so a round never regroups mid-way. */
+const WIDE_QUERY = "(min-width: 768px) and (min-height: 640px)";
+function useWideScreen() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    // Client-only media query, read once after mount (the server renders the phone layout).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWide(typeof window.matchMedia === "function" && window.matchMedia(WIDE_QUERY).matches);
+  }, []);
+  return wide;
 }
 
 type QProps = {
@@ -435,6 +489,8 @@ function Footer({
 }
 
 const AUTO_NEXT_MS = 3000;
+/** Yes/No questions: one answer only, whatever the activity's maxTries (C3). */
+const YES_NO_TRIES = 1;
 /** Pause before an automatic check, so the child sees what they placed or typed. */
 const AUTO_CHECK_MS = 400;
 
@@ -443,8 +499,16 @@ const AUTO_CHECK_MS = 400;
  * after a mistake, 0 when out of tries (`settings.maxTries`). `done` covers
  * both endings, so components reveal the right answer either way.
  */
-function useAnswer(sound: Sound, opts: { hint?: string; onFail?: () => void } = {}) {
-  const settings = useContext(SettingsContext);
+function useAnswer(
+  sound: Sound,
+  opts: {
+    hint?: string;
+    onFail?: () => void;
+    /** Overrides the teacher's setting (Yes/No: 1). */ maxTries?: number;
+  } = {},
+) {
+  const ctxSettings = useContext(SettingsContext);
+  const settings = opts.maxTries ? { ...ctxSettings, maxTries: opts.maxTries } : ctxSettings;
   const [status, setStatus] = useState<Status>("idle");
   const [misses, setMisses] = useState(0);
   const [hintOn, setHintOn] = useState(false);
@@ -561,11 +625,16 @@ function FlashQ({
   onDone: (p: number) => void;
 }) {
   const t = useT();
-  const lang = useLang();
+  // Back of the card: the Vietnamese meaning, in both interface languages (C10).
+  const [flipped, setFlipped] = useState(false);
   const say = () => sound.speak(q.card.word);
   useEffect(() => {
     sound.speak(q.card.word);
   }, [q.card.word, sound]);
+  const flip = () => {
+    say();
+    setFlipped((f) => !f);
+  };
   return (
     <Frame
       type="flash"
@@ -582,17 +651,39 @@ function FlashQ({
     >
       <button
         type="button"
-        onClick={say}
-        aria-label={t.listenWord(q.card.word)}
-        className="kid-press flex w-full max-w-sm flex-col items-center gap-2 rounded-[2rem] bg-k-surface px-6 py-8"
+        onClick={flip}
+        aria-label={`${t.listenWord(q.card.word)}. ${flipped ? t.flipBack : t.flipCard}`}
+        aria-pressed={flipped}
+        data-testid="flash-card"
+        data-flipped={flipped ? "true" : "false"}
+        className="kid-flip w-full max-w-sm"
       >
-        <Pic code={q.card.emoji} size={176} className="animate-kid-float" />
-        <span className="font-kid-display text-5xl font-bold" data-testid="flash-word">
-          {q.card.word}
+        <span className="kid-flip-inner block" data-flipped={flipped ? "true" : "false"}>
+          <span className="kid-flip-face flex flex-col items-center gap-2 rounded-[2rem] bg-k-surface px-6 py-8 shadow-[0_6px_0_var(--k-line)]">
+            <Pic code={q.card.emoji} size={176} className="animate-kid-float" />
+            <span className="font-kid-display text-5xl font-bold" data-testid="flash-word">
+              {q.card.word}
+            </span>
+          </span>
+          <span
+            className="kid-flip-face kid-flip-back flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-k-accent-soft px-6 py-8 shadow-[0_6px_0_var(--k-accent-shadow)]"
+            aria-hidden={!flipped}
+          >
+            <Pic code={q.card.emoji} size={96} />
+            <span className="font-kid-display text-4xl font-bold">{q.card.word}</span>
+            <span className="text-3xl font-black text-k-accent-ink" lang="vi" data-testid="flash-meaning">
+              {q.card.meaningVi}
+            </span>
+          </span>
         </span>
-        {lang === "vi" ? <span className="text-xl font-bold text-k-soft">{q.card.meaningVi}</span> : null}
       </button>
-      <SpeakButton onClick={say} label={t.listenAgain} />
+      <div className="flex items-center gap-3">
+        <SpeakButton onClick={say} label={t.listenAgain} />
+        <span className="flex items-center gap-1 text-base font-bold text-k-soft">
+          <RotateCcw className="size-5" aria-hidden="true" />
+          {flipped ? t.flipBack : t.flipCard}
+        </span>
+      </div>
     </Frame>
   );
 }
@@ -777,6 +868,8 @@ function MatchQ({
     return n + (m >= settings.maxTries ? POINTS.none : m > 0 ? POINTS.retry : POINTS.first);
   }, 0);
   const anyMiss = Object.keys(misses).length > 0;
+  /** 5–6 pairs (wide screens): smaller tiles so the screen still fits. */
+  const dense = q.pairs.length > 4;
 
   const tapPicture = (w: string) => {
     setPic(w);
@@ -827,7 +920,11 @@ function MatchQ({
           {t.tapPictureToHear}
         </p>
       ) : null}
-      <div className="grid w-full max-w-xl grid-cols-2 gap-4">
+      <div
+        className={cn("grid w-full grid-cols-2 gap-4", dense ? "max-w-2xl" : "max-w-xl")}
+        data-testid="match-board"
+        data-pairs={q.pairs.length}
+      >
         <div className="flex flex-col gap-3">
           {q.pairs.map((c) => {
             const isDone = matched.includes(c.word);
@@ -843,11 +940,12 @@ function MatchQ({
                 data-word={c.word}
                 className={cn(
                   choiceClass(isDone ? "right" : "idle"),
-                  "flex h-24 items-center justify-center",
+                  "flex items-center justify-center",
+                  dense ? "h-20" : "h-24",
                   pic === c.word && "border-k-accent ring-4 ring-k-accent/40",
                 )}
               >
-                <Pic code={c.emoji} size={72} />
+                <Pic code={c.emoji} size={dense ? 60 : 72} />
               </button>
             );
           })}
@@ -865,7 +963,8 @@ function MatchQ({
                 data-word={c.word}
                 className={cn(
                   choiceClass(isDone ? "right" : "idle"),
-                  "h-24 px-2 text-xl font-black sm:text-2xl",
+                  "px-2 text-xl font-black sm:text-2xl",
+                  dense ? "h-20" : "h-24",
                   !pic && !isDone && "opacity-80",
                   shake === c.word && "animate-kid-shake",
                 )}
@@ -999,7 +1098,8 @@ function TrueFalseQ({
   onDone: (p: number) => void;
 }) {
   const t = useT();
-  const a = useAnswer(sound, { hint: q.hint });
+  // Two options: a second try would always be right, so Yes/No allows one answer (C3, D40).
+  const a = useAnswer(sound, { hint: q.hint, maxTries: YES_NO_TRIES });
   const [picked, setPicked] = useState<boolean | null>(null);
   useEffect(() => {
     const t = window.setTimeout(() => sound.speak(q.sentence), 300);
@@ -1012,17 +1112,20 @@ function TrueFalseQ({
     else a.wrong(String(v));
   };
   const btn = (v: boolean) => {
-    const state = a.done
-      ? v === q.answer
+    const state =
+      a.done && v === q.answer
         ? "right"
-        : "dim"
-      : picked === v && a.status === "wrong"
-        ? "wrong"
-        : "idle";
+        : picked === v && a.status !== "right"
+          ? "wrong"
+          : a.done
+            ? "dim"
+            : "idle";
     return (
       <button
         type="button"
         onClick={() => choose(v)}
+        disabled={a.done}
+        aria-pressed={picked === v}
         data-testid="option"
         data-correct={v === q.answer ? "true" : undefined}
         className={cn(

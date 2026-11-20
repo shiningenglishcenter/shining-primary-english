@@ -100,6 +100,17 @@ export const WORD_KINDS: readonly PracticeKind[] = [
   "listen_type",
 ];
 
+/** "Quick create" on a topic (A2, D40): the common word games, in play order. */
+export const QUICK_WORD_KINDS: readonly PracticeKind[] = [
+  "flashcards",
+  "look_choose",
+  "listen_choose",
+  "match",
+  "spell",
+];
+/** Fewest words with pictures for quick create (choose games show 3 options). */
+export const QUICK_MIN_WORDS = 3;
+
 const emoji = z.string().regex(EMOJI_CODE_PATTERN).nullable().optional();
 const sentence = z.string().trim().min(1).max(200);
 /** Optional teacher hint, shown after a wrong answer when hints are on (D29). */
