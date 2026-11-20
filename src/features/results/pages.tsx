@@ -23,6 +23,7 @@ import {
   listResultClasses,
   practiceRecords,
   guestAttempts,
+  topicComments,
   type ActivityInfo,
   type GuestAttempt,
   type TopicInfo,
@@ -52,6 +53,7 @@ import {
   type StudentSummary,
 } from "@/features/results/summary";
 import { cn } from "@/lib/utils";
+import { TopicComment } from "@/features/results/components/topic-comment";
 
 /**
  * Results pages (D29, D32), shared by /teacher/results and /admin/results.
@@ -942,7 +944,10 @@ export async function StudentResults({
   // RLS: null when this teacher does not teach the student.
   const student = await getStudent(id);
   if (!student) notFound();
-  const { records, activities, topics } = await practiceRecords([id], f.since, f.level?.code ?? null);
+  const [{ records, activities, topics }, comments] = await Promise.all([
+    practiceRecords([id], f.since, f.level?.code ?? null),
+    topicComments(id),
+  ]);
   const kindOf = (aid: string) => activities.get(aid)?.kind;
   const [summary] = summariseStudents([id], records, kindOf);
   const mine = latestByActivity(records).get(id) ?? new Map<string, ActivityResult>();
@@ -1160,6 +1165,18 @@ export async function StudentResults({
                   activities={activities}
                   attemptsOf={attemptsOf}
                   open={openTopic === t.id}
+                  comment={{
+                    studentId: id,
+                    body: comments.get(t.id) ?? "",
+                    summary: parentSummary(
+                      student.name,
+                      t,
+                      mine,
+                      activities,
+                      records.filter((r) => t.activityIds.includes(r.activityId)),
+                      period,
+                    ),
+                  }}
                 />
               ))}
             </div>
@@ -1231,18 +1248,43 @@ function AttemptLine({ v, activity }: { v: AttemptView; activity?: ActivityInfo 
   );
 }
 
+/** The figures part of the parent message for one topic (D54). */
+function parentSummary(
+  name: string,
+  topic: TopicInfo,
+  results: Map<string, ActivityResult>,
+  activities: Map<string, ActivityInfo>,
+  records: PracticeRecord[],
+  period: string,
+): string {
+  const done = topic.activityIds.filter((id) => results.has(id));
+  const avg = topicAverage(
+    done.map((id) => results.get(id)!),
+    (id) => activities.get(id)?.kind,
+  );
+  const weak = weakItems(records, 5).map((w) => w.label);
+  return [
+    `🌟 Shining English – ${name}`,
+    `Chủ đề: ${topic.titleEn}${topic.level ? ` (${topic.level.name})` : ""} · ${period}`,
+    `Đã làm ${done.length}/${topic.activityIds.length} bài · Điểm trung bình ${pct(avg)}`,
+    ...(weak.length ? [`Cần ôn: ${weak.join("; ")}`] : []),
+  ].join("\n");
+}
+
 function TopicBlock({
   topic,
   results,
   activities,
   attemptsOf,
   open,
+  comment,
 }: {
   topic: TopicInfo;
   results: Map<string, ActivityResult>;
   activities: Map<string, ActivityInfo>;
   attemptsOf: Map<string, AttemptView[]>;
   open: boolean;
+  comment: { studentId: string; body: string; summary: string };
 }) {
   const done = topic.activityIds.filter((id) => results.has(id));
   const avg = topicAverage(
@@ -1330,6 +1372,12 @@ function TopicBlock({
           </tbody>
         </table>
       </div>
+      <TopicComment
+        studentId={comment.studentId}
+        topicId={topic.id}
+        initialBody={comment.body}
+        summary={comment.summary}
+      />
     </details>
   );
 }

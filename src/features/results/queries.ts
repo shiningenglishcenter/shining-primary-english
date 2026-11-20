@@ -235,3 +235,14 @@ export async function guestAttempts(
     ];
   });
 }
+
+/** Teachers' comments on a student's topics (D54), by topic id. Empty before migration 0032. */
+export async function topicComments(studentId: string): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("topic_comments")
+    .select("topic_id, body")
+    .eq("student_id", studentId);
+  if (error) return new Map();
+  return new Map((data ?? []).map((r) => [r.topic_id as string, r.body as string]));
+}
