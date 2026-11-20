@@ -32,6 +32,11 @@ import {
   type Content,
 } from "@/features/content-editor/components/content-fields";
 import type { FormState } from "@/features/people/schemas";
+import {
+  EmojiPickerButton,
+  ImageRule,
+  WordImageField,
+} from "@/features/content-editor/components/emoji-picker";
 import { cn } from "@/lib/utils";
 
 const initial: FormState = {};
@@ -57,29 +62,7 @@ export function EmojiInput({
     <Field
       id={id}
       label={label}
-      hint={
-        <>
-          Gõ hoặc dán một emoji (bàn phím điện thoại, hoặc Win + . trên Windows). Tìm emoji ở{" "}
-          <a
-            href="https://emojipedia.org"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-sky underline"
-          >
-            emojipedia.org
-          </a>{" "}
-          hoặc{" "}
-          <a
-            href="https://getemoji.com"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-sky underline"
-          >
-            getemoji.com
-          </a>
-          .
-        </>
-      }
+      hint="Bấm “Chọn hình” để tìm bằng tiếng Anh hoặc tiếng Việt, hoặc gõ/dán một emoji."
       error={error}
     >
       <div className="flex items-center gap-3">
@@ -95,6 +78,7 @@ export function EmojiInput({
         <span className="flex size-14 items-center justify-center rounded-lg border border-line bg-paper">
           {src ? <Image src={src} alt="" width={44} height={44} unoptimized /> : null}
         </span>
+        <EmojiPickerButton onPick={(code) => setValue(codeToEmoji(code))} suggestFor={suggestFrom} />
       </div>
     </Field>
   );
@@ -182,13 +166,7 @@ export function TopicForm({
 
 // ------------------------------------------------------------------ words ---
 
-function WordRow({
-  topicId,
-  word,
-}: {
-  topicId: string;
-  word: { id: string; word: string; meaningVi: string; emoji: string | null };
-}) {
+function WordRow({ topicId, word }: { topicId: string; word: WordItem }) {
   const [state, action, pending] = useActionState(saveWord, initial);
   const keep = useKeepValues(action);
   const [delState, delAction, delPending] = useActionState(deleteWord, initial);
@@ -221,10 +199,13 @@ function WordRow({
             Lưu
           </SubmitButton>
         </div>
+        <div className="col-span-2 sm:col-span-4">
+          <WordImageField defaultPath={word.imagePath} defaultUrl={word.imageUrl} />
+        </div>
       </form>
       <div className="flex items-center gap-3">
-        {e.word || e.emoji || state.error ? (
-          <p className="text-sm text-berry">{e.word ?? e.emoji ?? state.error}</p>
+        {e.word || e.emoji || e.imagePath || state.error ? (
+          <p className="text-sm text-berry">{e.word ?? e.emoji ?? e.imagePath ?? state.error}</p>
         ) : state.ok ? (
           <p className="text-sm text-leaf">{state.message}</p>
         ) : null}
@@ -251,11 +232,21 @@ function WordRow({
   );
 }
 
+/** The English word typed in the same form: what the picker suggests pictures for. */
+function suggestFrom(this: void): string {
+  const form = document.activeElement?.closest("form");
+  for (const name of ["word", "titleEn"]) {
+    const el = form?.elements.namedItem(name);
+    if (el instanceof HTMLInputElement && el.value.trim()) return el.value;
+  }
+  return "";
+}
+
 function EmojiInputCompact({ defaultCode }: { defaultCode?: string | null }) {
   const [value, setValue] = useState(defaultCode ? codeToEmoji(defaultCode) : "");
   const src = emojiSrc(toCode(value));
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex flex-wrap items-center gap-2">
       <span className="flex size-12 items-center justify-center rounded-lg border border-line bg-paper">
         {src ? <Image src={src} alt="" width={36} height={36} unoptimized /> : null}
       </span>
@@ -267,17 +258,21 @@ function EmojiInputCompact({ defaultCode }: { defaultCode?: string | null }) {
         className="w-16 px-2 text-center text-xl"
         autoComplete="off"
       />
+      <EmojiPickerButton size="sm" onPick={(code) => setValue(codeToEmoji(code))} suggestFor={suggestFrom} />
     </span>
   );
 }
 
-export function WordsEditor({
-  topicId,
-  words,
-}: {
-  topicId: string;
-  words: { id: string; word: string; meaningVi: string; emoji: string | null }[];
-}) {
+type WordItem = {
+  id: string;
+  word: string;
+  meaningVi: string;
+  emoji: string | null;
+  imagePath: string | null;
+  imageUrl: string | null;
+};
+
+export function WordsEditor({ topicId, words }: { topicId: string; words: WordItem[] }) {
   const [state, action, pending] = useActionState(saveWord, initial);
   const [round, setRound] = useState(0);
   const e = state.fieldErrors ?? {};
@@ -313,9 +308,11 @@ export function WordsEditor({
             maxLength={300}
           />
         </div>
-        {e.word || e.meaningVi || e.emoji || state.error ? (
+        <WordImageField />
+        <ImageRule />
+        {e.word || e.meaningVi || e.emoji || e.imagePath || state.error ? (
           <p className="text-sm text-berry" data-testid="add-word-error">
-            {e.word ?? e.meaningVi ?? e.emoji ?? state.error}
+            {e.word ?? e.meaningVi ?? e.emoji ?? e.imagePath ?? state.error}
           </p>
         ) : state.ok ? (
           <p className="text-sm text-leaf" data-testid="add-word-ok">

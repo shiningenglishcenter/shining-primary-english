@@ -135,16 +135,45 @@ export async function getTopicWords(topicId: string): Promise<VocabWord[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("vocabulary")
-    .select("word, meaning_vi, emoji")
+    .select("word, meaning_vi, emoji, image_path")
     .eq("topic_id", topicId)
     .eq("status", "published")
     .is("deleted_at", null)
     .order("word");
   if (error) throw new Error(`getTopicWords: ${error.code}`);
-  return (data ?? []).map((w) => ({
-    word: w.word as string,
-    meaningVi: w.meaning_vi as string,
-    emoji: (w.emoji as string | null) ?? null,
+  return withImages(
+    (data ?? []).map((w) => ({
+      word: w.word as string,
+      meaningVi: w.meaning_vi as string,
+      emoji: (w.emoji as string | null) ?? null,
+      imagePath: (w.image_path as string | null) ?? null,
+    })),
+  );
+}
+
+const IMAGE_URL_SECONDS = 2 * 60 * 60;
+
+/**
+ * Uploaded word pictures (A1, D42) → short-lived signed URLs. Guests have no
+ * session: their verified public activity's pictures are signed with the
+ * service role (as guest audio, D35); without that key the emoji shows.
+ */
+export async function withImages(
+  words: (VocabWord & { imagePath: string | null })[],
+  opts: { guest?: boolean } = {},
+): Promise<VocabWord[]> {
+  const paths = words.flatMap((w) => (w.imagePath ? [w.imagePath] : []));
+  const urls = new Map<string, string>();
+  if (paths.length) {
+    const supabase = opts.guest ? (adminConfigured() ? createAdminClient() : null) : await createClient();
+    const { data } = supabase
+      ? await supabase.storage.from("learning-media").createSignedUrls(paths, IMAGE_URL_SECONDS)
+      : { data: [] };
+    for (const row of data ?? []) if (row.path && row.signedUrl) urls.set(row.path, row.signedUrl);
+  }
+  return words.map(({ imagePath, ...w }) => ({
+    ...w,
+    image: imagePath ? (urls.get(imagePath) ?? null) : null,
   }));
 }
 

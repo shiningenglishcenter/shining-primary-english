@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { levelByCode, settingsOf, type PracticeKind, type VocabWord } from "@/features/practice/model";
+import { levelByCode, settingsOf, type PracticeKind } from "@/features/practice/model";
+import { withImages } from "@/features/practice/queries";
 
 /** Token shape accepted by get_public_activity (D35). */
 export const GUEST_TOKEN = /^[A-Za-z0-9_-]{16,40}$/;
@@ -15,7 +16,7 @@ type Raw = {
     settings: unknown;
   };
   topic: { id: string; title_en: string; title_vi: string; emoji: string | null; level: string };
-  words: { word: string; meaning_vi: string; emoji: string | null }[];
+  words: { word: string; meaning_vi: string; emoji: string | null; image_path?: string | null }[];
 };
 
 /** The activity behind a live guest link, or null (link off, unknown, or unpublished). */
@@ -41,6 +42,14 @@ export async function getPublicActivity(token: string) {
       emoji: raw.topic.emoji,
       level,
     },
-    words: raw.words.map((w): VocabWord => ({ word: w.word, meaningVi: w.meaning_vi, emoji: w.emoji })),
+    words: await withImages(
+      raw.words.map((w) => ({
+        word: w.word,
+        meaningVi: w.meaning_vi,
+        emoji: w.emoji,
+        imagePath: w.image_path ?? null,
+      })),
+      { guest: true },
+    ),
   };
 }

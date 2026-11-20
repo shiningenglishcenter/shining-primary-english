@@ -660,7 +660,7 @@ function FlashQ({
       >
         <span className="kid-flip-inner block" data-flipped={flipped ? "true" : "false"}>
           <span className="kid-flip-face flex flex-col items-center gap-2 rounded-[2rem] bg-k-surface px-6 py-8 shadow-[0_6px_0_var(--k-line)]">
-            <Pic code={q.card.emoji} size={176} className="animate-kid-float" />
+            <Pic code={q.card.emoji} image={q.card.image} size={176} className="animate-kid-float" />
             <span className="font-kid-display text-5xl font-bold" data-testid="flash-word">
               {q.card.word}
             </span>
@@ -669,7 +669,7 @@ function FlashQ({
             className="kid-flip-face kid-flip-back flex flex-col items-center justify-center gap-3 rounded-[2rem] bg-k-accent-soft px-6 py-8 shadow-[0_6px_0_var(--k-accent-shadow)]"
             aria-hidden={!flipped}
           >
-            <Pic code={q.card.emoji} size={96} />
+            <Pic code={q.card.emoji} image={q.card.image} size={96} />
             <span className="font-kid-display text-4xl font-bold">{q.card.word}</span>
             <span className="text-3xl font-black text-k-accent-ink" lang="vi" data-testid="flash-meaning">
               {q.card.meaningVi}
@@ -760,7 +760,7 @@ function ListenQ({
                 a.shake === c.word && "animate-kid-shake",
               )}
             >
-              <Pic code={c.emoji} size={96} className="h-auto w-[70%]" />
+              <Pic code={c.emoji} image={c.image} size={96} className="h-auto w-[70%]" />
             </button>
           );
         })}
@@ -806,7 +806,7 @@ function LookQ({
       }
     >
       <div className="flex size-44 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)] sm:size-52">
-        <Pic code={q.answer.emoji} size={150} className="animate-kid-float" />
+        <Pic code={q.answer.emoji} image={q.answer.image} size={150} className="animate-kid-float" />
       </div>
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((w) => {
@@ -945,7 +945,7 @@ function MatchQ({
                   pic === c.word && "border-k-accent ring-4 ring-k-accent/40",
                 )}
               >
-                <Pic code={c.emoji} size={dense ? 60 : 72} />
+                <Pic code={c.emoji} image={c.image} size={dense ? 60 : 72} />
               </button>
             );
           })}
@@ -1031,7 +1031,7 @@ function SpellQ({
       }
     >
       <div className="relative flex size-44 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
-        <Pic code={q.answer.emoji} size={140} />
+        <Pic code={q.answer.emoji} image={q.answer.image} size={140} />
         <span className="absolute -top-3 -right-3">
           <SpeakButton onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
         </span>
@@ -1438,7 +1438,7 @@ function ListenTypeQ({
     >
       {a.done ? (
         <div className="animate-kid-pop flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
-          <Pic code={q.answer.emoji} size={120} />
+          <Pic code={q.answer.emoji} image={q.answer.image} size={120} />
         </div>
       ) : (
         <SpeakButton big onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />

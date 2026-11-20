@@ -296,7 +296,8 @@ export type TrueFalseItem = z.infer<typeof trueFalseItemSchema>;
 export type FillBlankItem = z.infer<typeof fillBlankItemSchema>;
 export type RearrangeItem = z.infer<typeof rearrangeItemSchema>;
 
-export type VocabWord = { word: string; meaningVi: string; emoji: string | null };
+/** `image`: signed URL of a picture the teacher uploaded (A1); shown instead of the emoji. */
+export type VocabWord = { word: string; meaningVi: string; emoji: string | null; image?: string | null };
 
 /** Stars for one round: same thresholds as record_practice() in the database. */
 export function starsFor(score: number, max: number): 0 | 1 | 2 | 3 {

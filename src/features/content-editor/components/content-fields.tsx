@@ -21,6 +21,7 @@ import {
   type PracticeKind,
 } from "@/features/practice/model";
 import { createClient } from "@/lib/supabase/browser";
+import { EmojiPickerButton } from "@/features/content-editor/components/emoji-picker";
 
 /**
  * Per-kind content editors for one practice activity. Each edits a plain
@@ -733,6 +734,13 @@ function ItemEmoji({ value, onChange }: { value: string | null; onChange: (code:
       <span className="flex size-10 items-center justify-center rounded-md border border-line bg-surface">
         {src ? <Image src={src} alt="" width={30} height={30} unoptimized /> : null}
       </span>
+      <EmojiPickerButton
+        size="sm"
+        onPick={(code) => {
+          setText(codeToEmoji(code));
+          onChange(code);
+        }}
+      />
     </span>
   );
 }

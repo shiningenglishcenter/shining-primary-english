@@ -153,6 +153,12 @@ const wordSchema = z.object({
   word: z.string().trim().min(1, "Nhập từ.").max(80),
   meaningVi: z.string().trim().min(1, "Nhập nghĩa.").max(300),
   emoji: emojiField,
+  /** Uploaded picture (A1): "" = none; uploads go to practice/images/ from the browser. */
+  imagePath: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^practice\/images\/[0-9a-f-]{36}\.(webp|jpg)$/.test(v), "Ảnh không hợp lệ.")
+    .transform((v) => v || null),
 });
 
 export async function saveWord(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -163,6 +169,7 @@ export async function saveWord(_prev: FormState, formData: FormData): Promise<Fo
     word: formData.get("word"),
     meaningVi: formData.get("meaningVi"),
     emoji: formData.get("emoji") ?? "",
+    imagePath: formData.get("imagePath") ?? "",
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const w = parsed.data;
@@ -175,7 +182,7 @@ export async function saveWord(_prev: FormState, formData: FormData): Promise<Fo
     .maybeSingle();
   if (!topic) return { error: "Không tìm thấy chủ đề." };
 
-  const values = { word: w.word, meaning_vi: w.meaningVi, emoji: w.emoji };
+  const values = { word: w.word, meaning_vi: w.meaningVi, emoji: w.emoji, image_path: w.imagePath };
   const { error } = w.id
     ? await supabase.from("vocabulary").update(values).eq("id", w.id).eq("topic_id", w.topicId)
     : await supabase.from("vocabulary").insert({
@@ -250,7 +257,7 @@ export async function quickCreateWordActivities(_prev: FormState, formData: Form
       .from("vocabulary")
       .select("id", { count: "exact", head: true })
       .eq("topic_id", topicId.data)
-      .not("emoji", "is", null)
+      .or("emoji.not.is.null,image_path.not.is.null")
       .is("deleted_at", null),
     supabase
       .from("practice_activities")

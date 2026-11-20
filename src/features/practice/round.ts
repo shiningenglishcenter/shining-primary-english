@@ -18,7 +18,7 @@ import {
  * and the result is passed to the client player.
  */
 
-export type Card = { word: string; meaningVi: string; emoji: string | null };
+export type Card = { word: string; meaningVi: string; emoji: string | null; image?: string | null };
 
 type QuestionBody =
   | { type: "flash"; card: Card }
@@ -212,7 +212,7 @@ function buildSimple(
   const parsed = wordContentSchema.safeParse(content);
   const wanted =
     parsed.success && parsed.data.words?.length ? parsed.data.words.map((w) => w.toLowerCase()) : null;
-  const all: Card[] = topicWords.filter((w) => w.emoji);
+  const all: Card[] = topicWords.filter((w) => w.emoji || w.image);
   const pool = wanted ? all.filter((w) => wanted.includes(w.word.toLowerCase())) : all;
   if (pool.length === 0) return { questions: [], maxScore: 0 };
 

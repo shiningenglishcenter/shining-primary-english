@@ -49,13 +49,22 @@ export async function getTopicForStaff(id: string) {
   const { data, error } = await supabase
     .from("topics")
     .select(
-      "id, code, title_en, title_vi, emoji, status, sort_order, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, deleted_at)",
+      "id, code, title_en, title_vi, emoji, status, sort_order, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, image_path, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, deleted_at)",
     )
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return null;
   const level = data.level as unknown as { code: string; name: string };
+  // Uploaded word pictures (A1): signed for the editor's previews.
+  const paths = (
+    (data.vocabulary ?? []) as { image_path: string | null; deleted_at: string | null }[]
+  ).flatMap((v) => (v.image_path && !v.deleted_at ? [v.image_path] : []));
+  const signed = new Map<string, string>();
+  if (paths.length) {
+    const { data: urls } = await supabase.storage.from("learning-media").createSignedUrls(paths, 3600);
+    for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
+  }
   return {
     id: data.id as string,
     code: data.code as string,
@@ -72,13 +81,22 @@ export async function getTopicForStaff(id: string) {
         word: string;
         meaning_vi: string;
         emoji: string | null;
+        image_path: string | null;
         status: Status;
         deleted_at: string | null;
       }[]
     )
       .filter((v) => !v.deleted_at)
       .sort((a, b) => a.word.localeCompare(b.word))
-      .map((v) => ({ id: v.id, word: v.word, meaningVi: v.meaning_vi, emoji: v.emoji, status: v.status })),
+      .map((v) => ({
+        id: v.id,
+        word: v.word,
+        meaningVi: v.meaning_vi,
+        emoji: v.emoji,
+        imagePath: v.image_path,
+        imageUrl: v.image_path ? (signed.get(v.image_path) ?? null) : null,
+        status: v.status,
+      })),
     activities: (
       (data.practice_activities ?? []) as {
         id: string;

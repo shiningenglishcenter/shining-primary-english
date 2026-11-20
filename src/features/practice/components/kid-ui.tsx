@@ -68,15 +68,32 @@ export { Wordmark } from "@/components/brand/logo";
 
 export function Pic({
   code,
+  image,
   size = 64,
   alt = "",
   className,
 }: {
   code: string | null | undefined;
+  /** Uploaded picture (signed URL, A1): wins over the emoji. */
+  image?: string | null;
   size?: number;
   alt?: string;
   className?: string;
 }) {
+  if (image) {
+    return (
+      // A short-lived signed Storage URL: not for the image optimiser.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={image}
+        alt={alt}
+        width={size}
+        height={size}
+        draggable={false}
+        className={cn("pointer-events-none aspect-square rounded-2xl object-contain select-none", className)}
+      />
+    );
+  }
   const src = emojiSrc(code);
   if (!src) return <span style={{ width: size, height: size }} className={cn("inline-block", className)} />;
   return (

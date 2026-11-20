@@ -190,7 +190,7 @@ export async function TopicEditorPage({
           </Section>
           <NextStepCard
             topicId={topic.id}
-            wordsWithPicture={topic.words.filter((w) => w.emoji).length}
+            wordsWithPicture={topic.words.filter((w) => w.emoji || w.imagePath).length}
             existingKinds={topic.activities.map((a) => a.kind)}
           />
         </div>
