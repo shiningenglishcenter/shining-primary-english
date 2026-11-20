@@ -8,7 +8,7 @@ const run = Date.now().toString(36).slice(-5);
 async function openActivity(page: Page, topic: string, activity: string) {
   await page.goto("/learn?level=starters");
   await page.getByTestId("topic").filter({ hasText: topic }).click();
-  await page.getByTestId("activity").filter({ hasText: activity }).click();
+  await page.getByTestId("activity").filter({ hasText: activity }).first().click();
   await expect(page.getByTestId("player")).toBeVisible();
 }
 

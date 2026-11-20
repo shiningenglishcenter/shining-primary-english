@@ -128,6 +128,18 @@ recorded. D42–D45.
 - **C1** Garden, monkey in the tree, grandfather/grandmother (walking stick), frog jumping: new pictures; a
   pointing hand for "This/That …" sentences. `this/that` needed no data change.
 
+### Phase 1.6 — Teacher feedback, round 3 (2026-11-21, same branch)
+Pronunciation deferred (owner). D46–D54.
+- Listen-and-write letter hints (4 levels per activity).
+- New activities: match English words with Vietnamese meanings (one in every topic), choose a sentence's meaning.
+- Full Yes/No answers ("Is this a dog?" → "Yes, it is.") as an activity setting, with an editor preview.
+- Explanations after each answer (teacher-written, per item; per-activity switch).
+- Video/audio pinned; questions open after watching, or at a time mark. **Teachers should try one real
+  YouTube activity**: playing time could not be checked offline (the "I've watched it" fallback was).
+- Sentence patterns on each topic (seeded for Starters and GS1); GS1 term reviews (Units 1–8, 9–16).
+- Login remembers usernames on the device; IPA on flashcards (British, seeded from Britfone);
+  teacher comment per topic with a message for parents.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
@@ -147,7 +159,12 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 15. `supabase/migrations/20261120000027_practice_retry.sql` (C2)
 16. `supabase/migrations/20261120000028_clearer_pictures.sql` (C1; touches only unedited rows)
 
-**Run 14–16 before deploying Phase 1.5**: the new code reads `vocabulary.image_path` and
+17. `supabase/migrations/20261121000029_meaning_kinds.sql` ← **run alone first** (new activity kinds)
+18. `supabase/migrations/20261121000030_patterns_reviews.sql`
+19. `supabase/migrations/20261121000031_round3_content.sql`
+20. `supabase/migrations/20261121000032_topic_comments.sql`
+
+**Run 14–20 before deploying Phases 1.5–1.6**: the new code reads `vocabulary.image_path` and
 `progress_records.is_retry`; students' pages fail until those columns exist.
 
 Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` must be set for **Preview** too
@@ -178,6 +195,10 @@ Phase 1.5 (2026-11-20): DB **287/287**, unit **108/108**, e2e **66/66** on a loc
 (English/Vietnamese/suggestions), picture upload shown to pupils, 2 MB limit, retry round without stars, retry
 and mistakes on the teacher's student page, class "hay sai" view.
 
+Phase 1.6 (2026-11-21): DB **300/300**, unit **134/134**, e2e **72/72** on a local Supabase stack, incl. a teacher
+building every new kind and a pupil playing them, video gate fallback, GS1 review, remembered username,
+parent message.
+
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
 word game, sentence game with validation) and students see it only after publishing.
@@ -193,7 +214,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D45; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D54; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

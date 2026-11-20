@@ -29,7 +29,40 @@ for (const line of readFileSync(source, "utf8").split("\n")) {
 
 const VOWEL = /^(aɪ|aʊ|eɪ|əʊ|ɔɪ|ɪə|eə|ɛə|ʊə|iː|uː|ɑː|ɔː|ɜː|æ|ɒ|ə|ɪ|ʊ|ʌ|ɛ|e|i|u|ɐ)$/;
 // (ɐ is Britfone's STRUT vowel; written ʌ below.)
-const ONSET2 = new Set(["pr", "pl", "br", "bl", "tr", "dr", "kr", "kl", "gr", "gl", "fr", "fl", "θr", "ʃr", "sp", "st", "sk", "sm", "sn", "sl", "sw", "tw", "kw", "dw", "pj", "bj", "kj", "mj", "nj", "fj", "vj", "hj"]);
+const ONSET2 = new Set([
+  "pr",
+  "pl",
+  "br",
+  "bl",
+  "tr",
+  "dr",
+  "kr",
+  "kl",
+  "gr",
+  "gl",
+  "fr",
+  "fl",
+  "θr",
+  "ʃr",
+  "sp",
+  "st",
+  "sk",
+  "sm",
+  "sn",
+  "sl",
+  "sw",
+  "tw",
+  "kw",
+  "dw",
+  "pj",
+  "bj",
+  "kj",
+  "mj",
+  "nj",
+  "fj",
+  "vj",
+  "hj",
+]);
 const ONSET3 = new Set(["spr", "str", "skr", "spl", "skw"]);
 
 function dictionaryStyle(phones: string[]): string {
@@ -70,7 +103,9 @@ function ipaOf(word: string): string | null {
   return each.map((x) => dictionaryStyle(x!)).join(" ");
 }
 
-const words = [...new Set([...starters.TOPICS, ...gs1.TOPICS].flatMap((t) => t.words.map((w) => w[0])))].sort();
+const words = [
+  ...new Set([...starters.TOPICS, ...gs1.TOPICS].flatMap((t) => t.words.map((w) => w[0]))),
+].sort();
 const found: [string, string][] = [];
 const missing: string[] = [];
 for (const w of words) {

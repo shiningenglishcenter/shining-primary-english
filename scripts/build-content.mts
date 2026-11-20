@@ -382,7 +382,9 @@ begin`,
     { level: gs1.LEVEL_CODE, topics: gs1.TOPICS, pats: patterns.GS1, from: 300 },
   ];
   for (const { level, topics, pats } of packs) {
-    lines.push(`  select id into v_level from public.levels where code = ${q(level)} and deleted_at is null;`);
+    lines.push(
+      `  select id into v_level from public.levels where code = ${q(level)} and deleted_at is null;`,
+    );
     for (const t of topics) {
       const p = pats[t.code];
       if (!p) throw new Error(`patterns: missing ${level}/${t.code}`);
@@ -406,7 +408,9 @@ begin`,
   }
 
   // GS1 term reviews
-  lines.push(`  select id into v_level from public.levels where code = ${q(gs1.LEVEL_CODE)} and deleted_at is null;`);
+  lines.push(
+    `  select id into v_level from public.levels where code = ${q(gs1.LEVEL_CODE)} and deleted_at is null;`,
+  );
   const unitByCode = new Map(gs1.TOPICS.map((t) => [t.code, withAdditions(t, additions.GS1[t.code])]));
   const take = <T,>(list: T[], n: number) => list.slice(0, n);
   for (const [ri, r] of patterns.GS1_REVIEWS.entries()) {
@@ -427,9 +431,24 @@ begin`,
       ["listen_choose", "Review words: listen and choose", "Ôn từ: nghe và chọn hình", words],
       ["match_meaning", "Review words: match the meanings", "Ôn từ: nối từ với nghĩa", words],
       ["spell", "Review words: spell", "Ôn từ: xếp chữ thành từ", words],
-      ["true_false", "Review: yes or no?", "Ôn tập: đúng hay sai?", withFixedPictures(contentFor(review, "true_false"))],
-      ["fill_blank", "Review: complete the sentence", "Ôn tập: điền từ vào câu", withFixedPictures(contentFor(review, "fill_blank"))],
-      ["rearrange", "Review: make a sentence", "Ôn tập: sắp xếp câu", withFixedPictures(contentFor(review, "rearrange"))],
+      [
+        "true_false",
+        "Review: yes or no?",
+        "Ôn tập: đúng hay sai?",
+        withFixedPictures(contentFor(review, "true_false")),
+      ],
+      [
+        "fill_blank",
+        "Review: complete the sentence",
+        "Ôn tập: điền từ vào câu",
+        withFixedPictures(contentFor(review, "fill_blank")),
+      ],
+      [
+        "rearrange",
+        "Review: make a sentence",
+        "Ôn tập: sắp xếp câu",
+        withFixedPictures(contentFor(review, "rearrange")),
+      ],
       [
         "mixed",
         "Review challenge",
@@ -456,7 +475,11 @@ begin`,
     lines.push(`  end if;`);
   }
   lines.push("end $$;\n");
-  outputs.push(["20261121000031_round3_content.sql", lines.join("\n"), "patterns, meaning games, 2 GS1 reviews"]);
+  outputs.push([
+    "20261121000031_round3_content.sql",
+    lines.join("\n"),
+    "patterns, meaning games, 2 GS1 reviews",
+  ]);
 }
 
 if (missing.length > 0) {
