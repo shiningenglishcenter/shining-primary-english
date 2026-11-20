@@ -21,6 +21,8 @@ const resultSchema = z.object({
     )
     .max(60)
     .optional(),
+  /** C2 (D44): a round of the questions missed before; stored, never stars. */
+  retry: z.boolean().optional(),
 });
 export type QuestionResult = { t: string; q: string; p: number; x: number };
 
@@ -45,7 +47,10 @@ export async function recordPractice(input: z.input<typeof resultSchema>): Promi
   let { data, error } = await supabase.rpc("record_practice", {
     ...args,
     p_details: parsed.data.details ?? null,
+    ...(parsed.data.retry ? { p_retry: true } : {}),
   });
+  // A retry must never count as a full round: without migration 0027, don't save it.
+  if (parsed.data.retry) return { stars: error ? null : 0 };
   // Database without migration 0020 yet: save the score without the details.
   if (error?.code === "PGRST202") ({ data, error } = await supabase.rpc("record_practice", args));
   if (error) {

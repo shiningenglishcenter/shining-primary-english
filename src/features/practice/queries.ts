@@ -20,11 +20,12 @@ type ActivityRow = {
   id: string;
   status: string;
   deleted_at: string | null;
-  progress_records?: { score: number | null; max_score: number | null; recorded_at: string }[] | null;
+  progress_records?:
+    { score: number | null; max_score: number | null; recorded_at: string; is_retry?: boolean }[] | null;
 };
 
 /** Embedded with each activity: RLS returns only the student's own rows. */
-const PROGRESS_EMBED = "progress_records(score, max_score, recorded_at)";
+const PROGRESS_EMBED = "progress_records(score, max_score, recorded_at, is_retry)";
 
 /**
  * Stars (0–3) of the student's LATEST attempt at an activity (owner decision
@@ -33,6 +34,7 @@ const PROGRESS_EMBED = "progress_records(score, max_score, recorded_at)";
 function latestStarsOf(a: ActivityRow): number {
   let latest: { score: number | null; max_score: number | null; recorded_at: string } | null = null;
   for (const r of a.progress_records ?? []) {
+    if (r.is_retry) continue; // "practise the mistakes" rounds never set stars (C2)
     if (!latest || r.recorded_at > latest.recorded_at) latest = r;
   }
   return latest ? starsFor(Number(latest.score ?? 0), Number(latest.max_score ?? 0)) : 0;

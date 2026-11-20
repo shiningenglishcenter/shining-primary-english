@@ -4,6 +4,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makePictures } from "./make-pictures.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const from = join(root, "node_modules", "@lobehub", "fluent-emoji-3d", "assets");
@@ -15,7 +16,8 @@ if (!existsSync(from)) {
 }
 const files = readdirSync(from).filter((f) => f.endsWith(".webp"));
 mkdirSync(to, { recursive: true });
-if (readdirSync(to).filter((f) => f.endsWith(".webp")).length !== files.length) {
+// Composed pictures (f000x.webp, make-pictures.mjs) live here too: don't count them.
+if (readdirSync(to).filter((f) => f.endsWith(".webp") && !f.startsWith("f000")).length !== files.length) {
   cpSync(from, to, { recursive: true });
 }
 console.warn(`copy-emoji: ${files.length} images in public/emoji`);
@@ -45,5 +47,7 @@ for (const e of read("en").sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9))) 
   const words = (x) => [x?.label ?? "", ...(x?.tags ?? [])].join(" | ");
   rows.push([code, words(e), words(v)]);
 }
+// SHINING pictures composed from Fluent emoji (C1), listed first in the picker.
+rows.unshift(...(await makePictures(to)));
 writeFileSync(join(to, "index.json"), JSON.stringify(rows));
 console.warn(`copy-emoji: ${rows.length} emoji in the picker index`);

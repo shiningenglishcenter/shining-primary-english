@@ -16,6 +16,8 @@ export type PracticeRecord = {
   recordedAt: string; // ISO
   seconds?: number;
   details?: QuestionDetail[] | null;
+  /** C2 (D44): a "practise the mistakes" round — time and fixes count, scores and stars don't. */
+  retry?: boolean;
 };
 
 export type ActivityResult = {
@@ -91,7 +93,7 @@ export function latestByActivity(records: PracticeRecord[]): Map<string, Map<str
   const out = new Map<string, Map<string, ActivityResult>>();
   const firstAt = new Map<string, string>(); // "student|activity" → earliest attempt
   for (const r of records) {
-    if (r.maxScore <= 0) continue;
+    if (r.maxScore <= 0 || r.retry) continue;
     let perStudent = out.get(r.studentId);
     if (!perStudent) out.set(r.studentId, (perStudent = new Map()));
     const key = `${r.studentId}|${r.activityId}`;
@@ -137,10 +139,12 @@ export function summariseStudents(
   const latest = latestByActivity(records);
   const cutoff = new Date(now.getTime() - INACTIVE_DAYS * 86_400_000).toISOString();
   const days = new Map<string, Set<string>>();
+  const retrySeconds = new Map<string, number>();
   for (const r of records) {
     const set = days.get(r.studentId) ?? new Set<string>();
     set.add(dayOf(r.recordedAt));
     days.set(r.studentId, set);
+    if (r.retry) retrySeconds.set(r.studentId, (retrySeconds.get(r.studentId) ?? 0) + (r.seconds ?? 0));
   }
   return studentIds.map((studentId) => {
     const results = [...(latest.get(studentId)?.values() ?? [])];
@@ -156,7 +160,7 @@ export function summariseStudents(
       stars: results.reduce((n, r) => n + r.stars, 0),
       average,
       attempts: results.reduce((n, r) => n + r.attempts, 0),
-      seconds: results.reduce((n, r) => n + r.seconds, 0),
+      seconds: results.reduce((n, r) => n + r.seconds, 0) + (retrySeconds.get(studentId) ?? 0),
       days: days.get(studentId)?.size ?? 0,
       lastAt,
       needsSupport: !lastAt || lastAt < cutoff || (average !== null && average < LOW_AVERAGE),
@@ -226,7 +230,15 @@ export function topicAverage(
 
 // ------------------------------------------------------ often-wrong items ---
 
-export type WeakItem = { label: string; type: string; seen: number; missed: number; failed: number };
+export type WeakItem = {
+  label: string;
+  type: string;
+  seen: number;
+  missed: number;
+  failed: number;
+  /** Answered right in a later "practise the mistakes" round (C2). */
+  fixed?: boolean;
+};
 
 /**
  * Words/sentences answered wrong at least once (D32), worst first. An item
@@ -234,7 +246,14 @@ export type WeakItem = { label: string; type: string; seen: number; missed: numb
  */
 export function weakItems(records: PracticeRecord[], limit = 10): WeakItem[] {
   const per = new Map<string, WeakItem>();
+  const fixed = new Set<string>();
   for (const r of records) {
+    if (r.retry) {
+      for (const d of r.details ?? []) {
+        if (d && typeof d.q === "string" && d.p > 0) fixed.add(`${d.t}|${d.q.toLowerCase()}`);
+      }
+      continue;
+    }
     for (const d of r.details ?? []) {
       if (!d || typeof d.q !== "string" || !d.q) continue;
       const key = `${d.t}|${d.q.toLowerCase()}`;
@@ -245,11 +264,103 @@ export function weakItems(records: PracticeRecord[], limit = 10): WeakItem[] {
       per.set(key, item);
     }
   }
-  return [...per.values()]
+  return [...per.entries()]
+    .map(([key, i]) => (fixed.has(key) ? { ...i, fixed: true } : i))
     .filter((i) => i.missed > 0)
     .sort((a, b) => b.missed / b.seen - a.missed / a.seen || b.missed - a.missed || b.failed - a.failed)
     .slice(0, limit);
 }
+
+export type ClassWeakItem = WeakItem & {
+  /** Students who answered it at least once / who missed it at least once. */
+  students: number;
+  studentsMissed: number;
+};
+
+/**
+ * B3 (D43): the class's hardest words/sentences — ranked by how many
+ * students missed them, then by miss rate. Items one student met only once
+ * still count; `minStudents` hides items too few students have seen.
+ */
+export function classWeakItems(records: PracticeRecord[], limit = 20, minStudents = 1): ClassWeakItem[] {
+  const per = new Map<string, ClassWeakItem & { seenBy: Set<string>; missedBy: Set<string> }>();
+  for (const r of records) {
+    if (r.retry) continue;
+    for (const d of r.details ?? []) {
+      if (!d || typeof d.q !== "string" || !d.q) continue;
+      const key = `${d.t}|${d.q.toLowerCase()}`;
+      const item = per.get(key) ?? {
+        label: d.q,
+        type: d.t,
+        seen: 0,
+        missed: 0,
+        failed: 0,
+        students: 0,
+        studentsMissed: 0,
+        seenBy: new Set<string>(),
+        missedBy: new Set<string>(),
+      };
+      item.seen += 1;
+      item.seenBy.add(r.studentId);
+      if (d.p < d.x) {
+        item.missed += 1;
+        item.missedBy.add(r.studentId);
+      }
+      if (d.p === 0) item.failed += 1;
+      per.set(key, item);
+    }
+  }
+  return [...per.values()]
+    .map(({ seenBy, missedBy, ...i }) => ({ ...i, students: seenBy.size, studentsMissed: missedBy.size }))
+    .filter((i) => i.missed > 0 && i.students >= minStudents)
+    .sort(
+      (a, b) =>
+        b.studentsMissed - a.studentsMissed ||
+        b.missed / b.seen - a.missed / a.seen ||
+        b.failed - a.failed ||
+        a.label.localeCompare(b.label),
+    )
+    .slice(0, limit);
+}
+
+/** B2 (D43): one round as the teacher reads it — what was missed, and how badly. */
+export type AttemptView = {
+  activityId: string;
+  recordedAt: string;
+  ratio: number;
+  seconds: number;
+  retry: boolean;
+  /** null: played before per-question details were stored (migration 0020). */
+  questions: number | null;
+  missed: { label: string; type: string; failed: boolean }[];
+};
+
+export function attemptView(r: PracticeRecord): AttemptView {
+  const details = (r.details ?? []).filter((d) => d && typeof d.q === "string");
+  return {
+    activityId: r.activityId,
+    recordedAt: r.recordedAt,
+    ratio: r.maxScore > 0 ? r.score / r.maxScore : 0,
+    seconds: r.seconds ?? 0,
+    retry: r.retry === true,
+    questions: r.details ? details.length : null,
+    missed: details.filter((d) => d.p < d.x).map((d) => ({ label: d.q, type: d.t, failed: d.p === 0 })),
+  };
+}
+
+/** Question types in `details.t` → Vietnamese, for the teacher. */
+export const QUESTION_TYPE_VI: Record<string, string> = {
+  flash: "Thẻ từ",
+  listen_choose: "Nghe chọn hình",
+  look_choose: "Nhìn hình chọn từ",
+  match: "Nối",
+  spell: "Xếp chữ",
+  true_false: "Đúng/Sai",
+  fill_blank: "Điền từ",
+  rearrange: "Sắp xếp câu",
+  listen_type: "Nghe và viết",
+  choice: "Chọn đáp án",
+};
 
 /** "1 giờ 20 phút" / "12 phút" / "<1 phút". */
 export function durationVi(seconds: number): string {

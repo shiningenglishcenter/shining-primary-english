@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PracticeKind } from "@/features/practice/model";
 import {
+  attemptView,
+  classWeakItems,
   durationVi,
   latestByActivity,
   skillProfile,
@@ -113,5 +115,34 @@ describe("results summary", () => {
     expect(durationVi(720)).toBe("12 phút");
     expect(durationVi(4800)).toBe("1 giờ 20 phút");
     expect(durationVi(3600)).toBe("1 giờ");
+  });
+});
+
+describe("B2/B3 (D43)", () => {
+  const d = (q: string, p: number, t = "look_choose") => ({ t, q, p, x: 2 });
+  const records = [
+    { ...rec("s1", "a1", 2, 6, "2026-11-11T08:00:00Z"), details: [d("cat", 0), d("dog", 2), d("fish", 0)] },
+    { ...rec("s2", "a1", 4, 6, "2026-11-11T09:00:00Z"), details: [d("cat", 1), d("dog", 2), d("fish", 1)] },
+    { ...rec("s2", "a1", 6, 6, "2026-11-12T09:00:00Z"), details: [d("Cat", 2), d("dog", 2), d("fish", 2)] },
+    { ...rec("s3", "a1", 6, 6, "2026-11-12T09:00:00Z"), details: [d("cat", 2), d("dog", 2), d("fish", 0)] },
+  ];
+  it("classWeakItems ranks by how many students missed an item", () => {
+    expect(
+      classWeakItems(records).map((w) => [w.label, w.studentsMissed, w.students, w.missed, w.seen]),
+    ).toEqual([
+      ["fish", 3, 3, 3, 4],
+      ["cat", 2, 3, 2, 4],
+    ]);
+    expect(classWeakItems(records, 20, 4)).toEqual([]);
+  });
+  it("attemptView lists missed questions; old rounds have no details", () => {
+    const v = attemptView(records[0]!);
+    expect(v.ratio).toBeCloseTo(1 / 3);
+    expect(v.questions).toBe(3);
+    expect(v.missed).toEqual([
+      { label: "cat", type: "look_choose", failed: true },
+      { label: "fish", type: "look_choose", failed: true },
+    ]);
+    expect(attemptView(rec("s1", "a1", 1, 2, "2026-11-01T00:00:00Z")).questions).toBeNull();
   });
 });

@@ -126,4 +126,63 @@ test.describe("teacher feedback round 2", () => {
       /\/storage\/v1\/object\/sign\/learning-media\/practice\/images\//,
     );
   });
+
+  test("C2 + B1–B3: practise the mistakes (no stars); teachers see each round, its mistakes and the class's hardest items", async ({
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const kid = await as(browser, "hs.an");
+    await kid.goto("/learn?level=starters");
+    await kid.getByTestId("topic").filter({ hasText: "Body" }).click();
+    await kid.getByTestId("activity").filter({ hasText: "Complete the sentence" }).click();
+    // Q1 wrong once then right (1 point), the rest right first time.
+    await kid.locator("[data-testid=option]:not([data-correct])").first().click();
+    await kid.locator("[data-testid=option][data-correct=true]").click();
+    await kid.getByTestId("next").click();
+    for (let i = 0; i < 10 && !(await kid.getByTestId("finish").isVisible()); i++) {
+      await kid.locator("[data-testid=option][data-correct=true]").click();
+      await kid.getByTestId("next").click();
+    }
+    const finish = kid.getByTestId("finish");
+    await expect(finish.getByTestId("score")).toHaveText("Score: 11/12");
+    await expect(finish.getByTestId("review-item")).toHaveCount(1);
+    await finish.getByTestId("retry-mistakes").click();
+    await expect(kid.getByTestId("progress-text")).toHaveText("1/1");
+    await kid.locator("[data-testid=option][data-correct=true]").click();
+    await kid.getByTestId("next").click();
+    await expect(kid.getByTestId("finish").getByTestId("page-title")).toHaveText("You fixed all 1! 🎉");
+    await expect(kid.getByTestId("retry-note")).toBeVisible();
+    await expect(kid.getByTestId("retry-mistakes")).toHaveCount(0);
+    // Stars still follow the full round (11/12 → 3 stars).
+    await kid.goto("/learn?level=starters");
+    await kid.getByTestId("topic").filter({ hasText: "Body" }).click();
+    await expect(
+      kid
+        .getByTestId("activity")
+        .filter({ hasText: "Complete the sentence" })
+        .getByRole("img", { name: "3 out of 3 stars" }),
+    ).toBeVisible();
+
+    const teacher = await as(browser, "gv.lan");
+    await teacher.goto("/teacher/results");
+    const sample = await teacher
+      .locator("select[name=class] option", { hasText: "SAMPLE-MOV-A" })
+      .first()
+      .getAttribute("value");
+    await teacher.goto(`/teacher/results?class=${sample}`);
+    // B3: the class's hardest items, above the table and as a view
+    await expect(teacher.getByTestId("class-weak-box")).toBeVisible();
+    // B1: an obvious way into a pupil's page
+    const row = teacher.getByTestId("result-row").filter({ hasText: "Nguyễn Minh An" });
+    await row.getByTestId("student-detail-link").click();
+    await expect(teacher.getByTestId("page-title").locator("visible=true")).toContainText("Nguyễn Minh An");
+    // B2: every round with its mistakes; the retry is labelled and the item marked as practised
+    const recent = teacher.getByTestId("recent-attempts");
+    await expect(recent.getByTestId("attempt").first().getByTestId("attempt-retry")).toBeVisible();
+    await expect(recent.getByTestId("attempt").nth(1).getByTestId("attempt-missed")).toHaveCount(1);
+    await expect(teacher.getByTestId("weak-fixed").first()).toBeVisible();
+
+    await teacher.goto(`/teacher/results?class=${sample}&view=hard`);
+    await expect(teacher.getByTestId("class-weak-row").first()).toBeVisible();
+  });
 });

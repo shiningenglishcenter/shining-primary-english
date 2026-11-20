@@ -151,3 +151,52 @@ export function StarBadge({ value }: { value: number }) {
     </span>
   );
 }
+
+/** "This/These …" → a hand pointing close by; "That/Those …" → pointing far away (C1, D45). */
+export function pointOf(sentence: string): "near" | "far" | null {
+  const s = sentence.trim();
+  if (/^(this|these)\b/i.test(s)) return "near";
+  if (/^(that|those)\b/i.test(s)) return "far";
+  return null;
+}
+
+const HAND = "1f449"; // 👉
+
+/** A picture with a pointing hand: next to it for "this", across the frame for "that". */
+export function PointPic({
+  code,
+  size,
+  point,
+}: {
+  code: string | null | undefined;
+  size: number;
+  point: "near" | "far" | null;
+}) {
+  if (!point || !code) return <Pic code={code} size={size} />;
+  const near = point === "near";
+  // Same square as a plain picture: the object shrinks to make room for the hand.
+  const thing = Math.round(size * (near ? 0.78 : 0.46));
+  const hand = Math.round(size * (near ? 0.44 : 0.38));
+  return (
+    <span
+      className="relative inline-block"
+      style={{ width: size, height: size }}
+      data-testid="point-pic"
+      data-point={point}
+    >
+      <span className="absolute top-0 right-0">
+        <Pic code={code} size={thing} />
+      </span>
+      {near ? null : (
+        <span
+          aria-hidden="true"
+          className="absolute rotate-[-35deg] border-t-4 border-dotted border-k-soft/50"
+          style={{ left: hand * 0.8, width: size * 0.42, top: size * 0.55 }}
+        />
+      )}
+      <span className="absolute bottom-0 left-0 -rotate-[30deg]">
+        <Pic code={HAND} size={hand} />
+      </span>
+    </span>
+  );
+}

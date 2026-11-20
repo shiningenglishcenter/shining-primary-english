@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { codeToEmoji, emojiSrc, emojiToCode } from "@/features/practice/emoji";
+import { pointOf } from "@/features/practice/components/kid-ui";
 import { levelBySlug, starsFor } from "@/features/practice/model";
 import {
   atLeast,
@@ -190,6 +191,17 @@ describe("C5/C8 helpers (D40)", () => {
         seeded(),
       ),
     ).toHaveLength(8);
+  });
+});
+
+describe("pointOf (C1, D45)", () => {
+  it("points close for this/these, far for that/those", () => {
+    expect(pointOf("This is a pen.")).toBe("near");
+    expect(pointOf("these are my shoes")).toBe("near");
+    expect(pointOf("That is a kite.")).toBe("far");
+    expect(pointOf("Those are birds.")).toBe("far");
+    expect(pointOf("The cat is black.")).toBeNull();
+    expect(pointOf("Thistle")).toBeNull();
   });
 });
 

@@ -19,3 +19,14 @@ books ("Get Ready for Starters", Authentic Exam Papers) or from Global Success.
 - How it is used: a Claude Code skill (local Python search over CSV design guidelines) used while building
   teacher/admin screens and as an accessibility checklist. See `docs/DESIGN_SYSTEM.md` §7. Its test folder
   was left out.
+
+## Emoji names for the picture picker (emojibase-data)
+- Source: https://github.com/milesj/emojibase — package `emojibase-data` 17.0.0 (dev dependency).
+- Licence: MIT (Copyright © 2017-2019 Miles Johnson); the names and keywords come from Unicode CLDR
+  (Unicode License v3).
+- How it is used: `scripts/copy-emoji.mjs` builds `public/emoji/index.json` (English and Vietnamese names and
+  keywords of emoji that have a Fluent picture) for the editor's search. Nothing is requested from outside.
+
+## Composed pictures (C1)
+- `scripts/make-pictures.mjs` combines Fluent Emoji 3D images (MIT, above) with simple drawn shapes (walking
+  stick, jump arc, grass) into `public/emoji/f0001.webp`–`f0005.webp` at build time, using `sharp` (Apache-2.0).

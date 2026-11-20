@@ -54,6 +54,7 @@
     "jsdom": "^31.0.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "sharp": "^0.35.5",
     "supabase": "^3.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",

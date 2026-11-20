@@ -28,8 +28,11 @@ import {
   type TopicInfo,
 } from "@/features/results/queries";
 import {
+  attemptView,
+  classWeakItems,
   durationVi,
   INACTIVE_DAYS,
+  QUESTION_TYPE_VI,
   isScored,
   LOW_AVERAGE,
   latestByActivity,
@@ -43,6 +46,8 @@ import {
   weakestSkill,
   weakItems,
   type ActivityResult,
+  type AttemptView,
+  type ClassWeakItem,
   type PracticeRecord,
   type StudentSummary,
 } from "@/features/results/summary";
@@ -69,6 +74,7 @@ const VIEWS = [
   ["students", "Theo học sinh"],
   ["topics", "Theo chủ đề"],
   ["activities", "Theo bài"],
+  ["hard", "Từ/câu cả lớp hay sai"],
   ["guests", "Link không cần đăng nhập"],
 ] as const;
 type View = (typeof VIEWS)[number][0];
@@ -411,18 +417,27 @@ export async function ResultsHome({
         <GuestTable attempts={await guestAttempts(f.since, f.level?.code ?? null)} nav={nav} />
       ) : students.length === 0 ? (
         <p className="text-ink-soft">Lớp này chưa có học sinh.</p>
+      ) : f.view === "hard" ? (
+        <ClassWeakTable items={classWeakItems(records, 50)} classSize={students.length} />
       ) : f.view === "students" ? (
-        <StudentsTable
-          base={base}
-          students={students}
-          summaries={summariseStudents(
-            students.map((s) => s.id),
-            records,
-            kindOf,
-          )}
-          nav={nav}
-          detailQuery={query({ sort: null, dir: null, page: null })}
-        />
+        <>
+          <ClassWeakBox
+            items={classWeakItems(records, 5)}
+            classSize={students.length}
+            moreHref={`${base}?${query({ view: "hard", sort: null, dir: null, page: null })}`}
+          />
+          <StudentsTable
+            base={base}
+            students={students}
+            summaries={summariseStudents(
+              students.map((s) => s.id),
+              records,
+              kindOf,
+            )}
+            nav={nav}
+            detailQuery={query({ sort: null, dir: null, page: null })}
+          />
+        </>
       ) : f.view === "topics" ? (
         <TopicMatrix
           base={base}
@@ -437,6 +452,86 @@ export async function ResultsHome({
         <ActivitiesTable classSize={students.length} records={records} activities={activities} nav={nav} />
       )}
     </>
+  );
+}
+
+const NO_DETAILS = "Chưa có dữ liệu từng câu (chỉ ghi lại từ các lượt làm bài sau 12/11/2026).";
+
+/** B3 (D43): top 5 above the students table. */
+function ClassWeakBox({
+  items,
+  classSize,
+  moreHref,
+}: {
+  items: ClassWeakItem[];
+  classSize: number;
+  moreHref: string;
+}) {
+  return (
+    <section className="mb-4 rounded-lg border border-line bg-surface p-4" data-testid="class-weak-box">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-semibold">Cả lớp hay sai</h2>
+        {items.length ? (
+          <Link href={moreHref} className="text-sm font-semibold text-sky underline underline-offset-4">
+            Xem tất cả
+          </Link>
+        ) : null}
+      </div>
+      {items.length === 0 ? (
+        <p className="text-sm text-ink-soft">{NO_DETAILS}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2 text-sm">
+          {items.map((w) => (
+            <li key={`${w.type}|${w.label}`} className="rounded-md bg-berry-soft px-2.5 py-1">
+              <span className="font-medium">{w.label}</span>{" "}
+              <span className="text-xs text-ink-soft">
+                {w.studentsMissed}/{classSize} em sai
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** B3 (D43): every word/sentence the class missed, most students first. */
+function ClassWeakTable({ items, classSize }: { items: ClassWeakItem[]; classSize: number }) {
+  if (items.length === 0) return <p className="text-ink-soft">{NO_DETAILS}</p>;
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-ink-soft">
+        Xếp theo số học sinh làm sai (lớp có {classSize} em). “Sai” = chưa đúng ngay lần đầu; “hết lượt” =
+        phải xem đáp án. Dùng danh sách này để chọn từ/câu cần dạy lại.
+      </p>
+      <DataTable testId="class-weak">
+        <thead>
+          <tr>
+            <th className={th}>Từ / câu</th>
+            <th className={th}>Dạng</th>
+            <th className={th}>Số em sai</th>
+            <th className={th}>Số lần sai</th>
+            <th className={th}>Hết lượt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((w) => (
+            <tr key={`${w.type}|${w.label}`} className="border-t border-line" data-testid="class-weak-row">
+              <td className={cn(td, "font-medium")}>{w.label}</td>
+              <td className={cn(td, "text-ink-soft")}>{QUESTION_TYPE_VI[w.type] ?? w.type}</td>
+              <td className={cn(td, "tabular-nums")}>
+                <span className="font-semibold">{w.studentsMissed}</span>
+                <span className="text-ink-soft">/{w.students} em đã làm</span>
+              </td>
+              <td className={cn(td, "tabular-nums", textTone(1 - w.missed / w.seen))}>
+                {w.missed}/{w.seen} ({pct(w.missed / w.seen)})
+              </td>
+              <td className={cn(td, "tabular-nums")}>{w.failed || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
+    </div>
   );
 }
 
@@ -474,7 +569,8 @@ function StudentsTable({
       <p className="text-sm text-ink-soft">
         {rows.length} học sinh ·{" "}
         <span className={flagged ? "font-semibold text-berry" : undefined}>⚠ {flagged} cần chú ý</span> (không
-        làm bài {INACTIVE_DAYS} ngày, hoặc điểm TB dưới {LOW_AVERAGE * 100}%)
+        làm bài {INACTIVE_DAYS} ngày, hoặc điểm TB dưới {LOW_AVERAGE * 100}%) · Bấm{" "}
+        <strong>Xem chi tiết</strong> để xem từng bài, từng lượt và câu em làm sai.
       </p>
       <DataTable testId="results-students">
         <thead>
@@ -484,6 +580,9 @@ function StudentsTable({
             <SortHead nav={nav} k="avg" label="Điểm TB" first="desc" />
             <SortHead nav={nav} k="time" label="Thời gian học" first="desc" />
             <SortHead nav={nav} k="last" label="Lần gần nhất" first="desc" />
+            <th className={th}>
+              <span className="sr-only">Chi tiết</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -524,6 +623,17 @@ function StudentsTable({
               </td>
               <td className={cn(td, sum.needsSupport && !sum.lastAt ? "text-berry" : "text-ink-soft")}>
                 {ago(sum.lastAt)}
+              </td>
+              <td className={cn(td, "text-right")}>
+                <Link
+                  href={`${base}/students/${st.id}?${detailQuery}`}
+                  className="inline-flex items-center gap-1 rounded-md border border-sky/40 bg-sky-soft px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-ink hover:bg-sky-soft/70"
+                  data-testid="student-detail-link"
+                  aria-label={`Xem chi tiết ${st.name}`}
+                >
+                  Xem chi tiết
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
               </td>
             </tr>
           ))}
@@ -848,6 +958,17 @@ export async function StudentResults({
     .sort((a, b) => a.ratio - b.ratio)
     .slice(0, 8);
   const weak = weakItems(records);
+  // B2 (D43): every round, newest first (records come sorted by date, newest first).
+  const attemptsOf = new Map<string, AttemptView[]>();
+  for (const r of records) {
+    const list = attemptsOf.get(r.activityId) ?? [];
+    list.push(attemptView(r));
+    attemptsOf.set(r.activityId, list);
+  }
+  const recent = records
+    .filter((r) => isScored(activities.get(r.activityId)!.kind))
+    .slice(0, 10)
+    .map(attemptView);
   const openTopic = one(sp.topic);
   const back = new URLSearchParams(
     Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "topic" ? [[k, v]] : [])),
@@ -993,6 +1114,11 @@ export async function StudentResults({
                         <span className="text-xs text-ink-soft">
                           sai {w.missed}/{w.seen} lần
                         </span>
+                        {w.fixed ? (
+                          <span className="ml-1 text-xs font-semibold text-leaf" data-testid="weak-fixed">
+                            ✓ đã luyện lại
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -1000,6 +1126,25 @@ export async function StudentResults({
               </div>
             </section>
           </div>
+
+          <section
+            className="mb-6 rounded-lg border border-line bg-surface p-5"
+            data-testid="recent-attempts"
+          >
+            <h2 className="mb-1 font-semibold">Lượt làm gần đây</h2>
+            <p className="mb-3 text-xs text-ink-soft">
+              10 lượt mới nhất, kèm câu em làm sai. Xem mọi lượt ở từng bài bên dưới.
+            </p>
+            <ul className="divide-y divide-line">
+              {recent.map((v) => (
+                <AttemptLine
+                  key={`${v.activityId}-${v.recordedAt}`}
+                  v={v}
+                  activity={activities.get(v.activityId)!}
+                />
+              ))}
+            </ul>
+          </section>
 
           <section data-testid="topics">
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -1013,6 +1158,7 @@ export async function StudentResults({
                   topic={t}
                   results={mine}
                   activities={activities}
+                  attemptsOf={attemptsOf}
                   open={openTopic === t.id}
                 />
               ))}
@@ -1033,15 +1179,69 @@ function Figure({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
+/** One round: when, which activity, score, and the questions missed (B2). */
+function AttemptLine({ v, activity }: { v: AttemptView; activity?: ActivityInfo }) {
+  return (
+    <li className="flex flex-col gap-1.5 py-2.5 sm:flex-row sm:items-start sm:gap-4" data-testid="attempt">
+      <span className="w-28 shrink-0 text-sm whitespace-nowrap text-ink-soft">{when(v.recordedAt)}</span>
+      {activity ? (
+        <span className="min-w-40 text-sm sm:w-56">
+          <ActivityName a={activity} />
+          <span className="block text-xs text-ink-soft">{activity.topicEn}</span>
+        </span>
+      ) : null}
+      <span className={cn("w-16 shrink-0 font-semibold tabular-nums", textTone(v.ratio))}>
+        {pct(v.ratio)}
+        {v.retry ? (
+          <span className="block text-xs font-semibold text-sky" data-testid="attempt-retry">
+            Luyện lại
+          </span>
+        ) : null}
+      </span>
+      <span className="flex flex-1 flex-wrap gap-1.5 text-sm">
+        {v.questions === null ? (
+          <span className="text-xs text-ink-soft">Không có chi tiết từng câu (lượt cũ).</span>
+        ) : v.retry ? (
+          <span className="text-xs font-semibold text-leaf">
+            Luyện lại câu sai: sửa được {v.questions - v.missed.filter((m) => m.failed).length}/{v.questions}{" "}
+            câu
+          </span>
+        ) : v.missed.length === 0 ? (
+          <span className="text-xs font-semibold text-leaf">Đúng hết {v.questions} câu ngay lần đầu</span>
+        ) : (
+          <>
+            <span className="text-xs text-ink-soft">
+              Sai {v.missed.length}/{v.questions}:
+            </span>
+            {v.missed.map((m, i) => (
+              <span
+                key={i}
+                className={cn("rounded px-2 py-0.5", m.failed ? "bg-berry-soft" : "bg-sun-soft")}
+                title={m.failed ? "Hết lượt, phải xem đáp án" : "Sai rồi sửa được"}
+                data-testid="attempt-missed"
+              >
+                {m.label}
+                {m.failed ? <span className="sr-only"> (hết lượt)</span> : null}
+              </span>
+            ))}
+          </>
+        )}
+      </span>
+    </li>
+  );
+}
+
 function TopicBlock({
   topic,
   results,
   activities,
+  attemptsOf,
   open,
 }: {
   topic: TopicInfo;
   results: Map<string, ActivityResult>;
   activities: Map<string, ActivityInfo>;
+  attemptsOf: Map<string, AttemptView[]>;
   open: boolean;
 }) {
   const done = topic.activityIds.filter((id) => results.has(id));
@@ -1090,7 +1290,7 @@ function TopicBlock({
               const a = activities.get(id)!;
               const r = results.get(id);
               const skill = skillOf(a.kind);
-              return (
+              return [
                 <tr key={id} className={cn("border-t border-line", !r && "text-ink-soft")}>
                   <td className={td}>
                     <ActivityName a={a} />
@@ -1108,8 +1308,24 @@ function TopicBlock({
                   <td className={`${td} tabular-nums`}>{r?.attempts ?? "—"}</td>
                   <td className={`${td} tabular-nums`}>{r?.seconds ? durationVi(r.seconds) : "—"}</td>
                   <td className={`${td} whitespace-nowrap`}>{r ? when(r.lastAt) : "—"}</td>
-                </tr>
-              );
+                </tr>,
+                r && isScored(a.kind) ? (
+                  <tr key={`${id}-attempts`}>
+                    <td colSpan={6} className="px-3 pb-3">
+                      <details data-testid="activity-attempts">
+                        <summary className="cursor-pointer text-xs font-semibold text-sky">
+                          Xem {attemptsOf.get(id)?.length ?? 0} lượt làm và câu sai
+                        </summary>
+                        <ul className="mt-1 divide-y divide-line rounded-md bg-paper px-3">
+                          {(attemptsOf.get(id) ?? []).map((v) => (
+                            <AttemptLine key={v.recordedAt} v={v} />
+                          ))}
+                        </ul>
+                      </details>
+                    </td>
+                  </tr>
+                ) : null,
+              ];
             })}
           </tbody>
         </table>

@@ -117,6 +117,17 @@ results page 2.8). D40, D41.
   sách từ"** (5 draft word games, kinds already in the topic skipped).
 - `docs/DESIGN_SYSTEM.md` and the UI/UX Pro Max skill (`.claude/skills/ui-ux-pro-max/`, MIT).
 
+### Phase 1.5 — Teacher feedback, round 2 (2026-11-20, same branch)
+Owner decisions: uploads ≤ 2 MB and visible through guest links; "practise the mistakes" earns no stars but is
+recorded. D42–D45.
+- **A1** Picture picker on every emoji field (search in English or Vietnamese, suggestions for the word) and
+  picture upload per word (shrunk to ≤ 512 px in the browser).
+- **B1–B3** Results: "Xem chi tiết" button per student; latest rounds with the questions missed; every round per
+  activity; "Cả lớp hay sai" box and a full view ranked by number of students.
+- **C2** End screen: "Xem lại câu chưa đúng" with the answers and "Luyện lại câu sai"; no stars, recorded.
+- **C1** Garden, monkey in the tree, grandfather/grandmother (walking stick), frog jumping: new pictures; a
+  pointing hand for "This/That …" sentences. `this/that` needed no data change.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
@@ -132,6 +143,12 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 11. `supabase/migrations/20261113000023_feedback.sql`
 12. `supabase/migrations/20261113000024_feedback_required_catalog.sql`
 13. `supabase/migrations/20261120000025_more_questions.sql` (C8; safe to re-run, touches only unedited activities)
+14. `supabase/migrations/20261120000026_word_images.sql` (A1)
+15. `supabase/migrations/20261120000027_practice_retry.sql` (C2)
+16. `supabase/migrations/20261120000028_clearer_pictures.sql` (C1; touches only unedited rows)
+
+**Run 14–16 before deploying Phase 1.5**: the new code reads `vocabulary.image_path` and
+`progress_records.is_retry`; students' pages fail until those columns exist.
 
 Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` must be set for **Preview** too
 (account creation and password reset need it). Settings → Deployment Protection: turn off Vercel
@@ -157,6 +174,10 @@ Phase 1.3: full e2e suite **57/57** on a local Supabase stack (2026-11-13), incl
 Phase 1.4 (2026-11-20): DB **267/267**, unit **99/99**, e2e **64/64** on a local Supabase stack, incl. Yes/No single
 answer, flashcard flip, match 6/4 pairs (desktop/phone), sound tip, GS1 ≥ 6 questions, quick create.
 
+Phase 1.5 (2026-11-20): DB **287/287**, unit **108/108**, e2e **66/66** on a local Supabase stack, incl. picker
+(English/Vietnamese/suggestions), picture upload shown to pupils, 2 MB limit, retry round without stars, retry
+and mistakes on the teacher's student page, class "hay sai" view.
+
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
 word game, sentence game with validation) and students see it only after publishing.
@@ -172,7 +193,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D41; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D45; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

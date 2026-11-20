@@ -81,3 +81,27 @@ describe("20261120000025_more_questions.sql", () => {
     }
   });
 });
+
+/** Teacher feedback C1 (D45): clearer pictures, composed at build time. */
+describe("20261120000028_clearer_pictures.sql", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase", "migrations", "20261120000028_clearer_pictures.sql"),
+    "utf8",
+  );
+  it("uses only pictures the build makes", () => {
+    const codes = new Set(
+      [...sql.matchAll(/"emoji":"(f000\d)"|emoji = '(f000\d)'/g)].map((m) => m[1] ?? m[2]),
+    );
+    expect(codes.size).toBe(5);
+    for (const c of codes) {
+      expect(readFileSync(join(process.cwd(), "public", "emoji", `${c}.webp`)).length).toBeGreaterThan(1000);
+    }
+  });
+  it("only touches rows nobody changed", () => {
+    const words = sql.split("update public.vocabulary").length - 1;
+    const acts = sql.split("update public.practice_activities").length - 1;
+    expect(words).toBe(4);
+    expect(sql.match(/and v\.emoji = '/g)?.length).toBe(words);
+    expect(sql.match(/and p\.content = '/g)?.length).toBe(acts);
+  });
+});

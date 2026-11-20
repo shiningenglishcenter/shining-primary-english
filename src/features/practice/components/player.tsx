@@ -7,7 +7,7 @@ import { Check, Delete, Lightbulb, RotateCcw, Volume2, VolumeX, X } from "lucide
 import { recordPractice, type QuestionResult } from "@/features/practice/actions";
 
 export type RoundResult = { score: number; maxScore: number; seconds: number; details: QuestionResult[] };
-import { Pic, Stars, Sunny } from "@/features/practice/components/kid-ui";
+import { Pic, PointPic, pointOf, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import {
   DEFAULT_SETTINGS,
   POINTS,
@@ -18,6 +18,7 @@ import {
 import {
   MATCH_PAIRS_WIDE,
   regroupMatches,
+  scoreOf,
   sameSentence,
   sameWord,
   type Card,
@@ -95,10 +96,16 @@ export function Player({
   const sound = useSound({ onTip: setSoundTip });
   const wide = useWideScreen();
   // Match screens hold 4 pairs on phones, up to 6 on tablets/desktops (C5).
-  const questions = useMemo(
+  const fullQuestions = useMemo(
     () => (wide ? regroupMatches(phoneQuestions, MATCH_PAIRS_WIDE) : phoneQuestions),
     [wide, phoneQuestions],
   );
+  /** C2 (D44): a round of only the questions missed; null = the full round. */
+  const [retryQs, setRetryQs] = useState<Question[] | null>(null);
+  const questions = retryQs ?? fullQuestions;
+  const roundMax = retryQs ? scoreOf(retryQs) : maxScore;
+  /** Questions not answered right first time in this round. */
+  const [missed, setMissed] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
@@ -113,7 +120,11 @@ export function Player({
   const q = questions[index];
   const advance = (points: number) => {
     setScore((s) => s + points);
-    if (q && q.type !== "flash") setDetails((d) => [...d, resultOf(q, points)]);
+    if (q && q.type !== "flash") {
+      const r = resultOf(q, points);
+      setDetails((d) => [...d, r]);
+      if (r.p < r.x) setMissed((m) => [...m, q]);
+    }
     if (index + 1 >= questions.length) {
       sound.fanfare();
       setSeconds(started.current ? Math.round((Date.now() - started.current) / 1000) : 0);
@@ -129,13 +140,28 @@ export function Player({
     if (button && !(button as HTMLButtonElement).disabled) sound.tap();
   };
 
+  const startRetry = () => {
+    setRetryQs(missed);
+    setMissed([]);
+    setIndex(0);
+    setScore(0);
+    setDetails([]);
+    setSeconds(0);
+    started.current = Date.now();
+    setFinished(false);
+  };
+
   if (finished) {
     return (
       <Finish
+        key={retryQs ? `retry-${retryQs.length}-${details.length}` : "full"}
         activityId={activityId}
         kind={kind}
+        retry={retryQs !== null}
+        missed={missed}
+        onRetry={startRetry}
         score={score}
-        maxScore={maxScore}
+        maxScore={roundMax}
         seconds={seconds}
         details={details}
         sound={sound}
@@ -1165,7 +1191,7 @@ function TrueFalseQ({
             ctxType ? "size-28" : "size-44",
           )}
         >
-          <Pic code={q.emoji} size={ctxType ? 90 : 140} />
+          <PointPic code={q.emoji} size={ctxType ? 90 : 140} point={pointOf(q.sentence)} />
         </div>
       ) : null}
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
@@ -1213,7 +1239,7 @@ function FillQ({
       }
     >
       <div className="flex size-40 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
-        <Pic code={q.emoji} size={128} />
+        <PointPic code={q.emoji} size={128} point={pointOf(q.before)} />
       </div>
       <p
         className="max-w-md text-center font-kid-display text-[26px] leading-relaxed font-bold"
@@ -1330,7 +1356,7 @@ function OrderQ({
       }
     >
       <div className="flex size-36 items-center justify-center rounded-[2rem] bg-k-surface shadow-[0_6px_0_var(--k-line)]">
-        <Pic code={q.emoji} size={116} />
+        <PointPic code={q.emoji} size={116} point={pointOf(q.answer.join(" "))} />
       </div>
       <div
         className={cn(
@@ -1620,9 +1646,73 @@ function ContextPanel({ ctx, sound }: { ctx: PlayerContext; sound: Sound }) {
   );
 }
 
+/** The right answer of a question, in words, for the "let's look again" list (C2). */
+function answerText(q: Question): string {
+  switch (q.type) {
+    case "true_false":
+      return `${q.sentence} → ${q.answer ? "Yes" : "No"}`;
+    case "fill_blank":
+      return `${q.before}${q.answer}${q.after}`.trim();
+    case "rearrange":
+      return q.answer.join(" ");
+    case "choice":
+      return `${q.prompt} → ${q.answer}`;
+    case "match":
+      return q.pairs.map((c) => c.word).join(", ");
+    case "flash":
+      return q.card.word;
+    default:
+      return q.answer.word;
+  }
+}
+
+function answerCard(q: Question): Card | null {
+  return "answer" in q && typeof q.answer === "object" && !Array.isArray(q.answer) ? q.answer : null;
+}
+
+const REVIEW_SHOWN = 6;
+
+function Review({ missed }: { missed: Question[] }) {
+  const t = useT();
+  const lang = useLang();
+  return (
+    <section className="w-full max-w-md rounded-3xl bg-k-surface p-4 text-left" data-testid="review">
+      <h2 className="mb-2 font-kid-display text-xl font-bold">{t.reviewTitle}</h2>
+      <ul className="flex flex-col gap-2">
+        {missed.slice(0, REVIEW_SHOWN).map((q, i) => {
+          const card = answerCard(q);
+          return (
+            <li key={i} className="flex items-center gap-3 text-lg font-bold" data-testid="review-item">
+              {card ? (
+                <Pic code={card.emoji} image={card.image} size={40} className="shrink-0" />
+              ) : "emoji" in q && q.emoji ? (
+                <Pic code={q.emoji} size={40} className="shrink-0" />
+              ) : (
+                <Check className="size-6 shrink-0 text-k-good" aria-hidden="true" />
+              )}
+              <span>
+                {answerText(q)}
+                {card && lang === "vi" ? (
+                  <span className="block text-base font-semibold text-k-soft">{card.meaningVi}</span>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {missed.length > REVIEW_SHOWN ? (
+        <p className="mt-2 text-base font-bold text-k-soft">{t.reviewMore(missed.length - REVIEW_SHOWN)}</p>
+      ) : null}
+    </section>
+  );
+}
+
 function Finish({
   activityId,
   kind,
+  retry,
+  missed,
+  onRetry,
   score,
   maxScore,
   seconds,
@@ -1636,6 +1726,10 @@ function Finish({
 }: {
   activityId: string;
   kind: PracticeKind;
+  /** This was a "practise the mistakes" round (C2): no stars, its own message. */
+  retry: boolean;
+  missed: Question[];
+  onRetry: () => void;
   score: number;
   maxScore: number;
   seconds: number;
@@ -1651,16 +1745,22 @@ function Finish({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const sent = useRef(false);
-  const stars = starsFor(score, maxScore);
+  const stars = retry ? 0 : starsFor(score, maxScore);
+  const fixed = details.filter((d) => d.p > 0).length;
 
   useEffect(() => {
     if (sent.current || maxScore < 1) return;
     sent.current = true;
     startTransition(async () => {
       const result = { score, maxScore, seconds, details };
+      // Retry rounds are kept for the teacher (signed-in pupils only), never as a full round.
+      if (retry) {
+        if (!guest) await recordPractice({ activityId, ...result, retry: true });
+        return;
+      }
       await (record ? record(result) : recordPractice({ activityId, ...result }));
     });
-  }, [activityId, score, maxScore, seconds, details, record]);
+  }, [activityId, score, maxScore, seconds, details, record, retry, guest]);
 
   // One "ding" per star, in time with the stars popping in (globals.css).
   useEffect(() => {
@@ -1670,14 +1770,15 @@ function Finish({
     return () => timers.forEach((x) => window.clearTimeout(x));
   }, [stars, sound]);
 
-  const message = t.cheer(stars);
+  const message = retry ? t.retryDone(fixed, details.length) : t.cheer(stars);
+  const celebrate = retry ? fixed > 0 : stars > 0;
 
   return (
     <div
       className="relative flex flex-1 flex-col items-center justify-center gap-5 overflow-hidden py-10 text-center"
       data-testid="finish"
     >
-      {stars > 0 ? (
+      {celebrate ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           {Array.from({ length: 28 }, (_, i) => (
             <span
@@ -1692,15 +1793,34 @@ function Finish({
           ))}
         </div>
       ) : null}
-      <Sunny mood={stars > 0 ? "cheer" : "think"} size={128} className="animate-kid-float" />
+      <Sunny mood={celebrate ? "cheer" : "think"} size={128} className="animate-kid-float" />
       <h1 className="font-kid-display text-4xl font-bold" data-testid="page-title">
         {message}
       </h1>
-      <Stars value={stars} size={52} label={t.starsOf(stars)} className="kid-stars-reveal" />
-      <p className="text-xl font-bold" data-testid="score">
-        {kind === "flashcards" ? t.flashSeen(maxScore / POINTS.first) : t.score(score, maxScore)}
-      </p>
+      {retry ? (
+        <p className="text-base font-bold text-k-soft" data-testid="retry-note">
+          {t.retryNoStars}
+        </p>
+      ) : (
+        <>
+          <Stars value={stars} size={52} label={t.starsOf(stars)} className="kid-stars-reveal" />
+          <p className="text-xl font-bold" data-testid="score">
+            {kind === "flashcards" ? t.flashSeen(maxScore / POINTS.first) : t.score(score, maxScore)}
+          </p>
+        </>
+      )}
+      {missed.length > 0 ? <Review missed={missed} /> : null}
       <div className="mt-2 flex w-full max-w-sm flex-col gap-3">
+        {missed.length > 0 ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            data-testid="retry-mistakes"
+            className="kid-press h-16 rounded-2xl bg-k-accent text-xl font-black text-k-ink [--press:var(--k-accent-shadow)]"
+          >
+            {t.retryMistakes(missed.length)}
+          </button>
+        ) : null}
         {nextHref ? (
           <Link
             href={nextHref}
@@ -1714,7 +1834,7 @@ function Finish({
           onClick={() => router.push(`${playHref}?r=${Math.floor(Math.random() * 1e6)}`)}
           className="kid-press h-14 rounded-2xl bg-k-surface text-lg font-black"
         >
-          {t.playAgain}
+          {retry ? t.playFullAgain : t.playAgain}
         </button>
         {guest ? (
           <Link

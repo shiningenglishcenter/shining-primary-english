@@ -104,7 +104,9 @@ export async function practiceRecords(
   const supabase = await createClient();
   let q = supabase
     .from("progress_records")
-    .select("student_id, practice_activity_id, score, max_score, recorded_at, duration_seconds, details")
+    .select(
+      "student_id, practice_activity_id, score, max_score, recorded_at, duration_seconds, details, is_retry",
+    )
     .in("student_id", studentIds)
     .not("practice_activity_id", "is", null)
     .order("recorded_at", { ascending: false })
@@ -174,6 +176,7 @@ export async function practiceRecords(
       recordedAt: r.recorded_at as string,
       seconds: Number(r.duration_seconds ?? 0),
       details: Array.isArray(r.details) ? (r.details as PracticeRecord["details"]) : null,
+      retry: r.is_retry === true,
     }));
   return {
     records,
