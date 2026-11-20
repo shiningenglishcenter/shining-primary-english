@@ -67,7 +67,7 @@ test.describe("student practice library", () => {
     await expect(page.getByTestId("no-topics")).toBeVisible();
     await page.getByRole("link", { name: "Global Success" }).click();
     await expect(page.locator("[data-level=g1]")).toBeVisible();
-    await expect(page.getByTestId("topic")).toHaveCount(16);
+    await expect(page.getByTestId("topic")).toHaveCount(18); // 16 units + 2 term reviews
   });
 
   test("English by default; Vietnamese on request, remembered", async ({ page }) => {

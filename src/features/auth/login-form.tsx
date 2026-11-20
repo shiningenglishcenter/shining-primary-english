@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, LoaderCircle, Lock, TriangleAlert, User } from "lucide-react";
 import { signIn } from "@/features/auth/actions";
@@ -10,6 +10,24 @@ import { cn } from "@/lib/utils";
 
 const initialState: LoginFormState = {};
 
+/** Usernames remembered on this device (round 3, D52): never passwords. */
+const REMEMBER_KEY = "shining-logins";
+const REMEMBER_MAX = 3;
+export function rememberedLogins(raw: string | null): string[] {
+  try {
+    const list = JSON.parse(raw ?? "[]") as unknown;
+    return Array.isArray(list)
+      ? list.filter((x): x is string => typeof x === "string" && x.length <= 120).slice(0, REMEMBER_MAX)
+      : [];
+  } catch {
+    return [];
+  }
+}
+export function withLogin(list: string[], login: string): string[] {
+  const l = login.trim();
+  return l ? [l, ...list.filter((x) => x.toLowerCase() !== l.toLowerCase())].slice(0, REMEMBER_MAX) : list;
+}
+
 const field =
   "h-14 w-full rounded-2xl border-[3px] bg-k-bg pr-4 pl-12 text-lg font-bold text-k-ink outline-none transition-colors placeholder:font-semibold placeholder:text-k-soft/70 focus:border-k-primary focus:bg-white";
 
@@ -17,12 +35,44 @@ export function LoginForm({ t }: { t: LoginText }) {
   const next = useSearchParams().get("next") ?? "";
   const [state, formAction, pending] = useActionState(signIn, initialState);
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [saved, setSaved] = useState<string[]>([]);
+  const idInput = useRef<HTMLInputElement>(null);
+  const pwInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    try {
+      const list = rememberedLogins(localStorage.getItem(REMEMBER_KEY));
+      // Restoring a per-device list after mount (localStorage is client-only).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSaved(list);
+      if (list[0] && idInput.current && !idInput.current.value) idInput.current.value = list[0];
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const login = String(new FormData(e.currentTarget).get("identifier") ?? "");
+    try {
+      if (remember) localStorage.setItem(REMEMBER_KEY, JSON.stringify(withLogin(saved, login)));
+      else
+        localStorage.setItem(
+          REMEMBER_KEY,
+          JSON.stringify(saved.filter((x) => x.toLowerCase() !== login.trim().toLowerCase())),
+        );
+    } catch {
+      /* storage blocked */
+    }
+  };
+  const pick = (login: string) => {
+    if (idInput.current) idInput.current.value = login;
+    pwInput.current?.focus();
+  };
   const say = (m: string | undefined) => (m ? (t.errors[m] ?? m) : undefined);
   const idError = say(state.fieldErrors?.identifier);
   const pwError = say(state.fieldErrors?.password);
 
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form action={formAction} onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="next" value={next} />
 
       {state.error ? (
@@ -46,6 +96,7 @@ export function LoginForm({ t }: { t: LoginText }) {
             aria-hidden="true"
           />
           <input
+            ref={idInput}
             id="identifier"
             name="identifier"
             autoComplete="username"
@@ -60,6 +111,20 @@ export function LoginForm({ t }: { t: LoginText }) {
             className={cn(field, idError ? "border-k-bad" : "border-k-line")}
           />
         </div>
+        {saved.length > 1 ? (
+          <div className="flex flex-wrap gap-2" data-testid="saved-logins">
+            {saved.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => pick(l)}
+                className="rounded-full border-2 border-k-line bg-k-surface px-3 py-1 text-sm font-black"
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <p id="identifier-hint" className="text-xs font-semibold text-k-soft">
           {t.usernameHint}
         </p>
@@ -80,6 +145,7 @@ export function LoginForm({ t }: { t: LoginText }) {
             aria-hidden="true"
           />
           <input
+            ref={pwInput}
             id="password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -105,6 +171,17 @@ export function LoginForm({ t }: { t: LoginText }) {
           </p>
         ) : null}
       </div>
+
+      <label className="flex items-center gap-2 text-base font-bold">
+        <input
+          type="checkbox"
+          checked={remember}
+          onChange={(e) => setRemember(e.target.checked)}
+          className="size-5 accent-k-primary"
+          data-testid="remember-login"
+        />
+        {t.remember}
+      </label>
 
       <button
         type="submit"
