@@ -12,3 +12,10 @@
 `content/starters.mts` is original material written for SHINING English. It follows the topics and word
 lists Cambridge publishes for Pre A1 Starters but copies no exercise, text or picture from Cambridge
 books ("Get Ready for Starters", Authentic Exam Papers) or from Global Success.
+
+## UI/UX Pro Max skill (developer tool, not shipped to users)
+- Source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill (commit 2de1134, 2026-11-19)
+- Licence: MIT (Copyright © 2024 Next Level Builder) — copy in `.claude/skills/ui-ux-pro-max/LICENSE`.
+- How it is used: a Claude Code skill (local Python search over CSV design guidelines) used while building
+  teacher/admin screens and as an accessibility checklist. See `docs/DESIGN_SYSTEM.md` §7. Its test folder
+  was left out.
