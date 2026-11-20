@@ -5,6 +5,8 @@ import {
   Eye,
   Headphones,
   Keyboard,
+  Languages,
+  MessageSquareText,
   Layers,
   Link2,
   ListOrdered,
@@ -28,4 +30,6 @@ export const KIND_ICON: Record<PracticeKind, LucideIcon> = {
   listening: Headphones,
   reading: Newspaper,
   mixed: Layers,
+  match_meaning: Languages,
+  translate: MessageSquareText,
 };

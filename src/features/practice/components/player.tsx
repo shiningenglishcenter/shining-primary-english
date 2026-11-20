@@ -16,6 +16,8 @@ import {
   type PracticeKind,
 } from "@/features/practice/model";
 import {
+  letterTiles,
+  revealPattern,
   MATCH_PAIRS_WIDE,
   regroupMatches,
   scoreOf,
@@ -45,6 +47,13 @@ const INSTRUCTIONS: Record<Question["type"], [string, string]> = {
   rearrange: ["Make a sentence", "Chạm các từ theo đúng thứ tự"],
   listen_type: ["Listen and write", "Nghe rồi viết từ con nghe được"],
   choice: ["Choose the answer", "Chọn câu trả lời đúng"],
+};
+
+/** Match Vietnamese meanings, choose a sentence's meaning (D47). */
+const MEANING_HEADING: [string, string] = ["Match the meanings", "Nối từ với nghĩa tiếng Việt"];
+const TRANSLATE_HEADINGS: Record<"en_vi" | "vi_en", [string, string]> = {
+  en_vi: ["What does it mean?", "Câu này nghĩa là gì?"],
+  vi_en: ["Say it in English", "Chọn câu tiếng Anh đúng nghĩa"],
 };
 
 /** Headings for questions about a recording / a passage. */
@@ -924,6 +933,7 @@ function MatchQ({
   return (
     <Frame
       type="match"
+      heading={q.meaning ? MEANING_HEADING : undefined}
       footer={
         <Footer
           a={{
@@ -960,7 +970,7 @@ function MatchQ({
                 type="button"
                 disabled={isDone}
                 onClick={() => tapPicture(c.word)}
-                aria-label={t.picture(c.meaningVi, q.pairs.indexOf(c) + 1)}
+                aria-label={q.meaning ? c.meaningVi : t.picture(c.meaningVi, q.pairs.indexOf(c) + 1)}
                 aria-pressed={pic === c.word}
                 data-testid="match-picture"
                 data-word={c.word}
@@ -971,7 +981,16 @@ function MatchQ({
                   pic === c.word && "border-k-accent ring-4 ring-k-accent/40",
                 )}
               >
-                <Pic code={c.emoji} image={c.image} size={dense ? 60 : 72} />
+                {q.meaning ? (
+                  <span
+                    lang="vi"
+                    className="px-2 text-lg leading-tight font-black text-k-accent-ink sm:text-xl"
+                  >
+                    {c.meaningVi}
+                  </span>
+                ) : (
+                  <Pic code={c.emoji} image={c.image} size={dense ? 60 : 72} />
+                )}
               </button>
             );
           })}
@@ -1415,8 +1434,13 @@ function ListenTypeQ({
   onDone: (p: number) => void;
 }) {
   const t = useT();
+  const { writeHint } = useContext(SettingsContext);
   const [typed, setTyped] = useState("");
   const a = useAnswer(sound, { hint: q.hint, onFail: () => setTyped(q.answer.word) });
+  const pattern = useMemo(() => revealPattern(q.answer.word), [q.answer.word]);
+  const tiles = useMemo(() => letterTiles(q.answer.word), [q.answer.word]);
+  /** Tile indexes used so far (letters mode), so each tile is used once. */
+  const [usedTiles, setUsedTiles] = useState<number[]>([]);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const t = window.setTimeout(() => sound.speak(q.answer.word), 300);
@@ -1430,7 +1454,14 @@ function ListenTypeQ({
       sound.speak(q.answer.word);
     } else {
       a.wrong("input");
-      input.current?.select();
+      if (writeHint === "letters") {
+        // Tiles only: clear for another try (the last miss fills in the word, see onFail).
+        if (a.triesLeft > 1)
+          window.setTimeout(() => {
+            setTyped("");
+            setUsedTiles([]);
+          }, 700);
+      } else input.current?.select();
     }
   };
   const check = (e: React.FormEvent) => {
@@ -1470,18 +1501,27 @@ function ListenTypeQ({
         <SpeakButton big onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
       )}
       <form onSubmit={check} className="flex w-full max-w-md flex-col gap-3">
+        {writeHint === "some" && !a.done ? (
+          <p
+            className="text-center font-kid-display text-4xl font-bold tracking-[0.3em] text-k-soft"
+            aria-label={t.letterHint}
+            data-testid="letter-pattern"
+          >
+            {pattern.map((c) => c ?? "_").join("")}
+          </p>
+        ) : null}
         <input
           ref={input}
           value={typed}
           onChange={(e) => change(e.target.value)}
-          readOnly={a.done}
+          readOnly={a.done || writeHint === "letters"}
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
-          inputMode="text"
+          inputMode={writeHint === "letters" ? "none" : "text"}
           aria-label={t.writeWord}
-          placeholder={"_ ".repeat(q.answer.word.length).trim()}
+          placeholder={writeHint === "slots" ? "_ ".repeat(q.answer.word.length).trim() : undefined}
           data-testid="type-input"
           data-answer={q.answer.word.toLowerCase()}
           className={cn(
@@ -1490,6 +1530,39 @@ function ListenTypeQ({
             a.shake === "input" && "animate-kid-shake",
           )}
         />
+        {writeHint === "letters" && !a.done ? (
+          <div className="flex flex-wrap justify-center gap-2" data-testid="letter-tiles">
+            {tiles.map((l, i) => (
+              <button
+                key={i}
+                type="button"
+                disabled={usedTiles.includes(i)}
+                onClick={() => {
+                  setUsedTiles([...usedTiles, i]);
+                  change(typed + l);
+                }}
+                aria-label={t.letter(l)}
+                data-testid="tile"
+                data-letter={l}
+                className="kid-press h-14 w-12 rounded-2xl bg-k-primary text-2xl font-black text-k-primary-ink [--press:var(--k-primary-shadow)] disabled:opacity-30"
+              >
+                {l}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setUsedTiles(usedTiles.slice(0, -1));
+                setTyped(typed.slice(0, -1));
+              }}
+              disabled={!typed}
+              aria-label={t.deleteLetter}
+              className="kid-press flex h-14 w-12 items-center justify-center rounded-2xl bg-k-surface disabled:opacity-30"
+            >
+              <Delete className="size-6" aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
         {!a.done ? (
           <button
             type="submit"
@@ -1522,16 +1595,21 @@ function ChoiceQ({
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   const gone = eliminated(a, q.options, (o) => o === q.answer, picked);
+  // vi_en: the English is in the choices, so read each choice aloud when tapped.
+  const englishPrompt = q.translate !== "vi_en";
   const choose = (o: string) => {
     if (a.done || o === gone) return;
     setPicked(o);
+    if (!englishPrompt) sound.speak(o);
     if (o === q.answer) a.right();
     else a.wrong(o);
   };
   return (
     <Frame
       type="choice"
-      heading={ctxType ? CONTEXT_HEADINGS[ctxType].mc : undefined}
+      heading={
+        q.translate ? TRANSLATE_HEADINGS[q.translate] : ctxType ? CONTEXT_HEADINGS[ctxType].mc : undefined
+      }
       footer={
         <Footer
           a={a}
@@ -1544,10 +1622,16 @@ function ChoiceQ({
     >
       <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
         {q.emoji ? <Pic code={q.emoji} size={56} className="shrink-0" /> : null}
-        <p className="flex-1 font-kid-display text-2xl leading-snug font-bold" data-testid="sentence">
+        <p
+          className="flex-1 font-kid-display text-2xl leading-snug font-bold"
+          data-testid="sentence"
+          lang={englishPrompt ? "en" : "vi"}
+        >
           {q.prompt}
         </p>
-        <SpeakButton onClick={() => sound.speak(q.prompt)} label={t.listenQuestion} />
+        {englishPrompt ? (
+          <SpeakButton onClick={() => sound.speak(q.prompt)} label={t.listenQuestion} />
+        ) : null}
       </div>
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((o) => {

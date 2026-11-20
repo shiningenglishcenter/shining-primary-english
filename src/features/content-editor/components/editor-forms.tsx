@@ -22,6 +22,8 @@ import {
   PRACTICE_KINDS,
   QUICK_MIN_WORDS,
   QUICK_WORD_KINDS,
+  WRITE_HINTS,
+  WRITE_HINT_VI,
   type PlaySettings,
   type PracticeKind,
 } from "@/features/practice/model";
@@ -508,6 +510,25 @@ export function ActivityEditor({
             <p className="text-xs text-ink-soft">
               Điểm mỗi câu: đúng ngay lần đầu 2 điểm, đúng sau khi sai 1 điểm, hết lượt 0 điểm.
             </p>
+            {activity.kind === "listen_type" || activity.kind === "mixed" ? (
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                Gợi ý chữ khi nghe và viết:
+                <Select
+                  name="writeHint"
+                  defaultValue={activity.settings.writeHint}
+                  className="w-auto"
+                  data-testid="write-hint"
+                >
+                  {WRITE_HINTS.map((h) => (
+                    <option key={h} value={h}>
+                      {WRITE_HINT_VI[h]}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            ) : (
+              <input type="hidden" name="writeHint" value={activity.settings.writeHint} />
+            )}
             {["true_false", "listening", "reading", "mixed"].includes(activity.kind) ? (
               <p className="text-xs text-ink-soft" data-testid="yes-no-note">
                 Câu Đúng/Sai (Yes/No) chỉ được chọn 1 lần: chỉ có 2 đáp án nên thử lại luôn đoán đúng. Chọn
@@ -516,7 +537,10 @@ export function ActivityEditor({
             ) : null}
           </fieldset>
         ) : (
-          <input type="hidden" name="maxTries" value={activity.settings.maxTries} />
+          <>
+            <input type="hidden" name="maxTries" value={activity.settings.maxTries} />
+            <input type="hidden" name="writeHint" value={activity.settings.writeHint} />
+          </>
         )}
 
         <ContentFields kind={activity.kind} content={draft} onChange={setDraft} topicWords={topicWords} />

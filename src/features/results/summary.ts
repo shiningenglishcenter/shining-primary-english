@@ -65,12 +65,14 @@ export function skillOf(kind: PracticeKind): Skill | null {
   switch (kind) {
     case "look_choose":
     case "match":
+    case "match_meaning":
       return "vocab";
     case "listen_choose":
     case "listening":
       return "listening";
     case "reading":
     case "true_false":
+    case "translate":
       return "reading";
     case "spell":
     case "listen_type":

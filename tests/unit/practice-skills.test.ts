@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contentSchemaFor, parseYouTube, settingsOf } from "@/features/practice/model";
-import { buildRound, MIXED_STEP_SIZE, sameWord } from "@/features/practice/round";
+import { buildRound, letterTiles, MIXED_STEP_SIZE, revealPattern, sameWord } from "@/features/practice/round";
 
 const words = [
   { word: "cat", meaningVi: "con mèo", emoji: "1f408" },
@@ -47,9 +47,17 @@ describe("hints and settings", () => {
       rand,
     );
     expect(r.questions[0]).toMatchObject({ type: "true_false", hint: "Look at the colour." });
-    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3 });
-    expect(settingsOf({ hints: false, maxTries: 9 })).toEqual({ hints: true, maxTries: 3 });
-    expect(settingsOf({ hints: false, maxTries: 1 })).toEqual({ hints: false, maxTries: 1 });
+    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3, writeHint: "slots" });
+    expect(settingsOf({ hints: false, maxTries: 9 })).toEqual({
+      hints: true,
+      maxTries: 3,
+      writeHint: "slots",
+    });
+    expect(settingsOf({ hints: false, maxTries: 1 })).toEqual({
+      hints: false,
+      maxTries: 1,
+      writeHint: "slots",
+    });
   });
 });
 
@@ -122,6 +130,63 @@ describe("mixed", () => {
     expect(
       contentSchemaFor("mixed").safeParse({ steps: [content.steps[0], { kind: "reading", content: {} }] })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("listen-and-write hints (D46)", () => {
+  it("revealPattern shows first and last letters, every third in long words, and spaces", () => {
+    expect(revealPattern("cat")).toEqual(["c", null, "t"]);
+    expect(revealPattern("go")).toEqual(["g", null]);
+    expect(
+      revealPattern("elephant")
+        .map((c) => c ?? "_")
+        .join(""),
+    ).toBe("e__p__nt");
+    expect(
+      revealPattern("ice cream")
+        .map((c) => c ?? "_")
+        .join(""),
+    ).toBe("i__ __e_m");
+  });
+  it("letterTiles has every letter plus 3 extra, the same each time", () => {
+    const tiles = letterTiles("apple");
+    expect(tiles).toHaveLength(8);
+    for (const ch of "apple") expect(tiles.filter((t) => t === ch).length).toBeGreaterThanOrEqual(1);
+    expect(tiles.filter((t) => t === "p")).toHaveLength(2);
+    expect(letterTiles("apple")).toEqual(tiles);
+  });
+  it("settings default to letter boxes, as before", () => {
+    expect(settingsOf({}).writeHint).toBe("slots");
+    expect(settingsOf({ writeHint: "letters" }).writeHint).toBe("letters");
+    expect(settingsOf({ writeHint: "nope" }).writeHint).toBe("slots");
+  });
+});
+
+describe("meaning activities (D47)", () => {
+  const plain = [
+    { word: "happy", meaningVi: "vui", emoji: null },
+    { word: "sad", meaningVi: "buồn", emoji: null },
+    { word: "big", meaningVi: "to", emoji: null },
+  ];
+  it("match_meaning uses words without pictures and marks the screens", () => {
+    const r = buildRound("match_meaning", {}, plain, rand);
+    expect(r.questions).toHaveLength(1);
+    expect(r.questions[0]).toMatchObject({ type: "match", meaning: true });
+    expect(buildRound("match", {}, plain, rand).questions).toHaveLength(0);
+  });
+  it("translate gives choice questions with the direction", () => {
+    const content = {
+      direction: "en_vi",
+      items: [{ sentence: "I am happy.", answer: "Tớ vui.", options: ["Tớ vui.", "Tớ buồn.", "Tớ to."] }],
+    };
+    expect(contentSchemaFor("translate").safeParse(content).success).toBe(true);
+    const q = buildRound("translate", content, [], rand).questions[0]!;
+    expect(q).toMatchObject({ type: "choice", prompt: "I am happy.", answer: "Tớ vui.", translate: "en_vi" });
+    expect(
+      contentSchemaFor("translate").safeParse({
+        items: [{ sentence: "x", answer: "a", options: ["b", "c"] }],
+      }).success,
     ).toBe(false);
   });
 });

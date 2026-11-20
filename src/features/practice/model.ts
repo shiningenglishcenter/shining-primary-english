@@ -61,6 +61,8 @@ export const PRACTICE_KINDS = [
   "listening",
   "reading",
   "mixed",
+  "match_meaning",
+  "translate",
 ] as const;
 export type PracticeKind = (typeof PRACTICE_KINDS)[number];
 
@@ -77,10 +79,12 @@ export const KIND_LABEL_VI: Record<PracticeKind, string> = {
   listening: "Nghe (video / audio)",
   reading: "Đọc hiểu",
   mixed: "Bài tổng hợp",
+  match_meaning: "Nối từ với nghĩa tiếng Việt",
+  translate: "Chọn nghĩa của câu",
 };
 
 /** Kinds that carry a list of sentence items (`{ items: [...] }`). */
-export const SENTENCE_KINDS = ["true_false", "fill_blank", "rearrange"] as const;
+export const SENTENCE_KINDS = ["true_false", "fill_blank", "rearrange", "translate"] as const;
 export type SentenceKind = (typeof SENTENCE_KINDS)[number];
 export function isSentenceKind(kind: PracticeKind): kind is SentenceKind {
   return (SENTENCE_KINDS as readonly PracticeKind[]).includes(kind);
@@ -98,6 +102,7 @@ export const WORD_KINDS: readonly PracticeKind[] = [
   "match",
   "spell",
   "listen_type",
+  "match_meaning",
 ];
 
 /** "Quick create" on a topic (A2, D40): the common word games, in play order. */
@@ -125,12 +130,27 @@ const hint = z
  * Per-activity play settings (D29; `practice_activities.settings`). Defaults:
  * hints on, move on after 3 wrong answers.
  */
+/**
+ * Listen and write (round 3, D46): how much of the word the child sees —
+ * nothing, one box per letter (default, as before), some letters shown,
+ * or letter tiles with a few extra letters.
+ */
+export const WRITE_HINTS = ["none", "slots", "some", "letters"] as const;
+export type WriteHint = (typeof WRITE_HINTS)[number];
+export const WRITE_HINT_VI: Record<WriteHint, string> = {
+  none: "Không gợi ý",
+  slots: "Số ô chữ: _ _ _",
+  some: "Hiện vài chữ: c _ t",
+  letters: "Cho sẵn các chữ cái (có chữ nhiễu)",
+};
+
 export const settingsSchema = z.object({
   hints: z.boolean().default(true),
   maxTries: z.number().int().min(1).max(5).default(3),
+  writeHint: z.enum(WRITE_HINTS).default("slots"),
 });
 export type PlaySettings = z.infer<typeof settingsSchema>;
-export const DEFAULT_SETTINGS: PlaySettings = { hints: true, maxTries: 3 };
+export const DEFAULT_SETTINGS: PlaySettings = { hints: true, maxTries: 3, writeHint: "slots" };
 export function settingsOf(raw: unknown): PlaySettings {
   const r = settingsSchema.safeParse(raw ?? {});
   return r.success ? r.data : DEFAULT_SETTINGS;
@@ -161,10 +181,28 @@ export const rearrangeItemSchema = z.object({
   ),
 });
 
+/** "Choose the meaning" (D47): a sentence and its meaning among 2–4 choices. */
+export const translateItemSchema = z
+  .object({
+    emoji,
+    sentence,
+    answer: z.string().trim().min(1).max(200),
+    options: z.array(z.string().trim().min(1).max(200)).min(2).max(4),
+    hint,
+  })
+  .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn");
+/** en_vi: English sentence, Vietnamese choices; vi_en: the other way round. */
+export const TRANSLATE_DIRECTIONS = ["en_vi", "vi_en"] as const;
+export type TranslateDirection = (typeof TRANSLATE_DIRECTIONS)[number];
+
 export const itemsSchemaByKind = {
   true_false: z.object({ items: z.array(trueFalseItemSchema).min(1).max(30) }),
   fill_blank: z.object({ items: z.array(fillBlankItemSchema).min(1).max(30) }),
   rearrange: z.object({ items: z.array(rearrangeItemSchema).min(1).max(30) }),
+  translate: z.object({
+    direction: z.enum(TRANSLATE_DIRECTIONS).default("en_vi"),
+    items: z.array(translateItemSchema).min(1).max(30),
+  }),
 } as const;
 
 // ------------------------------------------- listening / reading / mixed ---

@@ -64,12 +64,29 @@ export function ContentFields({
     );
   }
   if (isSentenceKind(kind)) {
-    return (
+    const items = (
       <SentenceItems
         kind={kind}
         items={(content.items as SentenceDraft[] | undefined) ?? []}
-        onChange={(items) => onChange({ items })}
+        onChange={(items) => onChange({ ...content, items })}
       />
+    );
+    if (kind !== "translate") return items;
+    const direction = content.direction === "vi_en" ? "vi_en" : "en_vi";
+    return (
+      <div className="flex flex-col gap-4">
+        <fieldset className={box} data-testid="translate-direction">
+          <legend className="px-1 text-sm font-semibold">Chiều dịch</legend>
+          <YesNo
+            name="direction"
+            value={direction === "en_vi"}
+            onChange={(en) => onChange({ ...content, direction: en ? "en_vi" : "vi_en" })}
+            yes="Câu tiếng Anh → chọn nghĩa tiếng Việt"
+            no="Câu tiếng Việt → chọn câu tiếng Anh"
+          />
+        </fieldset>
+        {items}
+      </div>
     );
   }
   if (kind === "listening") {
@@ -144,9 +161,11 @@ export function serializeContent(kind: PracticeKind, content: Content): Content 
     return words.length ? { words } : {};
   }
   if (isSentenceKind(kind)) {
-    return {
-      items: ((content.items as SentenceDraft[] | undefined) ?? []).map((i) => normaliseSentence(kind, i)),
-    };
+    const items = ((content.items as SentenceDraft[] | undefined) ?? []).map((i) =>
+      normaliseSentence(kind, i),
+    );
+    if (kind === "translate") return { direction: content.direction === "vi_en" ? "vi_en" : "en_vi", items };
+    return { items };
   }
   const items = ((content.items as QuizDraft[] | undefined) ?? []).map(normaliseQuiz);
   if (kind === "listening") return content.media ? { media: content.media, items } : { items };
@@ -227,6 +246,7 @@ const SENTENCE_HELP: Record<string, string> = {
   true_false: "Mỗi câu: một hình, một câu tiếng Anh, và câu đó đúng hay sai với hình.",
   fill_blank: "Viết ___ (3 dấu gạch dưới) ở chỗ trống. Nhập đáp án đúng và 2 đáp án sai.",
   rearrange: "Viết câu đúng, hệ thống tự xáo trộn các từ cho học sinh sắp xếp (2–10 từ).",
+  translate: "Mỗi câu: câu gốc, nghĩa đúng và 2 nghĩa sai (gần giống để học sinh phải đọc kỹ).",
 };
 
 function SentenceItems({
@@ -253,7 +273,13 @@ function SentenceItems({
             <Input
               value={it.sentence}
               onChange={(e) => update(i, { sentence: e.target.value })}
-              placeholder={kind === "fill_blank" ? "A ___ can swim." : "This is a dog."}
+              placeholder={
+                kind === "fill_blank"
+                  ? "A ___ can swim."
+                  : kind === "translate"
+                    ? "I have got a cat."
+                    : "This is a dog."
+              }
               aria-label={`Câu ${i + 1}`}
               maxLength={200}
             />
@@ -266,12 +292,12 @@ function SentenceItems({
                 no="Sai với hình (No)"
               />
             ) : null}
-            {kind === "fill_blank" ? (
+            {kind === "fill_blank" || kind === "translate" ? (
               <div className="grid gap-2 sm:grid-cols-3">
                 <Input
                   value={typeof it.answer === "string" ? it.answer : ""}
                   onChange={(e) => update(i, { answer: e.target.value })}
-                  placeholder="Đáp án đúng"
+                  placeholder={kind === "translate" ? "Nghĩa đúng" : "Đáp án đúng"}
                   aria-label={`Đáp án đúng câu ${i + 1}`}
                   className="border-leaf"
                 />
@@ -300,7 +326,7 @@ function SentenceItems({
             ...items,
             kind === "true_false"
               ? { emoji: null, sentence: "", answer: true }
-              : kind === "fill_blank"
+              : kind === "fill_blank" || kind === "translate"
                 ? { emoji: null, sentence: "", answer: "", options: ["", "", ""] }
                 : { emoji: null, sentence: "" },
           ])
@@ -330,7 +356,7 @@ function normaliseSentence(kind: PracticeKind, it: SentenceDraft) {
   const emoji = emojiCode(it.emoji);
   const sentence = it.sentence.trim();
   if (kind === "true_false") return { emoji, sentence, answer: it.answer === true, ...hintOf(it) };
-  if (kind === "fill_blank") {
+  if (kind === "fill_blank" || kind === "translate") {
     const answer = typeof it.answer === "string" ? it.answer.trim() : "";
     const wrong = wrongOptions(it)
       .map((o) => o.trim())

@@ -14,6 +14,7 @@ import {
   levelByCode,
   PRACTICE_KINDS,
   KIND_LABEL_VI,
+  WRITE_HINTS,
   type PracticeKind,
 } from "@/features/practice/model";
 import { fieldErrorsOf, type FormState } from "@/features/people/schemas";
@@ -330,6 +331,8 @@ function defaultTitleEn(kind: PracticeKind): string {
     listening: "Listen and answer",
     reading: "Read and answer",
     mixed: "Skills challenge",
+    match_meaning: "Match the meanings",
+    translate: "What does it mean?",
   }[kind];
 }
 
@@ -342,6 +345,7 @@ const activitySchema = z.object({
   content: z.string().max(60_000),
   hints: z.enum(["on", "off"]),
   maxTries: z.coerce.number().int().min(1).max(5),
+  writeHint: z.enum(WRITE_HINTS),
 });
 
 /** `content` arrives as JSON built by the editor; validated per kind here. */
@@ -356,6 +360,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     content: formData.get("content") ?? "{}",
     hints: formData.get("hints") === "on" ? "on" : "off",
     maxTries: formData.get("maxTries") || 3,
+    writeHint: formData.get("writeHint") || "slots",
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
 
@@ -393,7 +398,11 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
       status: parsed.data.status,
       sort_order: parsed.data.sortOrder,
       content,
-      settings: { hints: parsed.data.hints === "on", maxTries: parsed.data.maxTries },
+      settings: {
+        hints: parsed.data.hints === "on",
+        maxTries: parsed.data.maxTries,
+        writeHint: parsed.data.writeHint,
+      },
     })
     .eq("id", parsed.data.id);
   if (error) return { error: SAVE_FAILED };

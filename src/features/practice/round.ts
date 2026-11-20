@@ -24,7 +24,7 @@ type QuestionBody =
   | { type: "flash"; card: Card }
   | { type: "listen_choose"; answer: Card; options: Card[] }
   | { type: "look_choose"; answer: Card; options: string[] }
-  | { type: "match"; pairs: Card[] }
+  | { type: "match"; pairs: Card[]; /** Vietnamese meanings instead of pictures (D47). */ meaning?: boolean }
   | { type: "spell"; answer: Card; letters: string[] }
   | { type: "true_false"; emoji: string | null; sentence: string; answer: boolean }
   | {
@@ -37,7 +37,15 @@ type QuestionBody =
     }
   | { type: "rearrange"; emoji: string | null; words: string[]; answer: string[] }
   | { type: "listen_type"; answer: Card }
-  | { type: "choice"; emoji: string | null; prompt: string; options: string[]; answer: string };
+  | {
+      type: "choice";
+      emoji: string | null;
+      prompt: string;
+      options: string[];
+      answer: string;
+      /** "Choose the meaning" (D47): which language the prompt is in. */
+      translate?: "en_vi" | "vi_en";
+    };
 
 /**
  * A question; `ctx` points into `Round.contexts` when it is about a passage
@@ -174,13 +182,25 @@ function buildSimple(
   if (isSentenceKind(kind)) {
     const parsed = itemsSchemaByKind[kind].safeParse(content);
     if (!parsed.success) return { questions: [], maxScore: 0 };
-    const items = shuffle(parsed.data.items, rand).slice(0, ROUND_SIZE);
+    const items = shuffle(parsed.data.items as unknown[], rand).slice(0, ROUND_SIZE);
+    const direction = (parsed.data as { direction?: "en_vi" | "vi_en" }).direction ?? "en_vi";
     const questions: Question[] = items.map((item): Question => {
       const h = (item as { hint?: string }).hint;
       return h ? { ...sentenceQuestion(item), hint: h } : sentenceQuestion(item);
     });
     return { questions, maxScore: questions.length };
     function sentenceQuestion(item: (typeof items)[number]): QuestionBody {
+      if (kind === "translate") {
+        const i = item as { emoji?: string | null; sentence: string; answer: string; options: string[] };
+        return {
+          type: "choice",
+          emoji: i.emoji ?? null,
+          prompt: i.sentence,
+          options: shuffle(i.options, rand),
+          answer: i.answer,
+          translate: direction,
+        };
+      }
       if (kind === "true_false") {
         const i = item as unknown as { emoji?: string | null; sentence: string; answer: boolean };
         return { type: "true_false", emoji: i.emoji ?? null, sentence: i.sentence, answer: i.answer };
@@ -212,7 +232,10 @@ function buildSimple(
   const parsed = wordContentSchema.safeParse(content);
   const wanted =
     parsed.success && parsed.data.words?.length ? parsed.data.words.map((w) => w.toLowerCase()) : null;
-  const all: Card[] = topicWords.filter((w) => w.emoji || w.image);
+  // Meanings need no picture (D47): every word with a Vietnamese meaning can be matched.
+  const all: Card[] = topicWords.filter((w) =>
+    kind === "match_meaning" ? w.meaningVi.trim() : w.emoji || w.image,
+  );
   const pool = wanted ? all.filter((w) => wanted.includes(w.word.toLowerCase())) : all;
   if (pool.length === 0) return { questions: [], maxScore: 0 };
 
@@ -222,9 +245,11 @@ function buildSimple(
       .map((card) => ({ type: "flash", card }));
     return { questions, maxScore: questions.length };
   }
-  if (kind === "match") {
+  if (kind === "match" || kind === "match_meaning") {
     const chosen = shuffle(pool, rand).slice(0, MATCH_WORDS);
-    const questions: Question[] = groupPairs(chosen, MATCH_PAIRS).map((pairs) => ({ type: "match", pairs }));
+    const questions: Question[] = groupPairs(chosen, MATCH_PAIRS).map((pairs) =>
+      kind === "match_meaning" ? { type: "match", pairs, meaning: true } : { type: "match", pairs },
+    );
     return { questions, maxScore: scoreOf(questions) };
   }
   if (kind === "listen_type") {
@@ -304,14 +329,22 @@ export function regroupMatches(questions: Question[], size: number): Question[] 
         run.flatMap((q) => q.pairs),
         size,
       )) {
-        out.push({ type: "match", pairs, ...(run[0]!.ctx !== undefined ? { ctx: run[0]!.ctx } : {}) });
+        out.push({
+          type: "match",
+          pairs,
+          ...(run[0]!.meaning ? { meaning: true } : {}),
+          ...(run[0]!.ctx !== undefined ? { ctx: run[0]!.ctx } : {}),
+        });
       }
     } else out.push(...run);
     run = [];
   };
   for (const q of questions) {
-    if (q.type === "match") run.push(q);
-    else {
+    if (q.type === "match") {
+      // Picture and meaning matches never share a screen.
+      if (run.length && Boolean(run[0]!.meaning) !== Boolean(q.meaning)) flush();
+      run.push(q);
+    } else {
       flush();
       out.push(q);
     }
@@ -335,4 +368,44 @@ export function sameSentence(a: string[], b: string[]): boolean {
 export function sameWord(typed: string, answer: string): boolean {
   const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
   return norm(typed) === norm(answer);
+}
+
+// ---------------------------------------------------- listen-and-write hints (D46) ---
+
+/** Small deterministic hash so a word always gets the same tiles (same on server and browser). */
+function seedOf(word: string): Rand {
+  let h = 2166136261;
+  for (const ch of word) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  let s = (h >>> 0) % 2147483646 || 1;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+/**
+ * "c _ t": which letters are shown — the first, the last (from 3 letters)
+ * and every third letter in between for long words. Spaces/hyphens always show.
+ */
+export function revealPattern(word: string): (string | null)[] {
+  const chars = [...word];
+  const last = chars.length - 1;
+  return chars.map((ch, i) =>
+    !/[a-z]/i.test(ch) || i === 0 || (i === last && chars.length >= 3) || (chars.length >= 7 && i % 3 === 0)
+      ? ch
+      : null,
+  );
+}
+
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+
+/** Letter tiles for a word: its letters plus `extra` letters not in it, in a stable shuffled order. */
+export function letterTiles(word: string, extra = 3): string[] {
+  const letters = [...word.toLowerCase()].filter((c) => /[a-z]/.test(c));
+  const rand = seedOf(word.toLowerCase());
+  const others = shuffle(
+    [...ALPHABET].filter((c) => !letters.includes(c)),
+    rand,
+  ).slice(0, extra);
+  return shuffle([...letters, ...others], rand);
 }

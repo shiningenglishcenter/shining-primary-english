@@ -149,6 +149,8 @@ const KIND_HELP: Record<string, string> = {
   listening: "xem video YouTube / nghe audio rồi trả lời",
   reading: "đọc đoạn văn ngắn rồi trả lời",
   mixed: "ghép 2–6 dạng trên thành một bài",
+  match_meaning: "nối từ tiếng Anh với nghĩa tiếng Việt (không cần hình)",
+  translate: "đọc câu, chọn nghĩa đúng (Anh → Việt hoặc Việt → Anh)",
 };
 
 export default function GuidePage() {
