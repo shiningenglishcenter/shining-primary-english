@@ -57,3 +57,24 @@ describe("decideRoute", () => {
     }
   });
 });
+
+describe("guest links (D35)", () => {
+  it("/p/<token> is public but /parent still needs a parent", () => {
+    expect(
+      decideRoute({
+        pathname: "/p/AbCdEfGhIjKlMnOpQrStUv",
+        search: "",
+        signedIn: false,
+        role: null,
+        hadAuthCookie: false,
+      }).type,
+    ).toBe("next");
+    expect(
+      decideRoute({ pathname: "/parent", search: "", signedIn: false, role: null, hadAuthCookie: false })
+        .type,
+    ).toBe("redirect");
+    expect(
+      decideRoute({ pathname: "/p", search: "", signedIn: true, role: "student", hadAuthCookie: true }).type,
+    ).toBe("next");
+  });
+});

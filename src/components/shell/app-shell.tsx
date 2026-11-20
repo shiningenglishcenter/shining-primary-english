@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { FeedbackFab } from "@/components/shell/feedback-fab";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/features/auth/actions";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -69,6 +70,7 @@ export function AppShell({
       <main className={cn("mx-auto w-full flex-1 px-4 py-8 sm:px-6", wide ? "max-w-7xl" : "max-w-3xl")}>
         {children}
       </main>
+      {wide ? <FeedbackFab /> : null}
     </div>
   );
 }

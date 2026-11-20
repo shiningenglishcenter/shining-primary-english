@@ -9,6 +9,7 @@ import {
   FormStatus,
   PasswordField,
   SubmitButton,
+  useKeepValues,
 } from "@/components/forms/form-parts";
 import { Input } from "@/components/ui/input";
 import { generatePassword, suggestUsername } from "@/features/people/credentials";
@@ -41,6 +42,7 @@ function NewTeacherFormInner({
   onAnother: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createTeacher, initial);
+  const keep = useKeepValues(formAction);
   const [loginType, setLoginType] = useState<"username" | "email">("username");
   const [username, setUsername] = useState("");
   const [usernameEdited, setUsernameEdited] = useState(false);
@@ -61,7 +63,7 @@ function NewTeacherFormInner({
   }
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex max-w-2xl flex-col gap-5" noValidate>
       <FormStatus state={state} />
       <Field id="fullName" label="Họ và tên" error={e.fullName}>
         <Input
@@ -150,9 +152,10 @@ export function EditTeacherForm({
   teacher: { id: string; fullName: string; phone: string | null };
 }) {
   const [state, formAction, pending] = useActionState(updateTeacher, initial);
+  const keep = useKeepValues(formAction);
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form onSubmit={keep} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="id" value={teacher.id} />
       <FormStatus state={state} />
       <Field id="fullName" label="Họ và tên" error={e.fullName}>
