@@ -36,6 +36,8 @@ type Sound = ReturnType<typeof useSound>;
 type Status = "idle" | "wrong" | "right" | "failed";
 
 const SettingsContext = createContext<PlaySettings>(DEFAULT_SETTINGS);
+/** The current question's explanation (D49), read by its footer. */
+const ExplainContext = createContext<string | undefined>(undefined);
 
 const INSTRUCTIONS: Record<Question["type"], [string, string]> = {
   flash: ["Look, listen and say", "Nhìn, nghe và đọc theo"],
@@ -318,6 +320,14 @@ type QProps = {
 };
 
 function QuestionView(props: QProps) {
+  return (
+    <ExplainContext value={props.q.explain}>
+      <QuestionBody {...props} />
+    </ExplainContext>
+  );
+}
+
+function QuestionBody(props: QProps) {
   switch (props.q.type) {
     case "flash":
       return <FlashQ {...props} q={props.q} />;
@@ -436,6 +446,9 @@ function Footer({
   }, [a.status]);
   const t = useT();
   const hintText = a.hintText(hint);
+  const settings = useContext(SettingsContext);
+  const explanation = useContext(ExplainContext);
+  const showExplain = settings.explain && explanation && (a.status === "right" || a.status === "failed");
   return (
     <>
       {a.status === "right" ? (
@@ -509,6 +522,16 @@ function Footer({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {showExplain ? (
+        <p
+          className="animate-kid-in flex items-start gap-2 rounded-2xl bg-k-surface px-4 py-3 text-left text-base font-bold"
+          lang="vi"
+          data-testid="explanation"
+        >
+          <span aria-hidden="true">📘</span>
+          <span>{explanation}</span>
+        </p>
       ) : null}
       {a.status === "right" || a.status === "failed" ? (
         <button

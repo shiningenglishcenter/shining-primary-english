@@ -344,6 +344,7 @@ const activitySchema = z.object({
   sortOrder: z.coerce.number().int().min(0).max(10_000),
   content: z.string().max(60_000),
   hints: z.enum(["on", "off"]),
+  explain: z.enum(["on", "off"]),
   maxTries: z.coerce.number().int().min(1).max(5),
   writeHint: z.enum(WRITE_HINTS),
   yesNo: z.enum(["short", "full"]),
@@ -360,6 +361,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     sortOrder: formData.get("sortOrder") || 0,
     content: formData.get("content") ?? "{}",
     hints: formData.get("hints") === "on" ? "on" : "off",
+    explain: formData.get("explain") === "on" ? "on" : "off",
     maxTries: formData.get("maxTries") || 3,
     writeHint: formData.get("writeHint") || "slots",
     yesNo: formData.get("yesNo") === "full" ? "full" : "short",
@@ -402,6 +404,7 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
       content,
       settings: {
         hints: parsed.data.hints === "on",
+        explain: parsed.data.explain === "on",
         maxTries: parsed.data.maxTries,
         writeHint: parsed.data.writeHint,
         yesNo: parsed.data.yesNo,

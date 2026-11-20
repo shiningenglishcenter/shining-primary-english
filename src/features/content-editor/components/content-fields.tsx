@@ -241,6 +241,7 @@ type SentenceDraft = {
   answer?: boolean | string;
   options?: string[];
   hint?: string;
+  explain?: string;
 };
 
 const SENTENCE_HELP: Record<string, string> = {
@@ -321,6 +322,7 @@ function SentenceItems({
               </div>
             ) : null}
             <HintInput n={i + 1} value={it.hint ?? ""} onChange={(hint) => update(i, { hint })} />
+            <ExplainInput n={i + 1} value={it.explain ?? ""} onChange={(explain) => update(i, { explain })} />
           </li>
         ))}
       </ol>
@@ -369,9 +371,10 @@ function emojiCode(e: string | null | undefined): string | null {
   return e ? (toCode(e) ?? e) : null;
 }
 
-function hintOf(it: { hint?: string }): { hint?: string } {
+function hintOf(it: { hint?: string; explain?: string }): { hint?: string; explain?: string } {
   const h = it.hint?.trim();
-  return h ? { hint: h } : {};
+  const e = it.explain?.trim();
+  return { ...(h ? { hint: h } : {}), ...(e ? { explain: e } : {}) };
 }
 
 function normaliseSentence(kind: PracticeKind, it: SentenceDraft) {
@@ -391,8 +394,16 @@ function normaliseSentence(kind: PracticeKind, it: SentenceDraft) {
 // ------------------------------------------------------------ quiz items ---
 
 type QuizDraft =
-  | { type: "tf"; emoji?: string | null; sentence: string; answer: boolean; hint?: string }
-  | { type: "mc"; emoji?: string | null; question: string; answer: string; options: string[]; hint?: string };
+  | { type: "tf"; emoji?: string | null; sentence: string; answer: boolean; hint?: string; explain?: string }
+  | {
+      type: "mc";
+      emoji?: string | null;
+      question: string;
+      answer: string;
+      options: string[];
+      hint?: string;
+      explain?: string;
+    };
 
 function normaliseQuiz(it: QuizDraft) {
   const emoji = emojiCode(it.emoji);
@@ -481,6 +492,11 @@ function QuizItems({
               </>
             )}
             <HintInput n={i + 1} value={it.hint ?? ""} onChange={(hint) => set(i, { ...it, hint })} />
+            <ExplainInput
+              n={i + 1}
+              value={it.explain ?? ""}
+              onChange={(explain) => set(i, { ...it, explain })}
+            />
           </li>
         ))}
       </ol>
@@ -748,6 +764,20 @@ function HintInput({ n, value, onChange }: { n: number; value: string; onChange:
       aria-label={`Gợi ý câu ${n}`}
       maxLength={160}
       className="text-sm"
+    />
+  );
+}
+
+function ExplainInput({ n, value, onChange }: { n: number; value: string; onChange: (v: string) => void }) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="📘 Giải thích sau khi trả lời (không bắt buộc), ví dụ: Dùng “an” trước từ bắt đầu bằng a, e, i, o, u."
+      aria-label={`Giải thích câu ${n}`}
+      maxLength={400}
+      rows={2}
+      className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
     />
   );
 }

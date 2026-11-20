@@ -54,15 +54,23 @@ describe("hints and settings", () => {
       rand,
     );
     expect(r.questions[0]).toMatchObject({ type: "true_false", hint: "Look at the colour." });
-    expect(settingsOf(undefined)).toEqual({ hints: true, maxTries: 3, writeHint: "slots", yesNo: "short" });
-    expect(settingsOf({ hints: false, maxTries: 9 })).toEqual({
+    expect(settingsOf(undefined)).toEqual({
       hints: true,
+      explain: true,
       maxTries: 3,
       writeHint: "slots",
       yesNo: "short",
     });
-    expect(settingsOf({ hints: false, maxTries: 1 })).toEqual({
+    expect(settingsOf({ hints: false, explain: true, maxTries: 9 })).toEqual({
+      hints: true,
+      explain: true,
+      maxTries: 3,
+      writeHint: "slots",
+      yesNo: "short",
+    });
+    expect(settingsOf({ hints: false, explain: true, maxTries: 1 })).toEqual({
       hints: false,
+      explain: true,
       maxTries: 1,
       writeHint: "slots",
       yesNo: "short",
@@ -221,5 +229,29 @@ describe("full Yes/No answers (D48)", () => {
     expect(toYesNoQuestion("One and one is two.")).toBeNull();
     expect(toYesNoQuestion("This isn't a dog.")).toBeNull();
     expect(toYesNoQuestion("Is this a dog?")).toBeNull();
+  });
+});
+
+describe("explanations (D49)", () => {
+  it("carries the teacher's explanation to the question; on by default", () => {
+    const content = {
+      items: [
+        {
+          sentence: "It is ___ apple.",
+          answer: "an",
+          options: ["an", "a"],
+          explain: "Dùng an trước nguyên âm.",
+        },
+      ],
+    };
+    expect(contentSchemaFor("fill_blank").safeParse(content).success).toBe(true);
+    expect(buildRound("fill_blank", content, [], rand).questions[0]).toMatchObject({
+      explain: "Dùng an trước nguyên âm.",
+    });
+    expect(settingsOf({}).explain).toBe(true);
+    expect(
+      contentSchemaFor("fill_blank").safeParse({ items: [{ ...content.items[0], explain: "x".repeat(401) }] })
+        .success,
+    ).toBe(false);
   });
 });

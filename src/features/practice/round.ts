@@ -51,7 +51,7 @@ type QuestionBody =
  * A question; `ctx` points into `Round.contexts` when it is about a passage
  * or a recording, which the player keeps on screen above the question.
  */
-export type Question = QuestionBody & { ctx?: number; hint?: string };
+export type Question = QuestionBody & { ctx?: number; hint?: string; explain?: string };
 
 /** Server-side context: an audio file is still a storage path here. */
 export type RoundContext =
@@ -153,6 +153,7 @@ export function buildRound(
       ...quizQuestion(item, rand),
       ctx: 0,
       ...(item.hint ? { hint: item.hint } : {}),
+      ...(item.explain ? { explain: item.explain } : {}),
     }));
     return { questions, maxScore: scoreOf(questions), contexts: [context] };
   }
@@ -185,8 +186,8 @@ function buildSimple(
     const items = shuffle(parsed.data.items as unknown[], rand).slice(0, ROUND_SIZE);
     const direction = (parsed.data as { direction?: "en_vi" | "vi_en" }).direction ?? "en_vi";
     const questions: Question[] = items.map((item): Question => {
-      const h = (item as { hint?: string }).hint;
-      return h ? { ...sentenceQuestion(item), hint: h } : sentenceQuestion(item);
+      const { hint: h, explain: e } = item as { hint?: string; explain?: string };
+      return { ...sentenceQuestion(item), ...(h ? { hint: h } : {}), ...(e ? { explain: e } : {}) };
     });
     return { questions, maxScore: questions.length };
     function sentenceQuestion(item: (typeof items)[number]): QuestionBody {

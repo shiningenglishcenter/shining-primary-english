@@ -125,6 +125,13 @@ const hint = z
   .max(160)
   .optional()
   .transform((v) => v || undefined);
+/** Optional explanation in Vietnamese (grammar, meaning), shown after answering (D49). */
+const explain = z
+  .string()
+  .trim()
+  .max(400)
+  .optional()
+  .transform((v) => v || undefined);
 
 /**
  * Per-activity play settings (D29; `practice_activities.settings`). Defaults:
@@ -146,6 +153,8 @@ export const WRITE_HINT_VI: Record<WriteHint, string> = {
 
 export const settingsSchema = z.object({
   hints: z.boolean().default(true),
+  /** Show the teacher's explanations after each answer (D49). */
+  explain: z.boolean().default(true),
   maxTries: z.number().int().min(1).max(5).default(3),
   writeHint: z.enum(WRITE_HINTS).default("slots"),
   /** Yes/No pictures (D48): "Yes"/"No", or a question with full answers ("Yes, it is."). */
@@ -154,6 +163,7 @@ export const settingsSchema = z.object({
 export type PlaySettings = z.infer<typeof settingsSchema>;
 export const DEFAULT_SETTINGS: PlaySettings = {
   hints: true,
+  explain: true,
   maxTries: 3,
   writeHint: "slots",
   yesNo: "short",
@@ -169,7 +179,7 @@ export const POINTS = { first: 2, retry: 1, none: 0 } as const;
 export const wordContentSchema = z.object({
   words: z.array(z.string().trim().min(1).max(80)).max(100).optional(),
 });
-export const trueFalseItemSchema = z.object({ emoji, sentence, answer: z.boolean(), hint });
+export const trueFalseItemSchema = z.object({ emoji, sentence, answer: z.boolean(), hint, explain });
 export const fillBlankItemSchema = z
   .object({
     emoji,
@@ -177,11 +187,13 @@ export const fillBlankItemSchema = z
     answer: z.string().trim().min(1).max(60),
     options: z.array(z.string().trim().min(1).max(60)).min(2).max(4),
     hint,
+    explain,
   })
   .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn");
 export const rearrangeItemSchema = z.object({
   emoji,
   hint,
+  explain,
   sentence: sentence.refine(
     (s) => s.trim().split(/\s+/).length >= 2 && s.trim().split(/\s+/).length <= 10,
     "Câu từ 2 đến 10 từ",
@@ -196,6 +208,7 @@ export const translateItemSchema = z
     answer: z.string().trim().min(1).max(200),
     options: z.array(z.string().trim().min(1).max(200)).min(2).max(4),
     hint,
+    explain,
   })
   .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn");
 /** en_vi: English sentence, Vietnamese choices; vi_en: the other way round. */
@@ -216,7 +229,7 @@ export const itemsSchemaByKind = {
 
 /** A question about a passage or a recording: Yes/No, or pick one answer. */
 export const quizItemSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean(), hint }),
+  z.object({ type: z.literal("tf"), emoji, sentence, answer: z.boolean(), hint, explain }),
   z
     .object({
       type: z.literal("mc"),
@@ -225,6 +238,7 @@ export const quizItemSchema = z.discriminatedUnion("type", [
       answer: z.string().trim().min(1).max(80),
       options: z.array(z.string().trim().min(1).max(80)).min(2).max(4),
       hint,
+      explain,
     })
     .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn"),
 ]);

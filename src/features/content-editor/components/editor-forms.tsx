@@ -496,6 +496,18 @@ export function ActivityEditor({
               />
               Cho xem gợi ý 💡 (gợi ý của thầy cô ở từng câu, nếu không có thì hệ thống tự gợi ý)
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="explain"
+                value="on"
+                defaultChecked={activity.settings.explain}
+                className="size-4 accent-ink"
+                data-testid="explain-toggle"
+              />
+              Hiện giải thích 📘 sau khi trả lời (câu nào thầy cô có viết giải thích). Tắt cho lớp chưa đọc
+              được.
+            </label>
             <label className="flex flex-wrap items-center gap-2 text-sm">
               Sai
               <Select name="maxTries" defaultValue={String(activity.settings.maxTries)} className="w-20">
@@ -557,6 +569,7 @@ export function ActivityEditor({
             <input type="hidden" name="maxTries" value={activity.settings.maxTries} />
             <input type="hidden" name="writeHint" value={activity.settings.writeHint} />
             <input type="hidden" name="yesNo" value={activity.settings.yesNo} />
+            {activity.settings.explain ? <input type="hidden" name="explain" value="on" /> : null}
           </>
         )}
 
