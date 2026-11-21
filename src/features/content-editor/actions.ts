@@ -18,6 +18,8 @@ import {
   type PracticeKind,
 } from "@/features/practice/model";
 import { fieldErrorsOf, type FormState } from "@/features/people/schemas";
+import { getLevelCatalog } from "@/features/practice/catalog";
+import { IPA } from "../../../content/ipa.mts";
 
 /**
  * Practice content editing for admins AND teachers (owner decision,
@@ -75,7 +77,7 @@ function codeFrom(title: string): string {
 
 export async function createTopic(_prev: FormState, formData: FormData): Promise<FormState> {
   await staff();
-  const level = levelByCode(String(formData.get("levelCode") ?? ""));
+  const level = levelByCode(String(formData.get("levelCode") ?? ""), await getLevelCatalog());
   const parsed = topicSchema.safeParse({
     titleEn: formData.get("titleEn"),
     titleVi: formData.get("titleVi"),
@@ -150,6 +152,8 @@ export async function updateTopic(_prev: FormState, formData: FormData): Promise
     status: formData.get("status"),
     sortOrder: formData.get("sortOrder") || 0,
   });
+  // Patterns have their own tab (D56); older forms still send them here.
+  const hasPatterns = formData.has("patterns");
   const patterns = patternsField.safeParse(String(formData.get("patterns") ?? ""));
   if (!id.success) return { error: "Yêu cầu không hợp lệ." };
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
@@ -163,13 +167,36 @@ export async function updateTopic(_prev: FormState, formData: FormData): Promise
       emoji: parsed.data.emoji,
       status: parsed.data.status,
       sort_order: parsed.data.sortOrder,
-      patterns: patterns.data,
+      ...(hasPatterns ? { patterns: patterns.data } : {}),
     })
     .eq("id", id.data)
     .is("deleted_at", null);
   if (error) return { error: SAVE_FAILED };
   refresh();
   return { ok: true, message: "Đã lưu chủ đề." };
+}
+
+/** Toolbar "Thao tác" on the topic list: publish, draft or delete several topics. */
+export async function bulkTopics(_prev: FormState, formData: FormData): Promise<FormState> {
+  await staff();
+  const ids = z.array(z.uuid()).min(1).max(200).safeParse(formData.getAll("ids"));
+  const op = z.enum(["publish", "draft", "delete"]).safeParse(formData.get("op"));
+  if (!ids.success) return { error: "Chọn ít nhất một chủ đề." };
+  if (!op.success) return { error: "Yêu cầu không hợp lệ." };
+  const supabase = await createClient();
+  const patch =
+    op.data === "delete"
+      ? { deleted_at: new Date().toISOString() }
+      : { status: op.data === "publish" ? "published" : "draft" };
+  const { error, count } = await supabase
+    .from("topics")
+    .update(patch, { count: "exact" })
+    .in("id", ids.data)
+    .is("deleted_at", null);
+  if (error) return { error: SAVE_FAILED };
+  refresh();
+  const what = { publish: "xuất bản", draft: "chuyển về nháp", delete: "xoá" }[op.data];
+  return { ok: true, message: `Đã ${what} ${count ?? ids.data.length} chủ đề.` };
 }
 
 // ------------------------------------------------------------- vocabulary ---
@@ -216,12 +243,13 @@ export async function saveWord(_prev: FormState, formData: FormData): Promise<Fo
     .maybeSingle();
   if (!topic) return { error: "Không tìm thấy chủ đề." };
 
+  // A new, known word gets its British IPA when the teacher left it empty (D53).
   const values = {
     word: w.word,
     meaning_vi: w.meaningVi,
     emoji: w.emoji,
     image_path: w.imagePath,
-    ipa: w.ipa,
+    ipa: w.ipa ?? (!w.id ? (IPA[w.word.toLowerCase()] ?? null) : null),
   };
   const { error } = w.id
     ? await supabase.from("vocabulary").update(values).eq("id", w.id).eq("topic_id", w.topicId)
@@ -473,4 +501,128 @@ export async function deleteActivity(_prev: FormState, formData: FormData): Prom
     .eq("id", id.data);
   if (error) return { error: SAVE_FAILED };
   redirect(`${baseOf(formData)}/topics/${topicId.data}`);
+}
+
+// ------------------------------------------------------- topic page (D56) ---
+
+const patternRows = z
+  .array(z.object({ en: z.string().trim().max(200), vi: z.string().trim().max(200) }))
+  .max(10, "Tối đa 10 mẫu câu.");
+
+/** Patterns tab: the topic's sentence patterns as rows ({ en, vi }). */
+export async function savePatterns(_prev: FormState, formData: FormData): Promise<FormState> {
+  await staff();
+  const id = z.uuid().safeParse(formData.get("topicId"));
+  let rows: unknown = null;
+  try {
+    rows = JSON.parse(String(formData.get("patterns") ?? "[]"));
+  } catch {
+    /* invalid */
+  }
+  const parsed = patternRows.safeParse(rows);
+  if (!id.success || !parsed.success) {
+    return { error: parsed.error?.issues[0]?.message ?? "Yêu cầu không hợp lệ." };
+  }
+  const patterns = parsed.data.filter((p) => p.en);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("topics")
+    .update({ patterns })
+    .eq("id", id.data)
+    .is("deleted_at", null);
+  if (error) return { error: SAVE_FAILED };
+  refresh();
+  return { ok: true, message: `Đã lưu ${patterns.length} mẫu câu.` };
+}
+
+/** Header status switch on the topic page. */
+export async function setTopicStatus(_prev: FormState, formData: FormData): Promise<FormState> {
+  await staff();
+  const id = z.uuid().safeParse(formData.get("topicId"));
+  const status = z.enum(STATUSES).safeParse(formData.get("status"));
+  if (!id.success || !status.success) return { error: "Yêu cầu không hợp lệ." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("topics").update({ status: status.data }).eq("id", id.data);
+  if (error) return { error: SAVE_FAILED };
+  refresh();
+  return { ok: true, message: status.data === "published" ? "Đã xuất bản." : "Đã chuyển về nháp." };
+}
+
+/**
+ * "Nhập nhiều từ một lúc": one word per line, "word | nghĩa" (optionally
+ * "| 🐈"; a tab works too). Known words get their IPA; words already in the
+ * level are skipped.
+ */
+export async function bulkAddWords(_prev: FormState, formData: FormData): Promise<FormState> {
+  await staff();
+  const topicId = z.uuid().safeParse(formData.get("topicId"));
+  if (!topicId.success) return { error: "Yêu cầu không hợp lệ." };
+  const lines = String(formData.get("lines") ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return { error: "Dán mỗi dòng một từ: cat | con mèo" };
+  if (lines.length > 100) return { error: "Tối đa 100 từ mỗi lần." };
+  const bad: number[] = [];
+  const rows = lines.flatMap((l, i) => {
+    const [word = "", meaning = "", pic = ""] = l.split(/\s*[|\t]\s*/);
+    const emoji = pic ? emojiField.safeParse(pic) : null;
+    if (!word || !meaning || word.length > 80 || meaning.length > 300 || (emoji && !emoji.success)) {
+      bad.push(i + 1);
+      return [];
+    }
+    return [{ word, meaning, emoji: emoji?.success ? emoji.data : null }];
+  });
+  if (bad.length) return { error: `Dòng ${bad.slice(0, 5).join(", ")} chưa đúng dạng “từ | nghĩa”.` };
+  const supabase = await createClient();
+  const { data: topic } = await supabase
+    .from("topics")
+    .select("id, level_id, code")
+    .eq("id", topicId.data)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!topic) return { error: "Không tìm thấy chủ đề." };
+  let added = 0;
+  const skipped: string[] = [];
+  for (const r of rows) {
+    const { error } = await supabase.from("vocabulary").insert({
+      word: r.word,
+      meaning_vi: r.meaning,
+      emoji: r.emoji,
+      ipa: IPA[r.word.toLowerCase()] ?? null,
+      level_id: topic.level_id,
+      topic_id: topic.id,
+      topic: topic.code,
+      part_of_speech: "noun",
+      status: "published",
+    });
+    if (!error) added++;
+    else if (error.code === "23505") skipped.push(r.word);
+    else return { error: SAVE_FAILED };
+  }
+  refresh();
+  const skip = skipped.length
+    ? `; bỏ qua ${skipped.length} từ đã có (${skipped.slice(0, 5).join(", ")})`
+    : "";
+  return { ok: true, message: `Đã thêm ${added} từ${skip}. Từ chưa có hình: bấm Sửa để chọn hình.` };
+}
+
+/** Drag/arrow reorder on the activities tab: every activity id of the topic, in the new order. */
+export async function reorderActivities(topicId: string, ids: string[]): Promise<{ ok: boolean }> {
+  await staff();
+  const t = z.uuid().safeParse(topicId);
+  const list = z.array(z.uuid()).max(200).safeParse(ids);
+  if (!t.success || !list.success) return { ok: false };
+  const supabase = await createClient();
+  const results = await Promise.all(
+    list.data.map((id, i) =>
+      supabase
+        .from("practice_activities")
+        .update({ sort_order: (i + 1) * 10 })
+        .eq("id", id)
+        .eq("topic_id", t.data),
+    ),
+  );
+  refresh();
+  return { ok: results.every((r) => !r.error) };
 }

@@ -140,6 +140,15 @@ Pronunciation deferred (owner). D46–D54.
 - Login remembers usernames on the device; IPA on flashcards (British, seeded from Britfone);
   teacher comment per topic with a message for parents.
 
+### Phase 1.7 — Editor redesign and programmes (2026-11-21, same branch)
+D55–D56, from the approved draft.
+- Bài luyện: programme tabs (Cambridge / Global Success) → level tabs; toolbar with "Thêm chủ đề" dialog,
+  bulk actions, search by topic or word, "cần hoàn thiện" filter.
+- Topic page in steps: Thông tin · Từ vựng · Mẫu câu · Bài luyện · Chia sẻ. IPA box when adding a word
+  (auto-filled if left empty); "Nhập nhiều từ một lúc"; drag or arrows to order activities.
+- Activity page: tabs Câu hỏi / Cài đặt / Chia sẻ, save bar always visible, live preview.
+- Admin: `/admin/programs` to add programmes (e.g. another textbook series) and levels.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
@@ -163,6 +172,7 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 18. `supabase/migrations/20261121000030_patterns_reviews.sql`
 19. `supabase/migrations/20261121000031_round3_content.sql`
 20. `supabase/migrations/20261121000032_topic_comments.sql`
+21. `supabase/migrations/20261122000033_programs.sql` (D55; the app works without it, with the built-in list)
 
 **Run 14–20 before deploying Phases 1.5–1.6**: the new code reads `vocabulary.image_path` and
 `progress_records.is_retry`; students' pages fail until those columns exist.
@@ -199,6 +209,10 @@ Phase 1.6 (2026-11-21): DB **300/300**, unit **134/134**, e2e **72/72** on a loc
 building every new kind and a pupil playing them, video gate fallback, GS1 review, remembered username,
 parent message.
 
+Phase 1.7 (2026-11-21): DB **310/310**, unit **134/134**, e2e **74/74** on a local Supabase stack, incl. programme/
+level tabs, add-topic dialog, many words at once with IPA, activity reorder, live preview, save bar, and an admin
+adding a programme and level that show as tabs.
+
 Phase 1 e2e: levels open with their themes; a student plays all 8 games of a topic and earns 3 stars each;
 a wrong first answer costs the point; editor is staff-only; a teacher builds a Movers topic (words,
 word game, sentence game with validation) and students see it only after publishing.
@@ -214,7 +228,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D54; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D56; Phase 1.7: D55–D56; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

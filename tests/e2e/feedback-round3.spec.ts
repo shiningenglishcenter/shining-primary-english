@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { loginFromScratch, signInAs } from "./helpers";
+import { activityTab, loginFromScratch, openNewTopicForm, publishTopic, signInAs, topicTab } from "./helpers";
 
 /** Teacher feedback, round 3 (ARCHITECTURE D46–D54). */
 
@@ -19,7 +19,7 @@ test.describe("teacher feedback round 3", () => {
     const teacher = await as(browser, "gv.lan");
     await teacher.goto("/teacher/content?level=movers");
     const topicName = `Feelings ${run}`;
-    const form = teacher.getByTestId("new-topic-form");
+    const form = await openNewTopicForm(teacher);
     await form.getByLabel("Tên chủ đề (tiếng Anh)").fill(topicName);
     await form.getByLabel("Tên chủ đề (tiếng Việt)").fill("Cảm xúc");
     await form.getByLabel("Hình (dán emoji)").fill("😊");
@@ -44,30 +44,36 @@ test.describe("teacher feedback round 3", () => {
       await row.getByLabel(/^Phiên âm của /).fill("ˈhæpi");
       await row.getByRole("button", { name: "Lưu", exact: true }).click();
     }
-    const tf = teacher.getByTestId("topic-form").locator("visible=true");
-    await tf.getByTestId("patterns-input").fill("I am happy. | Tớ vui.\nAre you sad? | Bạn có buồn không?");
-    await tf.getByLabel("Trạng thái").selectOption("published");
-    await teacher.getByRole("button", { name: "Lưu chủ đề" }).locator("visible=true").click();
-    await expect(tf.getByTestId("form-success")).toHaveText("Đã lưu chủ đề.");
+    await topicTab(teacher, "patterns");
+    const pe = teacher.getByTestId("patterns-editor").locator("visible=true");
+    await pe.getByLabel("Mẫu câu 1 (tiếng Anh)").fill("I am happy.");
+    await pe.getByLabel("Mẫu câu 1 (nghĩa)").fill("Tớ vui.");
+    await pe.getByTestId("add-pattern").click();
+    await pe.getByLabel("Mẫu câu 2 (tiếng Anh)").fill("Are you sad?");
+    await pe.getByLabel("Mẫu câu 2 (nghĩa)").fill("Bạn có buồn không?");
+    await pe.getByRole("button", { name: "Lưu mẫu câu" }).click();
+    await expect(pe.getByTestId("form-success")).toHaveText("Đã lưu 2 mẫu câu.");
+    await publishTopic(teacher);
 
     const af = () => teacher.getByTestId("activity-form").locator("visible=true");
     const addActivity = async (label: string) => {
-      await teacher.goto(topicUrl);
+      await teacher.goto(`${topicUrl}?tab=activities`);
       await teacher.getByLabel("Dạng bài mới").locator("visible=true").selectOption({ label });
       await teacher.getByRole("button", { name: "Thêm bài" }).locator("visible=true").click();
       await expect(af()).toBeVisible();
     };
     const publish = async () => {
-      await af().getByLabel("Trạng thái").selectOption("published");
-      await af().getByRole("button", { name: "Lưu bài" }).click();
+      await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
       await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     };
 
     await addActivity("Thẻ từ");
+    await activityTab(teacher, "Cài đặt");
     await af().getByTestId("ipa-toggle").locator("input").check();
     await publish();
 
     await addActivity("Nghe và viết từ");
+    await activityTab(teacher, "Cài đặt");
     await af().getByTestId("write-hint").selectOption("letters");
     await publish();
 
@@ -84,7 +90,9 @@ test.describe("teacher feedback round 3", () => {
     await publish();
 
     await addActivity("Đúng hay sai?");
+    await activityTab(teacher, "Cài đặt");
     await af().getByTestId("yes-no-style").selectOption("full");
+    await activityTab(teacher, "Câu hỏi");
     await af().getByRole("button", { name: "Thêm câu" }).click();
     await af().getByLabel("Câu 1", { exact: true }).fill("This is a happy face.");
     await expect(af().getByTestId("full-answer-preview")).toContainText("Is this a happy face?");
@@ -132,14 +140,12 @@ test.describe("teacher feedback round 3", () => {
     const teacher = await as(browser, "gv.lan");
     await teacher.goto("/teacher/content?level=movers");
     const topicName = `Songs ${run}`;
-    const form = teacher.getByTestId("new-topic-form");
+    const form = await openNewTopicForm(teacher);
     await form.getByLabel("Tên chủ đề (tiếng Anh)").fill(topicName);
     await form.getByLabel("Tên chủ đề (tiếng Việt)").fill("Bài hát");
     await form.getByRole("button", { name: "Tạo chủ đề (bản nháp)" }).click();
-    const tf = teacher.getByTestId("topic-form").locator("visible=true");
-    await tf.getByLabel("Trạng thái").selectOption("published");
-    await teacher.getByRole("button", { name: "Lưu chủ đề" }).locator("visible=true").click();
-    await expect(tf.getByTestId("form-success")).toHaveText("Đã lưu chủ đề.");
+    await publishTopic(teacher);
+    await topicTab(teacher, "activities");
     await teacher
       .getByLabel("Dạng bài mới")
       .locator("visible=true")
@@ -150,8 +156,7 @@ test.describe("teacher feedback round 3", () => {
     await af.getByTestId("listening-gate").locator("input").check();
     await af.getByRole("button", { name: "Thêm câu Đúng/Sai" }).click();
     await af.getByLabel("Câu 1", { exact: true }).fill("The song is happy.");
-    await af.getByLabel("Trạng thái").selectOption("published");
-    await af.getByRole("button", { name: "Lưu bài" }).click();
+    await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     const kid = await (await browser.newContext()).newPage();

@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
+import { getLevelCatalog } from "@/features/practice/catalog";
 import type { PlayerContext, RoundContext } from "@/features/practice/round";
 import {
   levelByCode,
@@ -104,7 +105,7 @@ export async function getTopic(topicId: string) {
     .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return null;
-  const level = levelByCode((data.level as unknown as { code: string }).code);
+  const level = levelByCode((data.level as unknown as { code: string }).code, await getLevelCatalog());
   if (!level) return null;
 
   const rows = (

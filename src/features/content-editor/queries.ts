@@ -17,31 +17,91 @@ export async function getLevelId(level: PracticeLevel): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
-export async function listTopicsForStaff(level: PracticeLevel) {
+export type TopicRow = {
+  id: string;
+  code: string;
+  titleEn: string;
+  titleVi: string;
+  emoji: string | null;
+  status: Status;
+  sortOrder: number;
+  updatedAt: string;
+  wordCount: number;
+  /** Words with neither an emoji nor an uploaded picture: word games skip them. */
+  wordsWithoutPicture: number;
+  patternCount: number;
+  activityCount: number;
+  publishedActivities: number;
+  /** Sentence activities with fewer than 6 questions (C8). */
+  shortActivities: number;
+  /** Lower-case words and meanings, for the search box. */
+  words: string[];
+};
+
+const SENTENCE_LIKE = new Set(["true_false", "fill_blank", "rearrange", "translate", "reading", "listening"]);
+
+export async function listTopicsForStaff(level: PracticeLevel): Promise<TopicRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("topics")
     .select(
-      "id, code, title_en, title_vi, emoji, status, sort_order, level:levels!inner(code), practice_activities(id, deleted_at), vocabulary(id, deleted_at)",
+      "id, code, title_en, title_vi, emoji, status, sort_order, updated_at, patterns, level:levels!inner(code), practice_activities(id, kind, status, content, deleted_at), vocabulary(word, meaning_vi, emoji, image_path, deleted_at)",
     )
     .eq("level.code", level.code)
     .is("deleted_at", null)
     .order("sort_order")
     .order("title_en");
   if (error) throw new Error(`listTopicsForStaff: ${error.code}`);
-  return (data ?? []).map((t) => ({
-    id: t.id as string,
-    code: t.code as string,
-    titleEn: t.title_en as string,
-    titleVi: t.title_vi as string,
-    emoji: (t.emoji as string | null) ?? null,
-    status: t.status as Status,
-    sortOrder: t.sort_order as number,
-    activityCount: ((t.practice_activities ?? []) as { deleted_at: string | null }[]).filter(
-      (a) => !a.deleted_at,
-    ).length,
-    wordCount: ((t.vocabulary ?? []) as { deleted_at: string | null }[]).filter((v) => !v.deleted_at).length,
-  }));
+  return (data ?? []).map((t) => {
+    const acts = (
+      (t.practice_activities ?? []) as {
+        kind: string;
+        status: string;
+        content: { items?: unknown[] } | null;
+        deleted_at: string | null;
+      }[]
+    ).filter((a) => !a.deleted_at);
+    const words = (
+      (t.vocabulary ?? []) as {
+        word: string;
+        meaning_vi: string;
+        emoji: string | null;
+        image_path: string | null;
+        deleted_at: string | null;
+      }[]
+    ).filter((v) => !v.deleted_at);
+    return {
+      id: t.id as string,
+      code: t.code as string,
+      titleEn: t.title_en as string,
+      titleVi: t.title_vi as string,
+      emoji: (t.emoji as string | null) ?? null,
+      status: t.status as Status,
+      sortOrder: t.sort_order as number,
+      updatedAt: t.updated_at as string,
+      wordCount: words.length,
+      wordsWithoutPicture: words.filter((w) => !w.emoji && !w.image_path).length,
+      patternCount: Array.isArray(t.patterns) ? t.patterns.length : 0,
+      activityCount: acts.length,
+      publishedActivities: acts.filter((a) => a.status === "published").length,
+      shortActivities: acts.filter(
+        (a) => SENTENCE_LIKE.has(a.kind) && Array.isArray(a.content?.items) && a.content.items.length < 6,
+      ).length,
+      words: words.flatMap((w) => [w.word.toLowerCase(), w.meaning_vi.toLowerCase()]),
+    };
+  });
+}
+
+/** Topics per level code (not deleted), for the tab counters. */
+export async function topicCountsByLevel(): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("topics").select("level:levels!inner(code)").is("deleted_at", null);
+  const out = new Map<string, number>();
+  for (const r of data ?? []) {
+    const code = (r.level as unknown as { code: string }).code;
+    out.set(code, (out.get(code) ?? 0) + 1);
+  }
+  return out;
 }
 
 export async function getTopicForStaff(id: string) {
@@ -49,7 +109,7 @@ export async function getTopicForStaff(id: string) {
   const { data, error } = await supabase
     .from("topics")
     .select(
-      "id, code, title_en, title_vi, emoji, status, sort_order, patterns, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, image_path, ipa, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, deleted_at)",
+      "id, code, title_en, title_vi, emoji, status, sort_order, patterns, level:levels!inner(code, name), vocabulary(id, word, meaning_vi, emoji, image_path, ipa, status, deleted_at), practice_activities(id, kind, title_en, title_vi, status, sort_order, content, settings, deleted_at)",
     )
     .eq("id", id)
     .is("deleted_at", null)
@@ -108,6 +168,8 @@ export async function getTopicForStaff(id: string) {
         title_vi: string;
         status: Status;
         sort_order: number;
+        content: Record<string, unknown> | null;
+        settings: unknown;
         deleted_at: string | null;
       }[]
     )
@@ -120,8 +182,39 @@ export async function getTopicForStaff(id: string) {
         titleVi: a.title_vi,
         status: a.status,
         sortOrder: a.sort_order,
+        summary: activitySummary(a.kind, a.content ?? {}, settingsOf(a.settings)),
+        questions: Array.isArray(a.content?.items) ? (a.content.items as unknown[]).length : null,
       })),
   };
+}
+
+/** One line about an activity for the topic page (D56): size and the settings that differ from usual. */
+export function activitySummary(
+  kind: PracticeKind,
+  content: Record<string, unknown>,
+  settings: ReturnType<typeof settingsOf>,
+): string {
+  const parts: string[] = [];
+  const items = Array.isArray(content.items) ? content.items.length : null;
+  const steps = Array.isArray(content.steps) ? content.steps.length : null;
+  const words = Array.isArray(content.words) ? content.words.length : null;
+  const units = Array.isArray(content.units) ? content.units.length : null;
+  if (items !== null) parts.push(`${items} câu`);
+  else if (steps !== null) parts.push(`${steps} chặng`);
+  else if (units) parts.push(`từ của ${units} unit`);
+  else if (words) parts.push(`${words} từ đã chọn`);
+  else parts.push("mọi từ có hình");
+  if (kind === "flashcards") {
+    if (settings.ipa) parts.push("hiện phiên âm");
+  } else {
+    if (kind === "true_false") parts.push(settings.yesNo === "full" ? "trả lời đầy đủ" : "chọn 1 lần");
+    else parts.push(`sai ${settings.maxTries} lần`);
+    if (!settings.hints) parts.push("tắt gợi ý");
+  }
+  if (kind === "listen_type" && settings.writeHint !== "slots")
+    parts.push(`gợi ý chữ: ${settings.writeHint}`);
+  if (kind === "listening" && content.gate) parts.push("xem hết mới mở câu hỏi");
+  return parts.join(" · ");
 }
 
 export async function getActivityForStaff(id: string) {

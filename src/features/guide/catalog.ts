@@ -6,7 +6,7 @@ import { publicEnv } from "@/lib/env";
 export type CatalogLevel = {
   level: string;
   name: string;
-  program: "cambridge" | "global_success";
+  program: string;
   topics: { title: string; activities: number }[];
 };
 

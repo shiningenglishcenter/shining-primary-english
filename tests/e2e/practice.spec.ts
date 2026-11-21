@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { loginFromScratch } from "./helpers";
+import { activityTab, loginFromScratch, openNewTopicForm, publishTopic, topicTab } from "./helpers";
 
 /** Phase 1: practice library (students) and content editor (staff). */
 
@@ -156,7 +156,7 @@ test.describe("practice content editor", () => {
     const teacher = await as(browser, "gv.lan");
     await teacher.goto("/teacher/content?level=movers");
     const topicName = `Weather ${run}`;
-    const form = teacher.getByTestId("new-topic-form");
+    const form = await openNewTopicForm(teacher);
     await form.getByLabel("Tên chủ đề (tiếng Anh)").fill(topicName);
     await form.getByLabel("Tên chủ đề (tiếng Việt)").fill("Thời tiết");
     await form.getByLabel("Hình (dán emoji)").fill("☀️");
@@ -182,14 +182,14 @@ test.describe("practice content editor", () => {
     const af = () => teacher.getByTestId("activity-form").locator("visible=true");
 
     // a word game + a sentence game
+    await topicTab(teacher, "activities");
     await teacher
       .getByLabel("Dạng bài mới")
       .locator("visible=true")
       .selectOption({ label: "Nhìn hình chọn từ" });
     await teacher.getByRole("button", { name: "Thêm bài" }).locator("visible=true").click();
     await expect(af().getByTestId("word-picker")).toBeVisible();
-    await af().getByLabel("Trạng thái").selectOption("published");
-    await af().getByRole("button", { name: "Lưu bài" }).click();
+    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
@@ -202,11 +202,10 @@ test.describe("practice content editor", () => {
     await af().getByLabel("Câu 1", { exact: true }).fill("It is sunny today.");
     await af().getByLabel("Đáp án đúng câu 1").fill("sunny");
     await af().getByLabel("Đáp án sai 1 câu 1").fill("rainy");
-    await af().getByLabel("Trạng thái").selectOption("published");
-    await af().getByRole("button", { name: "Lưu bài" }).click();
+    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af().getByTestId("form-error")).toContainText("Câu 1: Câu phải có chỗ trống ___");
     await af().getByLabel("Câu 1", { exact: true }).fill("It is ___ today.");
-    await af().getByRole("button", { name: "Lưu bài" }).click();
+    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     // still a draft topic: students don't see it
@@ -216,15 +215,7 @@ test.describe("practice content editor", () => {
 
     // publish the topic
     await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
-    await teacher
-      .getByTestId("topic-form")
-      .locator("visible=true")
-      .getByLabel("Trạng thái")
-      .selectOption("published");
-    await teacher.getByRole("button", { name: "Lưu chủ đề" }).locator("visible=true").click();
-    await expect(
-      teacher.getByTestId("topic-form").locator("visible=true").getByTestId("form-success"),
-    ).toHaveText("Đã lưu chủ đề.");
+    await publishTopic(teacher);
 
     await kid.goto("/learn?level=movers");
     await kid.getByTestId("topic").filter({ hasText: topicName }).click();
@@ -246,6 +237,7 @@ test.describe("guest links (no login needed)", () => {
     const teacher = await as(browser, "gv.lan");
     await teacher.goto("/teacher/content?level=starters");
     await teacher.getByRole("link", { name: "Colours" }).first().click();
+    await topicTab(teacher, "activities");
     await teacher
       .getByRole("link", { name: /Nhìn hình chọn từ/ })
       .locator("visible=true")
@@ -253,6 +245,7 @@ test.describe("guest links (no login needed)", () => {
       .click();
     await expect(teacher).toHaveURL(/\/teacher\/content\/activities\//);
     const editorUrl = teacher.url();
+    await activityTab(teacher, "Chia sẻ");
     const panel = teacher.getByTestId("guest-link").locator("visible=true");
     const toggle = panel.getByTestId("guest-switch");
     if ((await toggle.getAttribute("aria-checked")) === "true") await toggle.click(); // clean state from a rerun
@@ -275,6 +268,7 @@ test.describe("guest links (no login needed)", () => {
     await expect(teacher.getByTestId("results-guests")).toContainText(name);
 
     await teacher.goto(editorUrl);
+    await activityTab(teacher, "Chia sẻ");
     const toggle2 = teacher.getByTestId("guest-link").locator("visible=true").getByTestId("guest-switch");
     await toggle2.click();
     await expect(toggle2).toHaveAttribute("aria-checked", "false");

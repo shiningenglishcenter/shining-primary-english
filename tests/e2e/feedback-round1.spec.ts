@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { loginFromScratch } from "./helpers";
+import { loginFromScratch, openNewTopicForm, topicTab } from "./helpers";
 
 /** Teacher feedback, round 1 (ARCHITECTURE D40): C3, C4, C5, C8, C10, A2. */
 
@@ -90,16 +90,18 @@ test.describe("teacher feedback round 1", () => {
     await loginFromScratch(teacher, "gv.lan");
     await teacher.goto("/teacher/content?level=movers");
     const topicName = `Pets ${run}`;
-    const form = teacher.getByTestId("new-topic-form");
+    const form = await openNewTopicForm(teacher);
     await form.getByLabel("Tên chủ đề (tiếng Anh)").fill(topicName);
     await form.getByLabel("Tên chủ đề (tiếng Việt)").fill("Thú cưng");
     await form.getByLabel("Hình (dán emoji)").fill("🐈");
     await form.getByRole("button", { name: "Tạo chủ đề (bản nháp)" }).click();
     await expect(teacher.getByTestId("page-title").locator("visible=true")).toHaveText(topicName);
 
+    await topicTab(teacher, "activities");
     const next = teacher.getByTestId("next-step").locator("visible=true");
     await expect(next).toContainText("Bước tiếp theo: tạo bài luyện");
     await expect(next.getByTestId("quick-create")).toBeDisabled();
+    await topicTab(teacher, "words");
 
     for (const [emoji, word, vi] of [
       ["🐈", `kitty${run}`, "mèo con"],
@@ -113,6 +115,7 @@ test.describe("teacher feedback round 1", () => {
       await add.getByRole("button", { name: "Thêm từ" }).click();
       await expect(teacher.getByTestId("add-word-ok")).toContainText(word!);
     }
+    await topicTab(teacher, "activities");
     await next.getByTestId("quick-create").click();
     await expect(next.getByTestId("form-success")).toContainText("Đã tạo 5 bài nháp");
     const list = teacher.getByTestId("topic-activities").locator("visible=true");

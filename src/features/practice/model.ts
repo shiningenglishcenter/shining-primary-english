@@ -5,47 +5,70 @@ import { EMOJI_CODE_PATTERN } from "@/features/practice/emoji";
  * Practice is organised Programme → Level → Topic/Unit → Activity (D26).
  * One shared theme for every level (D27); codes match `public.levels.code`.
  */
-export const PROGRAMS = [
-  { code: "cambridge", name: "Cambridge" },
-  { code: "global_success", name: "Global Success" },
-] as const;
-export type Program = (typeof PROGRAMS)[number];
-export type ProgramCode = Program["code"];
-
-export const PRACTICE_LEVELS = [
-  { code: "STARTERS", slug: "starters", name: "Starters", short: "Starters", program: "cambridge" },
-  { code: "MOVERS", slug: "movers", name: "Movers", short: "Movers", program: "cambridge" },
-  { code: "FLYERS", slug: "flyers", name: "Flyers", short: "Flyers", program: "cambridge" },
-  { code: "GS1", slug: "g1", name: "Global Success 1", short: "G1", program: "global_success" },
-  { code: "GS2", slug: "g2", name: "Global Success 2", short: "G2", program: "global_success" },
-  { code: "GS3", slug: "g3", name: "Global Success 3", short: "G3", program: "global_success" },
-  { code: "GS4", slug: "g4", name: "Global Success 4", short: "G4", program: "global_success" },
-  { code: "GS5", slug: "g5", name: "Global Success 5", short: "G5", program: "global_success" },
-] as const satisfies readonly {
+/**
+ * Programmes and their levels live in the database since migration 0033 (D55)
+ * and are read through getLevelCatalog() (cached). DEFAULT_CATALOG is the
+ * built-in copy: the fallback before 0033 and in unit tests.
+ */
+export type Program = { code: string; name: string; /** Topics are called "Unit". */ unit: boolean };
+export type ProgramCode = string;
+export type PracticeLevel = {
   code: string;
   slug: string;
   name: string;
   short: string;
   program: ProgramCode;
-}[];
-export type PracticeLevel = (typeof PRACTICE_LEVELS)[number];
+  unit: boolean;
+};
+export type LevelCatalog = { programs: Program[]; levels: PracticeLevel[] };
 
-export function levelsOf(program: ProgramCode): PracticeLevel[] {
-  return PRACTICE_LEVELS.filter((l) => l.program === program);
+const lv = (code: string, slug: string, name: string, short: string, program: string, unit: boolean) =>
+  ({ code, slug, name, short, program, unit }) satisfies PracticeLevel;
+
+export const DEFAULT_CATALOG: LevelCatalog = {
+  programs: [
+    { code: "cambridge", name: "Cambridge", unit: false },
+    { code: "global_success", name: "Global Success", unit: true },
+  ],
+  levels: [
+    lv("STARTERS", "starters", "Starters", "Starters", "cambridge", false),
+    lv("MOVERS", "movers", "Movers", "Movers", "cambridge", false),
+    lv("FLYERS", "flyers", "Flyers", "Flyers", "cambridge", false),
+    lv("GS1", "g1", "Global Success 1", "G1", "global_success", true),
+    lv("GS2", "g2", "Global Success 2", "G2", "global_success", true),
+    lv("GS3", "g3", "Global Success 3", "G3", "global_success", true),
+    lv("GS4", "g4", "Global Success 4", "G4", "global_success", true),
+    lv("GS5", "g5", "Global Success 5", "G5", "global_success", true),
+  ],
+};
+/** The built-in levels (fallback); pages use the catalog from the database. */
+export const PRACTICE_LEVELS: readonly PracticeLevel[] = DEFAULT_CATALOG.levels;
+export const PROGRAMS: readonly Program[] = DEFAULT_CATALOG.programs;
+
+export function levelsOf(program: ProgramCode, cat: LevelCatalog = DEFAULT_CATALOG): PracticeLevel[] {
+  return cat.levels.filter((l) => l.program === program);
 }
-export function programOf(level: PracticeLevel): Program {
-  return PROGRAMS.find((p) => p.code === level.program) ?? PROGRAMS[0];
+export function programOf(level: PracticeLevel, cat: LevelCatalog = DEFAULT_CATALOG): Program {
+  return (
+    cat.programs.find((p) => p.code === level.program) ?? cat.programs[0] ?? DEFAULT_CATALOG.programs[0]!
+  );
 }
-/** Global Success groups its topics as textbook units. */
+/** Global Success (and any programme set to "unit") groups its topics as textbook units. */
 export function topicNoun(level: PracticeLevel): string {
-  return level.program === "global_success" ? "Unit" : "Chủ đề";
+  return level.unit ? "Unit" : "Chủ đề";
 }
 
-export function levelBySlug(slug: string | null | undefined): PracticeLevel {
-  return PRACTICE_LEVELS.find((l) => l.slug === slug) ?? PRACTICE_LEVELS[0];
+export function levelBySlug(
+  slug: string | null | undefined,
+  cat: LevelCatalog = DEFAULT_CATALOG,
+): PracticeLevel {
+  return cat.levels.find((l) => l.slug === slug) ?? cat.levels[0] ?? DEFAULT_CATALOG.levels[0]!;
 }
-export function levelByCode(code: string | null | undefined): PracticeLevel | null {
-  return PRACTICE_LEVELS.find((l) => l.code === code) ?? null;
+export function levelByCode(
+  code: string | null | undefined,
+  cat: LevelCatalog = DEFAULT_CATALOG,
+): PracticeLevel | null {
+  return cat.levels.find((l) => l.code === code) ?? null;
 }
 
 export const PRACTICE_KINDS = [
@@ -82,6 +105,25 @@ export const KIND_LABEL_VI: Record<PracticeKind, string> = {
   match_meaning: "Nối từ với nghĩa tiếng Việt",
   translate: "Chọn nghĩa của câu",
 };
+
+/** Activity kinds by skill: the "+ Thêm bài" menu and the topic page (D56). */
+export const KIND_GROUPS: {
+  key: "vocab" | "sentence" | "listen_read" | "mixed";
+  label: string;
+  kinds: PracticeKind[];
+}[] = [
+  {
+    key: "vocab",
+    label: "Từ vựng",
+    kinds: ["flashcards", "look_choose", "listen_choose", "match", "match_meaning", "spell", "listen_type"],
+  },
+  { key: "sentence", label: "Câu", kinds: ["true_false", "fill_blank", "rearrange", "translate"] },
+  { key: "listen_read", label: "Nghe – đọc", kinds: ["listening", "reading"] },
+  { key: "mixed", label: "Tổng hợp", kinds: ["mixed"] },
+];
+export function kindGroupOf(kind: PracticeKind) {
+  return KIND_GROUPS.find((g) => g.kinds.includes(kind)) ?? KIND_GROUPS[3]!;
+}
 
 /** Kinds that carry a list of sentence items (`{ items: [...] }`). */
 export const SENTENCE_KINDS = ["true_false", "fill_blank", "rearrange", "translate"] as const;

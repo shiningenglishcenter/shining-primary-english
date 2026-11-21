@@ -4,7 +4,8 @@ import { signOut } from "@/features/auth/actions";
 import { LangProvider, LangSwitch } from "@/features/i18n/client";
 import { getMessages } from "@/features/i18n/server";
 import { Wordmark } from "@/features/practice/components/kid-ui";
-import { levelsOf, PROGRAMS, type PracticeLevel } from "@/features/practice/model";
+import { levelsOf, type PracticeLevel } from "@/features/practice/model";
+import { getLevelCatalog } from "@/features/practice/catalog";
 import { cn } from "@/lib/utils";
 
 /**
@@ -71,19 +72,19 @@ export async function KidPage({
 
 /** Programme tabs (Cambridge / Global Success), then that programme's levels. */
 export async function LevelTabs({ current }: { current: PracticeLevel }) {
-  const { t } = await getMessages();
+  const [{ t }, cat] = await Promise.all([getMessages(), getLevelCatalog()]);
   return (
     <div className="flex flex-col gap-2">
       <nav
         aria-label={t.choosePrograme}
         className="flex gap-2 rounded-full bg-k-surface p-1 shadow-[0_3px_0_var(--k-line)]"
       >
-        {PROGRAMS.map((p) => {
+        {cat.programs.map((p) => {
           const active = p.code === current.program;
           return (
             <Link
               key={p.code}
-              href={`/learn?level=${levelsOf(p.code)[0].slug}`}
+              href={`/learn?level=${levelsOf(p.code, cat)[0]?.slug ?? current.slug}`}
               aria-current={active ? "page" : undefined}
               data-testid="program-tab"
               className={cn(
@@ -97,7 +98,7 @@ export async function LevelTabs({ current }: { current: PracticeLevel }) {
         })}
       </nav>
       <nav aria-label={t.chooseLevel} className="flex gap-2">
-        {levelsOf(current.program).map((l) => {
+        {levelsOf(current.program, cat).map((l) => {
           const active = l.slug === current.slug;
           return (
             <Link

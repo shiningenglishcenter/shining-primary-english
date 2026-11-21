@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { levelByCode, settingsOf, type PracticeKind } from "@/features/practice/model";
 import { withImages } from "@/features/practice/queries";
+import { getLevelCatalog } from "@/features/practice/catalog";
 
 /** Token shape accepted by get_public_activity (D35). */
 export const GUEST_TOKEN = /^[A-Za-z0-9_-]{16,40}$/;
@@ -32,7 +33,7 @@ export async function getPublicActivity(token: string) {
   const { data, error } = await supabase.rpc("get_public_activity", { p_token: token });
   if (error || !data) return null;
   const raw = data as Raw;
-  const level = levelByCode(raw.topic.level);
+  const level = levelByCode(raw.topic.level, await getLevelCatalog());
   if (!level) return null;
   return {
     id: raw.activity.id,

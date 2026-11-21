@@ -16,7 +16,8 @@ import { z } from "zod";
 import { EmptyState } from "@/components/shell/empty-state";
 import { DataTable, PageHeader, td, th } from "@/components/shell/page-parts";
 import { requireRole } from "@/lib/auth/session";
-import { KIND_LABEL_VI, levelBySlug, PRACTICE_LEVELS } from "@/features/practice/model";
+import { KIND_LABEL_VI, levelBySlug, type LevelCatalog } from "@/features/practice/model";
+import { getLevelCatalog } from "@/features/practice/catalog";
 import {
   classStudents,
   getStudent,
@@ -81,11 +82,11 @@ const VIEWS = [
 ] as const;
 type View = (typeof VIEWS)[number][0];
 
-function filtersOf(sp: Search) {
+function filtersOf(sp: Search, cat: LevelCatalog) {
   const days = PERIODS.find((p) => p.value === one(sp.days))?.value ?? "30";
   const levelSlug = one(sp.level);
   const level =
-    levelSlug && PRACTICE_LEVELS.some((l) => l.slug === levelSlug) ? levelBySlug(levelSlug) : null;
+    levelSlug && cat.levels.some((l) => l.slug === levelSlug) ? levelBySlug(levelSlug, cat) : null;
   const view: View = VIEWS.find(([v]) => v === one(sp.view))?.[0] ?? "students";
   const sort = one(sp.sort) ?? "";
   const dir: Dir = one(sp.dir) === "desc" ? "desc" : "asc";
@@ -334,7 +335,7 @@ export async function ResultsHome({
   searchParams: Promise<Search>;
 }) {
   await requireRole(roleOf(base));
-  const [sp, classes] = await Promise.all([searchParams, listResultClasses()]);
+  const [sp, classes, cat] = await Promise.all([searchParams, listResultClasses(), getLevelCatalog()]);
   if (classes.length === 0) {
     return (
       <>
@@ -347,7 +348,7 @@ export async function ResultsHome({
       </>
     );
   }
-  const f = filtersOf(sp);
+  const f = filtersOf(sp, cat);
   const cls = classes.find((c) => c.id === one(sp.class)) ?? classes[0]!;
   const students = await classStudents(cls.id);
   const { records, activities, topics } = await practiceRecords(
@@ -409,7 +410,7 @@ export async function ResultsHome({
             value: f.level?.slug ?? "",
             options: [
               { value: "", label: "Tất cả trình độ" },
-              ...PRACTICE_LEVELS.map((l) => ({ value: l.slug, label: l.name })),
+              ...cat.levels.map((l) => ({ value: l.slug, label: l.name })),
             ],
           },
         ]}
@@ -938,9 +939,9 @@ export async function StudentResults({
   searchParams: Promise<Search>;
 }) {
   await requireRole(roleOf(base));
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const [{ id }, sp, cat] = await Promise.all([params, searchParams, getLevelCatalog()]);
   if (!z.uuid().safeParse(id).success) notFound();
-  const f = filtersOf(sp);
+  const f = filtersOf(sp, cat);
   // RLS: null when this teacher does not teach the student.
   const student = await getStudent(id);
   if (!student) notFound();

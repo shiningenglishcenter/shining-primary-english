@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { loginFromScratch } from "./helpers";
+import { loginFromScratch, openNewTopicForm, publishTopic, topicTab } from "./helpers";
 
 /** Teacher feedback, round 2 (ARCHITECTURE D42–). */
 
@@ -33,7 +33,7 @@ test.describe("teacher feedback round 2", () => {
     const teacher = await as(browser, "gv.lan");
     await teacher.goto("/teacher/content?level=movers");
     const topicName = `Garden ${run}`;
-    const form = teacher.getByTestId("new-topic-form");
+    const form = await openNewTopicForm(teacher);
     await form.getByLabel("Tên chủ đề (tiếng Anh)").fill(topicName);
     await form.getByLabel("Tên chủ đề (tiếng Việt)").fill("Khu vườn");
     // Picker suggests from the English title.
@@ -93,6 +93,7 @@ test.describe("teacher feedback round 2", () => {
     await expect(add.getByRole("alert")).toContainText("lớn hơn 2 MB");
 
     // flashcards from the words, published with the topic
+    await topicTab(teacher, "activities");
     const next = teacher.getByTestId("next-step").locator("visible=true");
     await next.getByTestId("quick-create").click();
     await expect(next.getByTestId("form-success")).toContainText("Đã tạo 5 bài nháp");
@@ -103,14 +104,10 @@ test.describe("teacher feedback round 2", () => {
       .first()
       .click();
     const af = teacher.getByTestId("activity-form").locator("visible=true");
-    await af.getByLabel("Trạng thái").selectOption("published");
-    await af.getByRole("button", { name: "Lưu bài" }).click();
+    await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
-    const tf = teacher.getByTestId("topic-form").locator("visible=true");
-    await tf.getByLabel("Trạng thái").selectOption("published");
-    await teacher.getByRole("button", { name: "Lưu chủ đề" }).locator("visible=true").click();
-    await expect(tf.getByTestId("form-success")).toHaveText("Đã lưu chủ đề.");
+    await publishTopic(teacher);
 
     const kid = await as(browser, "hs.an");
     await kid.goto("/learn?level=movers");

@@ -1,12 +1,8 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import {
-  levelByCode,
-  PRACTICE_LEVELS,
-  type PracticeKind,
-  type PracticeLevel,
-} from "@/features/practice/model";
+import { levelByCode, type PracticeKind, type PracticeLevel } from "@/features/practice/model";
 import type { PracticeRecord } from "@/features/results/summary";
+import { getLevelCatalog } from "@/features/practice/catalog";
 
 /**
  * Reads for the results pages. RLS decides what is visible: a teacher sees
@@ -133,6 +129,7 @@ export async function practiceRecords(
   if (aErr) throw new Error(`practiceRecords/activities: ${aErr.code}`);
 
   const doneSet = new Set(done);
+  const cat = await getLevelCatalog();
   const topics = new Map<string, TopicInfo>();
   for (const a of acts ?? []) {
     const topic = a.topic as unknown as TopicJoin;
@@ -140,8 +137,8 @@ export async function practiceRecords(
     // Unpublished activities only matter if the student did them earlier.
     const live = a.status === "published" && !a.deleted_at;
     if (!live && !doneSet.has(a.id as string)) continue;
-    const level = levelByCode(topic.level.code);
-    const topicKey = [PRACTICE_LEVELS.findIndex((l) => l.code === topic.level.code), topic.sort_order]
+    const level = levelByCode(topic.level.code, cat);
+    const topicKey = [cat.levels.findIndex((l) => l.code === topic.level.code), topic.sort_order]
       .map((n) => String(n + 1).padStart(6, "0"))
       .join("-");
     activities.set(a.id as string, {
@@ -213,6 +210,7 @@ export async function guestAttempts(
   if (sinceIso) q = q.gte("recorded_at", sinceIso);
   const { data, error } = await q;
   if (error) return [];
+  const cat = await getLevelCatalog();
   return (data ?? []).flatMap((r) => {
     const a = r.activity as unknown as {
       title_vi: string;
@@ -227,7 +225,7 @@ export async function guestAttempts(
         activityTitle: a.title_vi,
         kind: a.kind,
         topicEn: a.topic.title_en,
-        level: levelByCode(a.topic.level.code),
+        level: levelByCode(a.topic.level.code, cat),
         ratio: Number(r.score) / Number(r.max_score),
         seconds: Number(r.duration_seconds ?? 0),
         recordedAt: r.recorded_at as string,

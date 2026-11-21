@@ -27,3 +27,30 @@ export async function revokeAllSessions(email: string) {
   const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
   if (signOutError) throw signOutError;
 }
+
+/** D56: the "Thêm chủ đề" button opens a dialog with the new-topic form. */
+export async function openNewTopicForm(page: Page) {
+  await page.getByTestId("add-topic").locator("visible=true").click();
+  return page.getByTestId("add-topic-dialog").getByTestId("new-topic-form");
+}
+
+/** D56: a step tab of the topic page (info, words, patterns, activities, share). */
+export async function topicTab(page: Page, tab: "info" | "words" | "patterns" | "activities" | "share") {
+  await page.getByTestId(`tab-${tab}`).locator("visible=true").click();
+  await expect(page.getByTestId(`tab-${tab}`).locator("visible=true")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+}
+
+/** D56: the header switch publishes the whole topic. */
+export async function publishTopic(page: Page) {
+  const box = page.getByTestId("topic-status").locator("visible=true");
+  await box.getByTestId("topic-status-toggle").click();
+  await expect(box).toContainText("Đã xuất bản");
+}
+
+/** D56: a tab of the activity editor (Câu hỏi / Nội dung, Cài đặt, Chia sẻ). */
+export async function activityTab(page: Page, name: RegExp | string) {
+  await page.getByTestId("activity-tabs").locator("visible=true").getByRole("tab", { name }).click();
+}

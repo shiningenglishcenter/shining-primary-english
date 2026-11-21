@@ -7,7 +7,8 @@ import { KidPage, LevelTabs } from "@/features/practice/components/kid-page";
 import { Pic, StarBadge, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import { getMessages } from "@/features/i18n/server";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
-import { levelByCode, levelBySlug, PRACTICE_LEVELS, topicNoun } from "@/features/practice/model";
+import { levelByCode, levelBySlug, topicNoun, type LevelCatalog } from "@/features/practice/model";
+import { getLevelCatalog } from "@/features/practice/catalog";
 import { listTopics } from "@/features/practice/queries";
 
 export const metadata: Metadata = { title: "Học bài" };
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Học bài" };
 type SearchParams = Promise<{ level?: string | string[] }>;
 
 /** Without ?level=, open the level of the student's class (else Starters). */
-async function defaultLevelSlug(): Promise<string> {
+async function defaultLevelSlug(cat: LevelCatalog): Promise<string> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("classes")
@@ -23,18 +24,19 @@ async function defaultLevelSlug(): Promise<string> {
     .eq("is_active", true)
     .limit(5);
   for (const row of data ?? []) {
-    const lvl = levelByCode((row.level as unknown as { code: string } | null)?.code);
+    const lvl = levelByCode((row.level as unknown as { code: string } | null)?.code, cat);
     if (lvl) return lvl.slug;
   }
-  return PRACTICE_LEVELS[0].slug;
+  return cat.levels[0]!.slug;
 }
 
 async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const requested = typeof sp.level === "string" ? sp.level : undefined;
   // Independent round trips run together (RLS still guards the class read).
-  const [user, slug] = await Promise.all([requireRole("student"), requested ?? defaultLevelSlug()]);
-  const level = levelBySlug(slug);
+  const cat = await getLevelCatalog();
+  const [user, slug] = await Promise.all([requireRole("student"), requested ?? defaultLevelSlug(cat)]);
+  const level = levelBySlug(slug, cat);
   const [topics, { lang, t: m }] = await Promise.all([listTopics(level), getMessages()]);
   const name = user.displayName ?? user.fullName;
   const totalStars = topics.reduce((n, t) => n + t.stars, 0);

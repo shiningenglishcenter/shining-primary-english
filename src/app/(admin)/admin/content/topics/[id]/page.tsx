@@ -5,10 +5,10 @@ import { TopicEditorPage } from "@/features/content-editor/pages";
 
 export const metadata: Metadata = { title: "Sửa chủ đề" };
 
-export default function Page({ params }: PageProps<"/admin/content/topics/[id]">) {
+export default function Page({ params, searchParams }: PageProps<"/admin/content/topics/[id]">) {
   return (
     <Suspense fallback={<SectionSkeleton />}>
-      <TopicEditorPage base="/admin/content" params={params} />
+      <TopicEditorPage base="/admin/content" params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
