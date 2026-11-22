@@ -88,4 +88,6 @@ export type Pack = {
   reviews: Review[];
   grammar?: Grammar[];
   exams?: Exam[];
+  /** Phonics for topics that already exist (packs written before v2: Starters, GS1). */
+  phonicsFor?: { code: string; phonics: Phonics }[];
 };

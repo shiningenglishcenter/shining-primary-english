@@ -1,0 +1,205 @@
+import type { Pack } from "./types.mts";
+
+/**
+ * Pre A1 Starters additions (D61–D63): a phonics game in every topic, two
+ * grammar topics and exam practice in the Starters format. Topics and words
+ * stay in content/starters.mts.
+ */
+export const PACK: Pack = {
+  level: "STARTERS",
+  writeHint: "letters",
+  units: [],
+  reviews: [],
+  phonicsFor: [
+    { code: "animals", phonics: { sound: "/æ/", letters: "a (cat)", items: ["cat|cow|cup", "rabbit|robot|ribbon", "bat|bit|but", "hat|hot|hut", "bag|big|bug", "fan|fun|fin"] } },
+    { code: "colours", phonics: { sound: "/r/", letters: "r (red)", items: ["red|bed|fed", "rabbit|habit|hat", "rice|nice|mice", "rain|lane|pain", "ring|king|sing", "rose|nose|hose"] } },
+    { code: "food", phonics: { sound: "/iː/", letters: "ee, ea (cheese, eat)", items: ["cheese|chips|choose", "eat|egg|art", "meat|mat|met", "beans|bins|bones", "peas|pass|pies", "tea|toy|tie"] } },
+    { code: "body", phonics: { sound: "/h/", letters: "h (hand, head)", items: ["hand|sand|band", "head|bed|red", "hair|chair|pear", "hat|cat|bat", "hop|top|mop", "horse|course|sauce"] } },
+    { code: "clothes", phonics: { sound: "/ʃ/", letters: "sh (shoes, shirt)", items: ["shoes|choose|zoos", "shirt|skirt|hurt", "shorts|sports|forts", "sheep|jeep|beep", "shop|chop|top", "fish|fit|fig"] } },
+    { code: "toys", phonics: { sound: "/ɔɪ/", letters: "oy (toy, boy)", items: ["toy|tie|tea", "boy|bay|bee", "coin|cone|can", "oil|all|eel", "joy|jaw|jay", "noise|nose|nice"] } },
+    { code: "school", phonics: { sound: "/uː/", letters: "oo (school, ruler)", items: ["school|skill|scale", "ruler|roller|reader", "room|rim|ram", "moon|man|men", "food|feed|fed", "spoon|spin|span"] } },
+    { code: "home", phonics: { sound: "/aʊ/", letters: "ou, ow (house, flower)", items: ["house|horse|hose", "flower|floor|flair", "mouse|moose|mice", "brown|bran|brain", "cow|car|key", "down|done|dawn"] } },
+    { code: "numbers", phonics: { sound: "/θ/", letters: "th (three, thirteen)", items: ["three|tree|free", "thirteen|fourteen|sixteen", "thin|tin|pin", "bath|bat|bag", "mouth|mouse|moose", "thumb|come|drum"] } },
+    { code: "family", phonics: { sound: "/m/", letters: "m (mum, mother)", items: ["mum|sun|bun", "mother|brother|other", "man|can|fan", "map|cap|tap", "milk|silk|ink", "moon|spoon|noon"] } },
+    { code: "transport", phonics: { sound: "/t/", letters: "t (train, truck)", items: ["train|rain|chain", "truck|duck|luck", "taxi|daisy|lazy", "tent|pen|hen", "top|mop|hop", "ten|hen|pen"] } },
+    { code: "nature", phonics: { sound: "/s/", letters: "s (sun, sea)", items: ["sun|bun|fun", "sea|tea|key", "sand|hand|band", "sock|rock|clock", "seal|meal|wheel", "six|tin|pin"] } },
+  ],
+  grammar: [
+    {
+      code: "grammar-there-is",
+      en: "Grammar: there is, there are",
+      vi: "Ngữ pháp: there is / there are",
+      emoji: "🔎",
+      patterns: [
+        "There is one cat. There are two dogs.|Có một con mèo. Có hai con chó.",
+        "Is there a ball? – Yes, there is.|Có quả bóng không? – Có.",
+        "How many apples are there? – There are three.|Có bao nhiêu quả táo? – Có ba quả.",
+      ],
+      tf: [
+        "|There is a cat on the bed.|T",
+        "|There are a dog in the garden.|F",
+        "|There are three apples.|T",
+        "|There is two books.|F",
+        "|Is there a ball under the table?|T",
+        "|How many birds are there?|T",
+        "|There are one fish.|F",
+        "|There is a big tree.|T",
+      ],
+      fill: [
+        "|There ___ a cat.|is|are|am|One thing: there is.",
+        "|There ___ four birds.|are|is|am|More than one: there are.",
+        "|___ there a pen in your bag?|Is|Are|Am|Is there + one thing?",
+        "|How many ducks ___ there?|are|is|am|How many ... are there?",
+        "|There are five ___.|apples|apple|an apple|After 'are' we use more than one: apples.",
+        "|There is a ___ on the table.|book|books|two books|After 'is' we use one thing: a book.",
+        "|Is there a dog? – Yes, there ___.|is|are|isn't|Short answer: Yes, there is.",
+        "|Are there any cakes? – No, there ___.|aren't|isn't|are|Short answer: No, there aren't.",
+      ],
+      sentences: [
+        "There is a ball in the box.|Có một quả bóng trong hộp.",
+        "There are two cats on the sofa.|Có hai con mèo trên ghế sô-pha.",
+        "Is there a car in the garden?|Có ô tô trong vườn không?",
+        "How many pencils are there?|Có bao nhiêu bút chì?",
+        "There are six eggs.|Có sáu quả trứng.",
+        "There is a bird in the tree.|Có một con chim trên cây.",
+        "There aren't any sweets.|Không có cái kẹo nào.",
+        "There is one cake on the plate.|Có một cái bánh trên đĩa.",
+      ],
+    },
+    {
+      code: "grammar-can",
+      en: "Grammar: can and can't",
+      vi: "Ngữ pháp: can / can't",
+      emoji: "💪",
+      patterns: [
+        "I can swim. I can't fly.|Tớ biết bơi. Tớ không biết bay.",
+        "Can you ride a bike? – Yes, I can. / No, I can't.|Bạn biết đi xe đạp không? – Có. / Không.",
+        "A fish can swim. A bird can fly.|Cá biết bơi. Chim biết bay.",
+      ],
+      tf: [
+        "|I can swim.|T",
+        "|She cans dance.|F",
+        "|Can you sing?|T",
+        "|He can to jump.|F",
+        "|A bird can fly.|T",
+        "|I can't ride a horse.|T",
+        "|Can he plays football?|F",
+        "|We can run fast.|T",
+      ],
+      fill: [
+        "|I ___ swim. I'm good at it!|can|can't|cans|can = biết, có thể.",
+        "|A fish ___ walk.|can't|can|cans|Cá không thể đi bộ: can't.",
+        "|___ you play the guitar?|Can|Do|Are|Câu hỏi: Can you ...?",
+        "|Can you jump? – Yes, I ___.|can|can't|do|Trả lời ngắn: Yes, I can.",
+        "|She can ___ very well.|sing|sings|singing|Sau can dùng động từ nguyên mẫu.",
+        "|Can a cat fly? – No, it ___.|can't|can|isn't|No, it can't.",
+        "|A monkey can ___ trees.|climb|climbs|climbing|can + climb.",
+        "|My baby brother ___ talk. He's only one.|can't|can|cans|Em bé chưa biết nói: can't.",
+      ],
+      sentences: [
+        "I can ride a bike.|Tớ biết đi xe đạp.",
+        "Can you swim?|Bạn biết bơi không?",
+        "Yes, I can.|Có, tớ biết.",
+        "My sister can't swim.|Em gái tớ không biết bơi.",
+        "A frog can jump.|Con ếch biết nhảy.",
+        "Can he play tennis?|Cậu ấy có biết chơi quần vợt không?",
+        "Birds can fly in the sky.|Chim có thể bay trên trời.",
+        "I can draw a big flower.|Tớ có thể vẽ một bông hoa to.",
+      ],
+    },
+  ],
+  exams: [
+    {
+      code: "exam-listening",
+      en: "Exam practice: Listening",
+      vi: "Luyện đề: Nghe (Starters Listening)",
+      emoji: "🎧",
+      acts: [
+        {
+          kind: "write_answer",
+          en: "Part 2: Listen and write",
+          vi: "Phần 2: Nghe và viết (tên, số)",
+          content: {
+            items: [
+              { emoji: "👧", say: "This is my friend. Her name is Sue. S-U-E.", question: "What's the girl's name?", answers: ["Sue"] },
+              { emoji: "🎂", say: "Sue is seven years old.", question: "How old is Sue?", answers: ["seven", "7"] },
+              { emoji: "🐈", say: "She has got four cats!", question: "How many cats has Sue got?", answers: ["four", "4"] },
+              { emoji: "🏠", say: "She lives in Hill Street. H-I-L-L.", question: "Which street does she live in?", answers: ["Hill Street", "Hill"] },
+              { emoji: "🍎", say: "Sue likes apples. She eats two apples every day.", question: "How many apples does Sue eat every day?", answers: ["two", "2"] },
+              { emoji: "👦", say: "Her brother's name is Dan. D-A-N.", question: "What's her brother's name?", answers: ["Dan"] },
+            ],
+          },
+        },
+        {
+          kind: "listen_colour",
+          en: "Part 4: Listen and colour",
+          vi: "Phần 4: Nghe và tô màu",
+          content: {
+            items: [
+              { objects: ["🐟", "🐈", "🐕", "🐦"], target: 0, colour: "orange", say: "Can you see the fish? Colour the fish orange." },
+              { objects: ["⚽", "🪁", "🚗", "🧸"], target: 2, colour: "red", say: "Look at the car. Colour it red." },
+              { objects: ["🍎", "🍌", "🍊", "🍇"], target: 1, colour: "yellow", say: "Now the banana. Make the banana yellow." },
+              { objects: ["🐸", "🦆", "🐢", "🐍"], target: 0, colour: "green", say: "There's a frog. Colour the frog green." },
+              { objects: ["🧢", "👟", "👕", "🧦"], target: 2, colour: "blue", say: "The boy's T-shirt. Colour it blue, please." },
+              { objects: ["🌸", "🌳", "☀️", "🌙"], target: 0, colour: "pink", say: "Find the flower. Colour the flower pink." },
+            ],
+          },
+        },
+        {
+          kind: "listen_choose",
+          en: "Part 3: Listen and choose",
+          vi: "Phần 3: Nghe và chọn hình",
+          content: { units: ["animals", "food", "toys", "clothes", "transport"] },
+        },
+      ],
+    },
+    {
+      code: "exam-reading-writing",
+      en: "Exam practice: Reading and Writing",
+      vi: "Luyện đề: Đọc và Viết (Starters)",
+      emoji: "📝",
+      acts: [
+        {
+          kind: "true_false",
+          en: "Part 1: Look and read. Tick or cross",
+          vi: "Phần 1: Nhìn hình, đọc: đúng hay sai?",
+          content: {
+            items: [
+              { emoji: "🐘", sentence: "This is an elephant.", answer: true },
+              { emoji: "🍌", sentence: "This is an apple.", answer: false },
+              { emoji: "🚲", sentence: "This is a bike.", answer: true },
+              { emoji: "🐟", sentence: "This is a duck.", answer: false },
+              { emoji: "👟", sentence: "These are shoes.", answer: true },
+              { emoji: "🪁", sentence: "This is a kite.", answer: true },
+              { emoji: "🦒", sentence: "This is a horse.", answer: false },
+              { emoji: "🍕", sentence: "This is pizza.", answer: true },
+            ],
+          },
+        },
+        {
+          kind: "spell",
+          en: "Part 3: Look and spell",
+          vi: "Phần 3: Nhìn hình, xếp chữ",
+          content: {},
+        },
+        {
+          kind: "write_answer",
+          en: "Part 5: Look and write one word",
+          vi: "Phần 5: Nhìn hình, viết một từ",
+          content: {
+            items: [
+              { emoji: "🐒", question: "What animal is in the tree? A ___", answers: ["monkey"] },
+              { emoji: "🍦", question: "What is the boy eating? An ___", answers: ["ice cream", "icecream"] },
+              { emoji: "⚽", question: "What are the children playing?", answers: ["football"] },
+              { emoji: "🐈", question: "What is on the mat? A ___", answers: ["cat"] },
+              { emoji: "🐕", question: "Which animal says 'woof'? A ___", answers: ["dog"] },
+              { emoji: "☀️", question: "What is in the sky? The ___", answers: ["sun"] },
+              { emoji: "🚌", question: "What is yellow and takes children to school? A ___", answers: ["bus"] },
+              { emoji: "🐟", question: "What can swim in the water? A ___", answers: ["fish"] },
+            ],
+          },
+        },
+      ],
+    },
+  ],
+};

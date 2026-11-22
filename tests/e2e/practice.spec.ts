@@ -61,7 +61,7 @@ test.describe("student practice library", () => {
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await expect(page.locator("[data-level=starters]")).toBeVisible();
-    await expect(page.getByTestId("topic")).toHaveCount(12);
+    await expect(page.getByTestId("topic")).toHaveCount(16); // 12 topics, 2 grammar, 2 exam practice (D60)
     await page.getByRole("link", { name: "Flyers" }).click();
     await expect(page.locator("[data-level=flyers]")).toBeVisible();
     await expect(page.getByTestId("topic")).toHaveCount(24); // D60: 14 topics, 4 reviews, 4 grammar, 2 exam
@@ -83,12 +83,12 @@ test.describe("student practice library", () => {
   });
 
   test("a student plays every game of a topic and earns stars", async ({ page }) => {
-    test.setTimeout(160_000); // 12 activities, played to the end
+    test.setTimeout(180_000); // 13 activities, played to the end
 
     await loginFromScratch(page, "hs.an");
     await page.goto("/learn?level=starters");
     await page.getByTestId("topic").filter({ hasText: "Transport" }).click();
-    await expect(page.getByTestId("activity")).toHaveCount(12);
+    await expect(page.getByTestId("activity")).toHaveCount(13); // + phonics (D61)
     const hrefs = await page
       .getByTestId("activity")
       .evaluateAll((els) => els.map((e) => e.getAttribute("href")!));
@@ -102,7 +102,7 @@ test.describe("student practice library", () => {
       page.getByTestId("activity").first().getByRole("img", { name: "3 out of 3 stars" }),
     ).toBeVisible();
     await page.goto("/learn?level=starters");
-    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("12/12");
+    await expect(page.getByTestId("topic").filter({ hasText: "Transport" })).toContainText("13/13");
   });
 
   test("a wrong answer offers a hint and earns 1 point instead of 2", async ({ page }) => {
@@ -285,7 +285,7 @@ test.describe("user guide", () => {
     await expect(page.getByTestId("page-title")).toHaveText("Hướng dẫn sử dụng SHINING");
     await expect(page.locator("#soan-bai img").first()).toBeVisible();
     await expect(page.getByTestId("guide-overview")).toContainText("Starters");
-    await expect(page.getByTestId("guide-overview")).toContainText("12 chủ đề");
+    await expect(page.getByTestId("guide-overview")).toContainText("16 chủ đề");
   });
 });
 

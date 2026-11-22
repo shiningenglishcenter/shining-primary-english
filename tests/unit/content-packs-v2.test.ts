@@ -16,9 +16,12 @@ describe("content packs v2", () => {
       const { acts, problems } = buildPack(file, pack);
       expect(problems).toEqual([]);
       const bad = acts.flatMap((a) => {
-        if (!(PRACTICE_KINDS as readonly string[]).includes(a.kind)) return [`${a.where}: unknown kind ${a.kind}`];
+        if (!(PRACTICE_KINDS as readonly string[]).includes(a.kind))
+          return [`${a.where}: unknown kind ${a.kind}`];
         const r = contentSchemaFor(a.kind as PracticeKind).safeParse(a.content);
-        return r.success ? [] : [`${a.where}: ${r.error.issues[0]?.message} at ${r.error.issues[0]?.path.join(".")}`];
+        return r.success
+          ? []
+          : [`${a.where}: ${r.error.issues[0]?.message} at ${r.error.issues[0]?.path.join(".")}`];
       });
       expect(bad).toEqual([]);
     });

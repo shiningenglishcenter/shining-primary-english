@@ -153,6 +153,13 @@ D55–D56, from the approved draft.
 - Listen and write: one more letter shown after each wrong try, e.g. h _ _ _ _ → h _ _ _ y (D58).
 - Every delete asks in an in-app dialog (D57); the "Thao tác" menu closes when clicking elsewhere.
 
+### Phase 1.8 — Content for every level and new practice (2026-11-23, same branch)
+D60–D65. All content published.
+- Movers 14 topics, Flyers 14 topics (+ 4 reviews, 4 grammar topics, 2 exam-practice topics each); GS2 16 units,
+  GS3/GS4/GS5 20 units (+ 4 reviews; grammar for GS4/GS5). About 1,350 words and 1,750 activities.
+- Starters: phonics in every topic, 2 grammar topics, exam practice. GS1: phonics in every unit.
+- New kinds: phonics, look/listen and write, listen and colour. Pupils: "Ôn lại từ hay sai"; difficulty labels.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
@@ -178,6 +185,15 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 20. `supabase/migrations/20261121000032_topic_comments.sql`
 21. `supabase/migrations/20261122000033_programs.sql` (D55; the app works without it, with the built-in list)
 22. `supabase/migrations/20261122000034_activity_drafts.sql` (D59; without it the editor does not autosave)
+23. `supabase/migrations/20261123000035_new_kinds.sql` ← **run alone first** (new activity kinds)
+24. `supabase/migrations/20261123000036_movers_content.sql`
+25. `supabase/migrations/20261123000037_flyers_content.sql`
+26. `supabase/migrations/20261123000038_gs2_content.sql`
+27. `supabase/migrations/20261123000039_gs3_content.sql`
+28. `supabase/migrations/20261123000040_gs4_content.sql`
+29. `supabase/migrations/20261123000041_gs5_content.sql`
+30. `supabase/migrations/20261123000042_starters_extra.sql`
+31. `supabase/migrations/20261123000043_gs1_extra.sql`
 
 **Run 14–20 before deploying Phases 1.5–1.6**: the new code reads `vocabulary.image_path` and
 `progress_records.is_retry`; students' pages fail until those columns exist.
@@ -214,6 +230,9 @@ Phase 1.6 (2026-11-21): DB **300/300**, unit **134/134**, e2e **72/72** on a loc
 building every new kind and a pupil playing them, video gate fallback, GS1 review, remembered username,
 parent message.
 
+Phase 1.8 (2026-11-23): DB **317/317**, unit **143/143** (every generated activity checked against the app's
+schemas), e2e **79/79**, incl. phonics, listen and colour, look and write, missed-words review, difficulty labels.
+
 Phase 1.7 (2026-11-22): DB **317/317**, unit **135/135**, e2e **75/75** on a local Supabase stack, incl. programme/
 level tabs, add-topic dialog, many words at once with IPA, activity reorder, live preview, save bar, and an admin
 adding a programme and level that show as tabs.
@@ -233,7 +252,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D59; Phase 1.7: D55–D59; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D65; Phase 1.8: D60–D65; Phase 1.7: D55–D59; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

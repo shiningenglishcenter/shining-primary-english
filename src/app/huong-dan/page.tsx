@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BarChart3, BookOpenCheck, GraduationCap, Lightbulb, LogIn, Send, Star } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { GuideOverview } from "@/features/guide/overview";
-import { KIND_LABEL_VI, PRACTICE_KINDS } from "@/features/practice/model";
+import { KIND_LABEL_VI, PRACTICE_KINDS, type PracticeKind } from "@/features/practice/model";
 
 export const metadata: Metadata = {
   title: "Hướng dẫn sử dụng",
@@ -136,7 +136,7 @@ function Section({
   );
 }
 
-const KIND_HELP: Record<string, string> = {
+const KIND_HELP: Record<PracticeKind, string> = {
   flashcards: "xem hình, nghe và đọc theo",
   listen_choose: "nghe từ, chọn đúng hình",
   look_choose: "nhìn hình, chọn đúng từ",
@@ -151,6 +151,9 @@ const KIND_HELP: Record<string, string> = {
   mixed: "ghép 2–6 dạng trên thành một bài",
   match_meaning: "nối từ tiếng Anh với nghĩa tiếng Việt (không cần hình)",
   translate: "đọc câu, chọn nghĩa đúng (Anh → Việt hoặc Việt → Anh)",
+  phonics: "nghe các từ, chọn từ có âm đang học (ví dụ /æ/)",
+  write_answer: "dạng đề Cambridge: nhìn hình hoặc nghe câu, viết 1–3 từ",
+  listen_colour: "dạng đề Cambridge: nghe, chạm đúng hình rồi chọn đúng màu",
 };
 
 export default function GuidePage() {
@@ -290,7 +293,7 @@ export default function GuidePage() {
             <Tip>Mỗi bài trong danh sách có nút 🔗 Link để chép nhanh link gửi học sinh.</Tip>
           </Step>
 
-          <Step n={3} title="Chọn dạng bài (12 dạng)">
+          <Step n={3} title={`Chọn dạng bài (${PRACTICE_KINDS.length} dạng)`}>
             <ul className="grid gap-1 sm:grid-cols-2">
               {PRACTICE_KINDS.map((k) => (
                 <li key={k}>

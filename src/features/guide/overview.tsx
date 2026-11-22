@@ -59,8 +59,9 @@ export async function GuideOverview() {
         })}
       </div>
       <p className="mt-4 text-sm">
-        Mỗi chủ đề / Unit có khoảng 10–12 bài, gồm 12 dạng theo 4 kỹ năng: <b>Từ vựng · Nghe · Đọc · Viết</b>{" "}
-        và <b>Bài tổng hợp</b>.
+        Mỗi chủ đề / Unit có khoảng 12–14 bài theo 4 kỹ năng: <b>Từ vựng · Nghe · Đọc · Viết</b>, có{" "}
+        <b>Ngữ âm</b> và <b>Bài tổng hợp</b>. Mỗi trình độ còn có chủ đề <b>Ôn tập</b>, Cambridge có thêm{" "}
+        <b>Ngữ pháp</b> và <b>Luyện đề</b> theo dạng bài thi.
       </p>
     </section>
   );

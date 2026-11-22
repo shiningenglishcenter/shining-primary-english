@@ -349,7 +349,8 @@ begin
     const last = r.units.at(-1)!;
     reviewAfter.set(last, [...(reviewAfter.get(last) ?? []), r]);
   }
-  let sort = 0;
+  // Extra topics for older packs go after the topics already there.
+  let sort = pack.units.length ? 0 : 1000;
   for (const u of pack.units) {
     if (codes.has(u.code)) fail(u.code, "duplicate topic code");
     codes.add(u.code);
@@ -382,6 +383,21 @@ begin
       reviewActivities(pack, pack.units, r.units, r.code).forEach((a, i) => out.push(activity(a, (i + 1) * 10)));
     }
   }
+  for (const x of pack.phonicsFor ?? []) {
+    current = x.code;
+    const u = { code: x.code, phonics: x.phonics } as Unit;
+    const act: Act = {
+      kind: "phonics",
+      en: `Sounds: ${x.phonics.sound}`,
+      vi: `Ngữ âm: âm ${x.phonics.sound}`,
+      content: phonics(u),
+    };
+    out.push(`  -- phonics for ${x.code}
+  select id into v_topic from public.topics where level_id = v_level and code = ${q(x.code)} and deleted_at is null;
+  if v_topic is not null then
+${activity(act, 900).replace(/^/gm, "  ")}
+  end if;`);
+  }
   for (const g of pack.grammar ?? []) {
     if (codes.has(g.code)) fail(g.code, "duplicate topic code");
     codes.add(g.code);
@@ -407,10 +423,13 @@ begin
 
 /** [migration file, pack module] — the order migrations run in. */
 export const PACKS: [file: string, module: string][] = [
+  // Additions to the packs written before v2 (content/starters.mts, content/gs1.mts) are below.
   ["20261123000036_movers_content.sql", "../content/v2/movers.mts"],
   ["20261123000037_flyers_content.sql", "../content/v2/flyers.mts"],
   ["20261123000038_gs2_content.sql", "../content/v2/gs2.mts"],
   ["20261123000039_gs3_content.sql", "../content/v2/gs3.mts"],
   ["20261123000040_gs4_content.sql", "../content/v2/gs4.mts"],
   ["20261123000041_gs5_content.sql", "../content/v2/gs5.mts"],
+  ["20261123000042_starters_extra.sql", "../content/v2/starters-extra.mts"],
+  ["20261123000043_gs1_extra.sql", "../content/v2/gs1-extra.mts"],
 ];
