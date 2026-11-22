@@ -81,6 +81,15 @@ const vi = {
   restart: "Xếp lại từ đầu",
   tapWords: "Chạm các từ bên dưới",
   writeWord: "Viết từ con nghe được",
+  writeAnswer: "Viết câu trả lời",
+  hintWrite: (l: string, n: number) => `Câu trả lời bắt đầu bằng “${l}” và có ${n} chữ cái.`,
+  pickThing: "Chạm vào hình được nhắc tới",
+  pickColour: "Chọn màu",
+  hintColour: "Nghe lại thật kỹ: hình nào, màu gì?",
+  colourRight: (thing: string) => `Đúng rồi! Tô ${thing}.`,
+  hearWords: "Nghe các từ",
+  phonicsAsk: (sound: string) => `Từ nào có âm ${sound}?`,
+  hintPhonics: "Chạm loa nghe lại từng từ, chú ý âm đó. Một đáp án sai đã được bỏ đi.",
   tapPictureToHear: "Chạm vào hình để nghe tên của nó.",
   tfRight: (yes: boolean, ctx: boolean): string =>
     ctx
@@ -209,6 +218,15 @@ const en: Messages = {
   restart: "Start again",
   tapWords: "Tap the words below",
   writeWord: "Write the word you hear",
+  writeAnswer: "Write the answer",
+  hintWrite: (l, n) => `The answer starts with “${l}” and has ${n} letters.`,
+  pickThing: "Tap the thing you hear",
+  pickColour: "Choose the colour",
+  hintColour: "Listen again: which thing, which colour?",
+  colourRight: (thing) => `Yes! Colour ${thing}.`,
+  hearWords: "Hear the words",
+  phonicsAsk: (sound) => `Which word has the sound ${sound}?`,
+  hintPhonics: "Listen to each word again and find the sound. One wrong answer is gone.",
   tapPictureToHear: "Tap a picture to hear its name.",
   tfRight: (yes, ctx) =>
     ctx

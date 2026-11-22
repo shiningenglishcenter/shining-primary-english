@@ -402,6 +402,9 @@ function defaultTitleEn(kind: PracticeKind): string {
     mixed: "Skills challenge",
     match_meaning: "Match the meanings",
     translate: "What does it mean?",
+    phonics: "Sounds",
+    write_answer: "Look and write",
+    listen_colour: "Listen and colour",
   }[kind];
 }
 

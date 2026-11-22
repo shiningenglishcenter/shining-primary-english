@@ -18,9 +18,11 @@ import { recordPractice, type QuestionResult } from "@/features/practice/actions
 export type RoundResult = { score: number; maxScore: number; seconds: number; details: QuestionResult[] };
 import { Pic, PointPic, pointOf, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import {
+  COLOURS,
   DEFAULT_SETTINGS,
   POINTS,
   starsFor,
+  type Colour,
   type PlaySettings,
   type PracticeKind,
 } from "@/features/practice/model";
@@ -59,6 +61,22 @@ const INSTRUCTIONS: Record<Question["type"], [string, string]> = {
   rearrange: ["Make a sentence", "Chạm các từ theo đúng thứ tự"],
   listen_type: ["Listen and write", "Nghe rồi viết từ con nghe được"],
   choice: ["Choose the answer", "Chọn câu trả lời đúng"],
+  write: ["Look and write", "Nhìn / nghe rồi viết câu trả lời"],
+  colour: ["Listen and colour", "Nghe rồi tô màu đúng hình"],
+};
+
+/** Paint for "Listen and colour" (D62). */
+const COLOUR_HEX: Record<Colour, string> = {
+  red: "#E5484D",
+  blue: "#3E7BFA",
+  green: "#30A46C",
+  yellow: "#F5C518",
+  orange: "#F76B15",
+  pink: "#F17EB8",
+  purple: "#8E4EC6",
+  brown: "#8D5B3E",
+  black: "#1F2A37",
+  grey: "#8B95A5",
 };
 
 /** Match Vietnamese meanings, choose a sentence's meaning (D47). */
@@ -380,6 +398,10 @@ function QuestionBody(props: QProps) {
       return <ListenTypeQ {...props} q={props.q} />;
     case "choice":
       return <ChoiceQ {...props} q={props.q} />;
+    case "write":
+      return <WriteQ {...props} q={props.q} />;
+    case "colour":
+      return <ColourQ {...props} q={props.q} />;
   }
 }
 
@@ -656,7 +678,11 @@ function resultOf(q: Question, points: number): QuestionResult {
       case "rearrange":
         return q.answer.join(" ");
       case "choice":
-        return q.prompt;
+        return q.phonics ? `${q.phonics.sound}: ${q.answer}` : q.prompt;
+      case "write":
+        return q.say ? `${q.say} — ${q.prompt}` : q.prompt;
+      case "colour":
+        return q.say;
       default:
         return q.answer.word;
     }
@@ -1666,6 +1692,216 @@ function ListenTypeQ({
   );
 }
 
+/** Normalised for "look and write": case, spaces and end punctuation don't matter. */
+function sameAnswer(typed: string, answer: string): boolean {
+  const norm = (x: string) =>
+    x
+      .trim()
+      .toLowerCase()
+      .replace(/[.!?,]+$/g, "")
+      .replace(/\s+/g, " ");
+  return norm(typed) === norm(answer);
+}
+
+function WriteQ({
+  q,
+  sound,
+  last,
+  onDone,
+}: {
+  q: Extract<Question, { type: "write" }>;
+  sound: Sound;
+  last: boolean;
+  onDone: (p: number) => void;
+}) {
+  const t = useT();
+  const [typed, setTyped] = useState("");
+  const main = q.answers[0]!;
+  const a = useAnswer(sound, { hint: q.hint, onFail: () => setTyped(main) });
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!q.say) return;
+    const id = window.setTimeout(() => sound.speak(q.say!), 300);
+    return () => window.clearTimeout(id);
+  }, [q.say, sound]);
+  const check = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (a.done || !typed.trim()) return;
+    if (q.answers.some((x) => sameAnswer(typed, x))) {
+      a.right();
+      sound.speak(main);
+    } else {
+      a.wrong("input");
+      input.current?.select();
+    }
+  };
+  return (
+    <Frame
+      type="write"
+      heading={q.say ? ["Listen and write", "Nghe rồi viết câu trả lời"] : undefined}
+      footer={
+        <Footer
+          a={a}
+          last={last}
+          onNext={() => onDone(a.points)}
+          hint={t.hintWrite(main[0]!, main.replace(/\s/g, "").length)}
+          answer={main}
+        />
+      }
+    >
+      <div className="flex w-full max-w-md flex-col items-center gap-3 rounded-3xl bg-k-surface p-4">
+        {q.emoji ? <Pic code={q.emoji} size={120} /> : null}
+        <div className="flex w-full items-center gap-3">
+          <p
+            className="flex-1 font-kid-display text-2xl leading-snug font-bold"
+            data-testid="sentence"
+            lang="en"
+          >
+            {q.prompt}
+          </p>
+          <SpeakButton
+            onClick={() => sound.speak(q.say ? `${q.say} ${q.prompt}` : q.prompt)}
+            label={t.listenQuestion}
+          />
+        </div>
+      </div>
+      <form onSubmit={check} className="flex w-full max-w-md flex-col gap-3">
+        <input
+          ref={input}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          readOnly={a.done}
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          aria-label={t.writeAnswer}
+          data-testid="write-input"
+          data-answer={main.toLowerCase()}
+          className={cn(
+            "h-20 w-full rounded-3xl border-[3px] bg-k-surface text-center font-kid-display text-3xl font-bold outline-none focus:border-k-primary",
+            a.status === "right" ? "border-k-good" : a.status === "wrong" ? "border-k-bad" : "border-k-line",
+            a.shake === "input" && "animate-kid-shake",
+          )}
+        />
+        {!a.done ? (
+          <button
+            type="submit"
+            disabled={!typed.trim()}
+            data-testid="check"
+            className="kid-press h-16 w-full rounded-2xl bg-k-accent text-xl font-black text-k-ink [--press:var(--k-accent-shadow)] disabled:opacity-40"
+          >
+            {t.check}
+          </button>
+        ) : null}
+      </form>
+    </Frame>
+  );
+}
+
+/** Five colours to choose from: the right one and four others, the same order every time for a question. */
+function paletteFor(q: Extract<Question, { type: "colour" }>): Colour[] {
+  const others = COLOURS.filter((c) => c !== q.colour);
+  const start = (q.say.length + q.target) % others.length;
+  const picked = [...others.slice(start), ...others.slice(0, start)].slice(0, 4);
+  const at = q.say.length % 5;
+  return [...picked.slice(0, at), q.colour, ...picked.slice(at)];
+}
+
+function ColourQ({
+  q,
+  sound,
+  last,
+  onDone,
+}: {
+  q: Extract<Question, { type: "colour" }>;
+  sound: Sound;
+  last: boolean;
+  onDone: (p: number) => void;
+}) {
+  const t = useT();
+  const a = useAnswer(sound, { hint: q.hint });
+  const [thing, setThing] = useState<number | null>(null);
+  const [paint, setPaint] = useState<Colour | null>(null);
+  const palette = useMemo(() => paletteFor(q), [q]);
+  useEffect(() => {
+    const id = window.setTimeout(() => sound.speak(q.say), 300);
+    return () => window.clearTimeout(id);
+  }, [q.say, sound]);
+  const tryIt = (nextThing: number | null, nextPaint: Colour | null) => {
+    if (a.done || nextThing === null || nextPaint === null) return;
+    if (nextThing === q.target && nextPaint === q.colour) a.right();
+    else {
+      a.wrong("colour");
+      window.setTimeout(() => {
+        setThing(null);
+        setPaint(null);
+      }, 700);
+    }
+  };
+  const shown = a.done ? q.target : thing;
+  const shownPaint = a.done ? q.colour : paint;
+  return (
+    <Frame
+      type="colour"
+      footer={
+        <Footer a={a} last={last} onNext={() => onDone(a.points)} hint={t.hintColour} answer={`${q.say}`} />
+      }
+    >
+      <SpeakButton big onClick={() => sound.speak(q.say)} label={t.listenAgain} />
+      <p className="text-sm font-bold text-k-soft">{t.pickThing}</p>
+      <div className="grid w-full max-w-md grid-cols-3 gap-3" data-testid="colour-things">
+        {q.objects.map((o, i) => (
+          <button
+            key={i}
+            type="button"
+            disabled={a.done}
+            onClick={() => {
+              setThing(i);
+              tryIt(i, paint);
+            }}
+            data-testid="colour-thing"
+            data-correct={i === q.target ? "true" : undefined}
+            data-colour={i === q.target ? q.colour : undefined}
+            aria-pressed={shown === i}
+            className={cn(
+              "kid-press flex aspect-square items-center justify-center rounded-3xl border-[3px] bg-k-surface",
+              shown === i ? "border-k-primary" : "border-k-line",
+              a.shake === "colour" && shown === i && "animate-kid-shake",
+            )}
+            style={shown === i && shownPaint ? { backgroundColor: `${COLOUR_HEX[shownPaint]}55` } : undefined}
+          >
+            <Pic code={o} size={64} />
+          </button>
+        ))}
+      </div>
+      <p className="text-sm font-bold text-k-soft">{t.pickColour}</p>
+      <div className="flex flex-wrap justify-center gap-3" data-testid="colour-palette">
+        {palette.map((c) => (
+          <button
+            key={c}
+            type="button"
+            disabled={a.done}
+            onClick={() => {
+              setPaint(c);
+              tryIt(thing, c);
+            }}
+            aria-label={c}
+            aria-pressed={shownPaint === c}
+            data-testid="colour-swatch"
+            data-colour={c}
+            className={cn(
+              "kid-press size-14 rounded-full border-4",
+              shownPaint === c ? "border-k-ink" : "border-k-surface",
+            )}
+            style={{ backgroundColor: COLOUR_HEX[c] }}
+          />
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
 function ChoiceQ({
   q,
   ctxType,
@@ -1683,8 +1919,8 @@ function ChoiceQ({
   const a = useAnswer(sound, { hint: q.hint });
   const [picked, setPicked] = useState<string | null>(null);
   const gone = eliminated(a, q.options, (o) => o === q.answer, picked);
-  // vi_en: the English is in the choices, so read each choice aloud when tapped.
-  const englishPrompt = q.translate !== "vi_en";
+  // vi_en and phonics: the English is in the choices, so read each choice aloud when tapped.
+  const englishPrompt = q.translate !== "vi_en" && !q.phonics;
   const choose = (o: string) => {
     if (a.done || o === gone) return;
     setPicked(o);
@@ -1696,31 +1932,55 @@ function ChoiceQ({
     <Frame
       type="choice"
       heading={
-        q.translate ? TRANSLATE_HEADINGS[q.translate] : ctxType ? CONTEXT_HEADINGS[ctxType].mc : undefined
+        q.phonics
+          ? ["Listen and choose", "Nghe và chọn từ có âm"]
+          : q.translate
+            ? TRANSLATE_HEADINGS[q.translate]
+            : ctxType
+              ? CONTEXT_HEADINGS[ctxType].mc
+              : undefined
       }
       footer={
         <Footer
           a={a}
           last={last}
           onNext={() => onDone(a.points)}
-          hint={t.hintChoice(ctxType)}
+          hint={q.phonics ? t.hintPhonics : t.hintChoice(ctxType)}
           answer={q.answer}
         />
       }
     >
-      <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
-        {q.emoji ? <Pic code={q.emoji} size={56} className="shrink-0" /> : null}
-        <p
-          className="flex-1 font-kid-display text-2xl leading-snug font-bold"
-          data-testid="sentence"
-          lang={englishPrompt ? "en" : "vi"}
+      {q.phonics ? (
+        <div
+          className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4"
+          data-testid="phonics"
         >
-          {q.prompt}
-        </p>
-        {englishPrompt ? (
-          <SpeakButton onClick={() => sound.speak(q.prompt)} label={t.listenQuestion} />
-        ) : null}
-      </div>
+          <p className="flex-1 font-kid-display text-2xl leading-snug font-bold">
+            {t.phonicsAsk(q.phonics.sound)}
+            {q.phonics.letters ? (
+              <span className="block text-base text-k-soft">{q.phonics.letters}</span>
+            ) : null}
+          </p>
+          <SpeakButton
+            onClick={() => q.options.forEach((o, i) => window.setTimeout(() => sound.speak(o), i * 1300))}
+            label={t.hearWords}
+          />
+        </div>
+      ) : (
+        <div className="flex w-full max-w-md items-center gap-3 rounded-3xl bg-k-surface p-4">
+          {q.emoji ? <Pic code={q.emoji} size={56} className="shrink-0" /> : null}
+          <p
+            className="flex-1 font-kid-display text-2xl leading-snug font-bold"
+            data-testid="sentence"
+            lang={englishPrompt ? "en" : "vi"}
+          >
+            {q.prompt}
+          </p>
+          {englishPrompt ? (
+            <SpeakButton onClick={() => sound.speak(q.prompt)} label={t.listenQuestion} />
+          ) : null}
+        </div>
+      )}
       <div className="flex w-full max-w-md flex-col gap-3">
         {q.options.map((o) => {
           const isAnswer = o === q.answer;
@@ -1931,6 +2191,10 @@ function answerText(q: Question): string {
       return q.answer.join(" ");
     case "choice":
       return `${q.prompt} → ${q.answer}`;
+    case "write":
+      return `${q.prompt} → ${q.answers[0]}`;
+    case "colour":
+      return q.say;
     case "match":
       return q.pairs.map((c) => c.word).join(", ");
     case "flash":

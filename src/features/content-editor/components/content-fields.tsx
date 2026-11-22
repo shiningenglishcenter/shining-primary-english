@@ -17,7 +17,10 @@ import {
   parseYouTube,
   STEP_KINDS,
   WORD_KINDS,
+  COLOURS,
+  COLOUR_VI,
   emptyContentFor,
+  type Colour,
   type Media,
   type PracticeKind,
 } from "@/features/practice/model";
@@ -103,6 +106,9 @@ export function ContentFields({
       </div>
     );
   }
+  if (kind === "phonics") return <PhonicsFields content={content} onChange={onChange} />;
+  if (kind === "write_answer") return <WriteAnswerFields content={content} onChange={onChange} />;
+  if (kind === "listen_colour") return <ListenColourFields content={content} onChange={onChange} />;
   if (kind === "listening") {
     return (
       <div className="flex flex-col gap-4">
@@ -196,6 +202,9 @@ export function serializeContent(kind: PracticeKind, content: Content): Content 
     if (kind === "translate") return { direction: content.direction === "vi_en" ? "vi_en" : "en_vi", items };
     return { items };
   }
+  if (kind === "phonics") return serializePhonics(content);
+  if (kind === "write_answer") return serializeWriteAnswer(content);
+  if (kind === "listen_colour") return serializeListenColour(content);
   const items = ((content.items as QuizDraft[] | undefined) ?? []).map(normaliseQuiz);
   if (kind === "listening") {
     return {
@@ -906,4 +915,250 @@ function ItemEmoji({ value, onChange }: { value: string | null; onChange: (code:
       />
     </span>
   );
+}
+
+// ------------------------------------------- phonics and exam kinds (D61, D62) ---
+
+type PhonicsDraft = { answer: string; options: string[]; hint?: string; explain?: string };
+
+function PhonicsFields({ content, onChange }: { content: Content; onChange: (c: Content) => void }) {
+  const items = (content.items as PhonicsDraft[] | undefined) ?? [];
+  const set = (next: PhonicsDraft[]) => onChange({ ...content, items: next });
+  const update = (i: number, patch: Partial<PhonicsDraft>) =>
+    set(items.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  return (
+    <div className="flex flex-col gap-4" data-testid="phonics-editor">
+      <fieldset className={box}>
+        <legend className="px-1 text-sm font-semibold">Âm luyện</legend>
+        <div className="flex flex-wrap gap-2">
+          <Input
+            value={String(content.sound ?? "")}
+            onChange={(e) => onChange({ ...content, sound: e.target.value })}
+            placeholder="/b/"
+            aria-label="Âm"
+            maxLength={20}
+            className="w-32"
+          />
+          <Input
+            value={String(content.letters ?? "")}
+            onChange={(e) => onChange({ ...content, letters: e.target.value })}
+            placeholder="Cách viết, ví dụ: b"
+            aria-label="Cách viết âm"
+            maxLength={40}
+            className="w-56"
+          />
+        </div>
+        <p className="text-xs text-ink-soft">
+          Mỗi câu: 1 từ có âm này và 2 từ không có. Học sinh chạm vào từ để nghe, chọn từ có âm.
+        </p>
+      </fieldset>
+      <ol className="flex flex-col gap-3">
+        {items.map((it, i) => (
+          <li key={i} className={box}>
+            <ItemHeader n={i + 1} onRemove={() => set(items.filter((_, k) => k !== i))}>
+              {null}
+            </ItemHeader>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Input
+                value={it.answer}
+                onChange={(e) =>
+                  update(i, { answer: e.target.value, options: [e.target.value, ...it.options.slice(1)] })
+                }
+                placeholder="Từ có âm (bag)"
+                aria-label={`Từ có âm, câu ${i + 1}`}
+              />
+              {[1, 2].map((k) => (
+                <Input
+                  key={k}
+                  value={it.options[k] ?? ""}
+                  onChange={(e) => {
+                    const options = [...it.options];
+                    options[k] = e.target.value;
+                    update(i, { options });
+                  }}
+                  placeholder={k === 1 ? "Từ khác (cat)" : "Từ khác (dog)"}
+                  aria-label={`Từ khác ${k}, câu ${i + 1}`}
+                />
+              ))}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <AddButton onClick={() => set([...items, { answer: "", options: ["", "", ""] }])} />
+    </div>
+  );
+}
+
+function serializePhonics(content: Content): Content {
+  const letters = String(content.letters ?? "").trim();
+  const items = ((content.items as PhonicsDraft[] | undefined) ?? []).map((it) => {
+    const answer = it.answer.trim();
+    const others = it.options
+      .slice(1)
+      .map((o) => o.trim())
+      .filter(Boolean);
+    return { answer, options: [answer, ...others], ...hintOf(it) };
+  });
+  return { sound: String(content.sound ?? "").trim(), ...(letters ? { letters } : {}), items };
+}
+
+type WriteDraft = {
+  emoji?: string | null;
+  question: string;
+  say?: string;
+  answers: string[];
+  hint?: string;
+  explain?: string;
+};
+
+function WriteAnswerFields({ content, onChange }: { content: Content; onChange: (c: Content) => void }) {
+  const items = (content.items as WriteDraft[] | undefined) ?? [];
+  const set = (next: WriteDraft[]) => onChange({ ...content, items: next });
+  const update = (i: number, patch: Partial<WriteDraft>) =>
+    set(items.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  return (
+    <div className="flex flex-col gap-4" data-testid="write-answer-editor">
+      <p className="text-sm text-ink-soft">
+        Dạng đề Cambridge: nhìn hình (hoặc nghe câu được đọc) rồi viết 1–3 từ. Nhiều đáp án đúng thì cách nhau
+        bằng dấu “/”, ví dụ: <code>two / 2</code>.
+      </p>
+      <ol className="flex flex-col gap-3">
+        {items.map((it, i) => (
+          <li key={i} className={box}>
+            <ItemHeader n={i + 1} onRemove={() => set(items.filter((_, k) => k !== i))}>
+              <ItemEmoji value={it.emoji ?? null} onChange={(emoji) => update(i, { emoji })} />
+            </ItemHeader>
+            <Input
+              value={it.question}
+              onChange={(e) => update(i, { question: e.target.value })}
+              placeholder="How many cats are there?"
+              aria-label={`Câu hỏi ${i + 1}`}
+              maxLength={200}
+            />
+            <Input
+              value={it.say ?? ""}
+              onChange={(e) => update(i, { say: e.target.value })}
+              placeholder="Câu được đọc cho học sinh nghe (không bắt buộc)"
+              aria-label={`Câu đọc ${i + 1}`}
+              maxLength={400}
+            />
+            <Input
+              value={it.answers.join(" / ")}
+              onChange={(e) => update(i, { answers: e.target.value.split("/").map((x) => x.trimStart()) })}
+              placeholder="two / 2"
+              aria-label={`Đáp án câu ${i + 1}`}
+            />
+          </li>
+        ))}
+      </ol>
+      <AddButton onClick={() => set([...items, { emoji: null, question: "", answers: [""] }])} />
+    </div>
+  );
+}
+
+function serializeWriteAnswer(content: Content): Content {
+  return {
+    items: ((content.items as WriteDraft[] | undefined) ?? []).map((it) => {
+      const say = (it.say ?? "").trim();
+      return {
+        emoji: emojiCode(it.emoji),
+        question: it.question.trim(),
+        ...(say ? { say } : {}),
+        answers: it.answers.map((a) => a.trim()).filter(Boolean),
+        ...hintOf(it),
+      };
+    }),
+  };
+}
+
+type ColourDraft = {
+  objects: string[];
+  target: number;
+  colour: Colour;
+  say: string;
+  hint?: string;
+  explain?: string;
+};
+
+const graphemes = (text: string) =>
+  [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)]
+    .map((g) => g.segment)
+    .filter((g) => g.trim());
+
+function ListenColourFields({ content, onChange }: { content: Content; onChange: (c: Content) => void }) {
+  const items = (content.items as ColourDraft[] | undefined) ?? [];
+  const set = (next: ColourDraft[]) => onChange({ ...content, items: next });
+  const update = (i: number, patch: Partial<ColourDraft>) =>
+    set(items.map((it, k) => (k === i ? { ...it, ...patch } : it)));
+  return (
+    <div className="flex flex-col gap-4" data-testid="listen-colour-editor">
+      <p className="text-sm text-ink-soft">
+        Dạng đề Cambridge (Listening part 4): học sinh nghe câu, chạm đúng hình rồi chọn đúng màu.
+      </p>
+      <ol className="flex flex-col gap-3">
+        {items.map((it, i) => (
+          <li key={i} className={box}>
+            <ItemHeader n={i + 1} onRemove={() => set(items.filter((_, k) => k !== i))}>
+              {null}
+            </ItemHeader>
+            <Input
+              value={it.objects.map((o) => (EMOJI_CODE_PATTERN.test(o) ? codeToEmoji(o) : o)).join("")}
+              onChange={(e) => update(i, { objects: graphemes(e.target.value).slice(0, 6) })}
+              placeholder="Dán 2–6 emoji: 🪁⚽🚲🐈"
+              aria-label={`Các hình, câu ${i + 1}`}
+              className="text-2xl"
+            />
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              Tô hình
+              <Select
+                value={String(it.target)}
+                onChange={(e) => update(i, { target: Number(e.target.value) })}
+                aria-label={`Hình cần tô, câu ${i + 1}`}
+                className="w-24"
+              >
+                {it.objects.map((o, k) => (
+                  <option key={k} value={k}>
+                    {EMOJI_CODE_PATTERN.test(o) ? codeToEmoji(o) : o}
+                  </option>
+                ))}
+              </Select>
+              màu
+              <Select
+                value={it.colour}
+                onChange={(e) => update(i, { colour: e.target.value as Colour })}
+                aria-label={`Màu, câu ${i + 1}`}
+                className="w-40"
+              >
+                {COLOURS.map((c) => (
+                  <option key={c} value={c}>
+                    {c} ({COLOUR_VI[c]})
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Input
+              value={it.say}
+              onChange={(e) => update(i, { say: e.target.value })}
+              placeholder="Can you see the kite? Colour it blue."
+              aria-label={`Câu đọc, câu ${i + 1}`}
+              maxLength={200}
+            />
+          </li>
+        ))}
+      </ol>
+      <AddButton onClick={() => set([...items, { objects: [], target: 0, colour: "red", say: "" }])} />
+    </div>
+  );
+}
+
+function serializeListenColour(content: Content): Content {
+  return {
+    items: ((content.items as ColourDraft[] | undefined) ?? []).map((it) => ({
+      objects: it.objects.map((o) => (EMOJI_CODE_PATTERN.test(o) ? o : (toCode(o) ?? o))),
+      target: it.target,
+      colour: it.colour,
+      say: it.say.trim(),
+      ...hintOf(it),
+    })),
+  };
 }

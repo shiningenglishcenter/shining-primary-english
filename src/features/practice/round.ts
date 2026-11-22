@@ -6,6 +6,10 @@ import {
   readingContentSchema,
   wordContentSchema,
   POINTS,
+  listenColourContentSchema,
+  phonicsContentSchema,
+  writeAnswerContentSchema,
+  type Colour,
   type Media,
   type PracticeKind,
   type QuizItem,
@@ -51,7 +55,13 @@ type QuestionBody =
       answer: string;
       /** "Choose the meaning" (D47): which language the prompt is in. */
       translate?: "en_vi" | "vi_en";
-    };
+      /** Phonics (D61): the sound asked about; each choice is read aloud when tapped. */
+      phonics?: { sound: string; letters: string | null };
+    }
+  /** Look/listen and write (D62): `say` is read aloud; any of `answers` is right. */
+  | { type: "write"; emoji: string | null; prompt: string; say: string | null; answers: string[] }
+  /** Listen and colour (D62): tap the thing that is read out, then its colour. */
+  | { type: "colour"; objects: string[]; target: number; colour: Colour; say: string };
 
 /**
  * A question; `ctx` points into `Round.contexts` when it is about a passage
@@ -172,8 +182,65 @@ export function buildRound(
     }));
     return { questions, maxScore: scoreOf(questions), contexts: [context] };
   }
+  if (kind === "phonics" || kind === "write_answer" || kind === "listen_colour") {
+    const questions = buildItems(kind, content, rand);
+    return { questions, maxScore: scoreOf(questions), contexts: [] };
+  }
   const { questions } = buildSimple(kind, content, topicWords, rand);
   return { questions, maxScore: scoreOf(questions), contexts: [] };
+}
+
+/** Phonics and the exam-style kinds (D61, D62): one question per item, shuffled. */
+function buildItems(
+  kind: "phonics" | "write_answer" | "listen_colour",
+  content: unknown,
+  rand: Rand,
+): Question[] {
+  const extra = (i: { hint?: string; explain?: string }) => ({
+    ...(i.hint ? { hint: i.hint } : {}),
+    ...(i.explain ? { explain: i.explain } : {}),
+  });
+  if (kind === "phonics") {
+    const parsed = phonicsContentSchema.safeParse(content);
+    if (!parsed.success) return [];
+    const { sound, letters } = parsed.data;
+    return shuffle(parsed.data.items, rand)
+      .slice(0, ROUND_SIZE)
+      .map((i) => ({
+        type: "choice",
+        emoji: null,
+        prompt: sound,
+        options: shuffle(i.options, rand),
+        answer: i.answer,
+        phonics: { sound, letters: letters || null },
+        ...extra(i),
+      }));
+  }
+  if (kind === "write_answer") {
+    const parsed = writeAnswerContentSchema.safeParse(content);
+    if (!parsed.success) return [];
+    // Keep the teacher's order: exam parts often tell a story picture by picture.
+    return parsed.data.items.slice(0, 12).map((i) => ({
+      type: "write",
+      emoji: i.emoji ?? null,
+      prompt: i.question,
+      say: i.say || null,
+      answers: i.answers,
+      ...extra(i),
+    }));
+  }
+  const parsed = listenColourContentSchema.safeParse(content);
+  if (!parsed.success) return [];
+  return shuffle(parsed.data.items, rand)
+    .slice(0, ROUND_SIZE)
+    .map((i) => ({
+      type: "colour",
+      objects: i.objects,
+      target: i.target,
+      colour: i.colour,
+      say: i.say,
+      ...extra(i),
+    }));
 }
 
 function quizQuestion(item: QuizItem, rand: Rand): QuestionBody {

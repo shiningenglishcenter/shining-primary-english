@@ -86,6 +86,9 @@ export const PRACTICE_KINDS = [
   "mixed",
   "match_meaning",
   "translate",
+  "phonics",
+  "write_answer",
+  "listen_colour",
 ] as const;
 export type PracticeKind = (typeof PRACTICE_KINDS)[number];
 
@@ -104,6 +107,9 @@ export const KIND_LABEL_VI: Record<PracticeKind, string> = {
   mixed: "Bài tổng hợp",
   match_meaning: "Nối từ với nghĩa tiếng Việt",
   translate: "Chọn nghĩa của câu",
+  phonics: "Ngữ âm: chọn từ có âm",
+  write_answer: "Nhìn / nghe và viết câu trả lời",
+  listen_colour: "Nghe và tô màu",
 };
 
 /** Activity kinds by skill: the "+ Thêm bài" menu and the topic page (D56). */
@@ -115,10 +121,23 @@ export const KIND_GROUPS: {
   {
     key: "vocab",
     label: "Từ vựng",
-    kinds: ["flashcards", "look_choose", "listen_choose", "match", "match_meaning", "spell", "listen_type"],
+    kinds: [
+      "flashcards",
+      "look_choose",
+      "listen_choose",
+      "match",
+      "match_meaning",
+      "spell",
+      "listen_type",
+      "phonics",
+    ],
   },
   { key: "sentence", label: "Câu", kinds: ["true_false", "fill_blank", "rearrange", "translate"] },
-  { key: "listen_read", label: "Nghe – đọc", kinds: ["listening", "reading"] },
+  {
+    key: "listen_read",
+    label: "Nghe – đọc – viết",
+    kinds: ["listening", "reading", "write_answer", "listen_colour"],
+  },
   { key: "mixed", label: "Tổng hợp", kinds: ["mixed"] },
 ];
 export function kindGroupOf(kind: PracticeKind) {
@@ -369,6 +388,85 @@ function parseStart(t: string): number | undefined {
   return sec > 0 ? Math.min(sec, 36_000) : undefined;
 }
 
+// ------------------------------- phonics and exam-style kinds (D61, D62) ---
+
+/** "Choose the word with the sound": each item lists the word that has it first in `options`. */
+export const phonicsContentSchema = z.object({
+  sound: z.string().trim().min(1, "Nhập âm, ví dụ /b/").max(20),
+  /** How the sound is written, e.g. "b" or "ee, ea". */
+  letters: z.string().trim().max(40).optional(),
+  items: z
+    .array(
+      z
+        .object({
+          answer: z.string().trim().min(1).max(40),
+          options: z.array(z.string().trim().min(1).max(40)).min(2).max(4),
+          hint,
+          explain,
+        })
+        .refine((i) => i.options.includes(i.answer), "Đáp án đúng phải nằm trong các lựa chọn"),
+    )
+    .min(1, "Thêm ít nhất 1 câu")
+    .max(30),
+});
+
+/**
+ * Cambridge-style "look/listen and write" (D62): a picture and a question,
+ * or something read aloud (`say`), answered in one to three words. Any of
+ * `answers` counts (e.g. "2" and "two").
+ */
+export const writeAnswerItemSchema = z.object({
+  emoji,
+  question: sentence,
+  say: z.string().trim().max(400).optional(),
+  answers: z.array(z.string().trim().min(1).max(60)).min(1, "Nhập đáp án").max(5),
+  hint,
+  explain,
+});
+export const writeAnswerContentSchema = z.object({
+  items: z.array(writeAnswerItemSchema).min(1, "Thêm ít nhất 1 câu").max(30),
+});
+
+export const COLOURS = [
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "orange",
+  "pink",
+  "purple",
+  "brown",
+  "black",
+  "grey",
+] as const;
+export type Colour = (typeof COLOURS)[number];
+export const COLOUR_VI: Record<Colour, string> = {
+  red: "đỏ",
+  blue: "xanh dương",
+  green: "xanh lá",
+  yellow: "vàng",
+  orange: "cam",
+  pink: "hồng",
+  purple: "tím",
+  brown: "nâu",
+  black: "đen",
+  grey: "xám",
+};
+/** "Listen and colour" (Cambridge Listening part 4, D62): find the thing that is read out and its colour. */
+export const listenColourItemSchema = z
+  .object({
+    objects: z.array(z.string().regex(EMOJI_CODE_PATTERN)).min(2, "Ít nhất 2 hình").max(6),
+    target: z.number().int().min(0).max(5),
+    colour: z.enum(COLOURS),
+    say: sentence,
+    hint,
+    explain,
+  })
+  .refine((i) => i.target < i.objects.length, "Chọn hình cần tô");
+export const listenColourContentSchema = z.object({
+  items: z.array(listenColourItemSchema).min(1, "Thêm ít nhất 1 câu").max(20),
+});
+
 export const MIXED_MAX_STEPS = 6;
 
 /**
@@ -380,6 +478,9 @@ export function contentSchemaFor(kind: PracticeKind): z.ZodType {
   if (isSentenceKind(kind)) return itemsSchemaByKind[kind];
   if (kind === "listening") return listeningContentSchema;
   if (kind === "reading") return readingContentSchema;
+  if (kind === "phonics") return phonicsContentSchema;
+  if (kind === "write_answer") return writeAnswerContentSchema;
+  if (kind === "listen_colour") return listenColourContentSchema;
   return mixedContentSchema;
 }
 
@@ -404,6 +505,7 @@ export type MixedStep = { kind: StepKind; content: Record<string, unknown> };
 export function emptyContentFor(kind: PracticeKind): Record<string, unknown> {
   if (WORD_KINDS.includes(kind)) return {};
   if (kind === "mixed") return { steps: [] };
+  if (kind === "phonics") return { sound: "", items: [] };
   return { items: [] };
 }
 

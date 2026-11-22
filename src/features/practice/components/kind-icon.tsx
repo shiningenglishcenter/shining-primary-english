@@ -11,7 +11,10 @@ import {
   Link2,
   ListOrdered,
   Newspaper,
+  Palette,
+  PenLine,
   SpellCheck,
+  AudioLines,
   TextCursorInput,
   type LucideIcon,
 } from "lucide-react";
@@ -32,4 +35,7 @@ export const KIND_ICON: Record<PracticeKind, LucideIcon> = {
   mixed: Layers,
   match_meaning: Languages,
   translate: MessageSquareText,
+  phonics: AudioLines,
+  write_answer: PenLine,
+  listen_colour: Palette,
 };
