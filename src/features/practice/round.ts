@@ -413,6 +413,26 @@ export function revealPattern(word: string): (string | null)[] {
   );
 }
 
+/**
+ * Listen and write: letters shown after each wrong try (D58). `base` is what
+ * the setting shows from the start ("some": revealPattern, otherwise
+ * nothing); each miss reveals one more letter — first, then last, then every
+ * other letter from the start — always leaving at least one letter hidden.
+ */
+export function revealAfterMisses(word: string, misses: number, base: "none" | "some"): (string | null)[] {
+  const chars = [...word];
+  const shown = base === "some" ? revealPattern(word) : chars.map((ch) => (/[a-z]/i.test(ch) ? null : ch));
+  const hidden = () => shown.filter((c, i) => c === null && /[a-z]/i.test(chars[i]!)).length;
+  const last = chars.length - 1;
+  const order = [0, last, ...chars.map((_, i) => i).filter((i) => i > 0 && i < last && i % 2 === 0)];
+  for (let n = 0; n < misses; n++) {
+    const next = order.find((i) => shown[i] === null);
+    if (next === undefined || hidden() <= 1) break;
+    shown[next] = chars[next]!;
+  }
+  return shown;
+}
+
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
 /** Letter tiles for a word: its letters plus `extra` letters not in it, in a stable shuffled order. */

@@ -13,6 +13,24 @@ async function openActivity(page: Page, topic: string, activity: string) {
 }
 
 test.describe("teacher feedback round 1", () => {
+  test("D58: listen and write shows one more letter after each wrong try", async ({ page }) => {
+    await loginFromScratch(page, "hs.an");
+    await openActivity(page, "Animals", "Listen and write");
+    const input = page.getByTestId("type-input");
+    const answer = (await input.getAttribute("data-answer"))!;
+    await expect(page.getByTestId("letter-pattern")).toHaveCount(0);
+    await input.fill("zzz");
+    await page.getByTestId("check").click();
+    await expect(page.getByTestId("letter-pattern")).toHaveText(
+      `${answer[0]}${"_".repeat(answer.length - 1)}`,
+    );
+    await input.fill("zzz");
+    await page.getByTestId("check").click();
+    await expect(page.getByTestId("letter-pattern")).toHaveText(
+      `${answer[0]}${"_".repeat(answer.length - 2)}${answer.at(-1)}`,
+    );
+  });
+
   test("C3: Yes/No allows one answer; a wrong one shows the answer and moves on", async ({ page }) => {
     await loginFromScratch(page, "hs.an");
     await openActivity(page, "Colours", "Yes or no?");

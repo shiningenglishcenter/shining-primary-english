@@ -26,7 +26,7 @@ import {
 } from "@/features/practice/model";
 import {
   letterTiles,
-  revealPattern,
+  revealAfterMisses,
   toYesNoQuestion,
   MATCH_PAIRS_WIDE,
   regroupMatches,
@@ -1509,10 +1509,21 @@ function ListenTypeQ({
   onDone: (p: number) => void;
 }) {
   const t = useT();
-  const { writeHint } = useContext(SettingsContext);
+  const { writeHint, hints } = useContext(SettingsContext);
   const [typed, setTyped] = useState("");
   const a = useAnswer(sound, { hint: q.hint, onFail: () => setTyped(q.answer.word) });
-  const pattern = useMemo(() => revealPattern(q.answer.word), [q.answer.word]);
+  // "Hiện vài chữ" from the start; with hints on, one more letter after each miss (D58).
+  const pattern = useMemo(
+    () =>
+      revealAfterMisses(
+        q.answer.word,
+        hints && writeHint !== "letters" ? a.misses : 0,
+        writeHint === "some" ? "some" : "none",
+      ),
+    [q.answer.word, hints, writeHint, a.misses],
+  );
+  const showPattern =
+    writeHint !== "letters" && pattern.some((c, i) => c !== null && /[a-z]/i.test(q.answer.word[i]!));
   const tiles = useMemo(() => letterTiles(q.answer.word), [q.answer.word]);
   /** Tile indexes used so far (letters mode), so each tile is used once. */
   const [usedTiles, setUsedTiles] = useState<number[]>([]);
@@ -1576,7 +1587,7 @@ function ListenTypeQ({
         <SpeakButton big onClick={() => sound.speak(q.answer.word)} label={t.listenAgain} />
       )}
       <form onSubmit={check} className="flex w-full max-w-md flex-col gap-3">
-        {writeHint === "some" && !a.done ? (
+        {showPattern && !a.done ? (
           <p
             className="text-center font-kid-display text-4xl font-bold tracking-[0.3em] text-k-soft"
             aria-label={t.letterHint}
@@ -1596,7 +1607,9 @@ function ListenTypeQ({
           spellCheck={false}
           inputMode={writeHint === "letters" ? "none" : "text"}
           aria-label={t.writeWord}
-          placeholder={writeHint === "slots" ? "_ ".repeat(q.answer.word.length).trim() : undefined}
+          placeholder={
+            writeHint === "slots" && !showPattern ? "_ ".repeat(q.answer.word.length).trim() : undefined
+          }
           data-testid="type-input"
           data-answer={q.answer.word.toLowerCase()}
           className={cn(

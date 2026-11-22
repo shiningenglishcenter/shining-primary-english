@@ -4,6 +4,7 @@ import {
   buildRound,
   letterTiles,
   MIXED_STEP_SIZE,
+  revealAfterMisses,
   revealPattern,
   sameWord,
   toYesNoQuestion,
@@ -157,6 +158,20 @@ describe("mixed", () => {
 });
 
 describe("listen-and-write hints (D46)", () => {
+  const str = (p: (string | null)[]) => p.map((c) => c ?? "_").join("");
+  it("revealAfterMisses shows one more letter after each miss, never the whole word (D58)", () => {
+    expect(str(revealAfterMisses("happy", 0, "none"))).toBe("_____");
+    expect(str(revealAfterMisses("happy", 1, "none"))).toBe("h____");
+    expect(str(revealAfterMisses("happy", 2, "none"))).toBe("h___y");
+    expect(str(revealAfterMisses("happy", 3, "none"))).toBe("h_p_y");
+    expect(str(revealAfterMisses("happy", 9, "none"))).toBe("h_p_y");
+    expect(str(revealAfterMisses("cat", 5, "none"))).toBe("c_t");
+    expect(str(revealAfterMisses("go", 5, "none"))).toBe("g_");
+    expect(str(revealAfterMisses("ice cream", 1, "none"))).toBe("i__ _____");
+    // "some" starts from revealPattern and adds letters on top
+    expect(str(revealAfterMisses("happy", 0, "some"))).toBe("h___y");
+    expect(str(revealAfterMisses("happy", 1, "some"))).toBe("h_p_y");
+  });
   it("revealPattern shows first and last letters, every third in long words, and spaces", () => {
     expect(revealPattern("cat")).toEqual(["c", null, "t"]);
     expect(revealPattern("go")).toEqual(["g", null]);

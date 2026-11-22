@@ -148,6 +148,7 @@ D55–D56, from the approved draft.
   (auto-filled if left empty); "Nhập nhiều từ một lúc"; drag or arrows to order activities.
 - Activity page: tabs Câu hỏi / Cài đặt / Chia sẻ, save bar always visible, live preview.
 - Admin: `/admin/programs` to add programmes (e.g. another textbook series) and levels.
+- Listen and write: one more letter shown after each wrong try, e.g. h _ _ _ _ → h _ _ _ y (D58).
 - Every delete asks in an in-app dialog (D57); the "Thao tác" menu closes when clicking elsewhere.
 
 ### To deploy to the preview (owner)
@@ -229,7 +230,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D57; Phase 1.7: D55–D57; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D58; Phase 1.7: D55–D58; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 
