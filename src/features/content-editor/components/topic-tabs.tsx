@@ -176,6 +176,8 @@ type ActivityItem = {
   titleVi: string;
   status: string;
   summary: string;
+  /** Saved changes pupils don't see yet (D59). */
+  changed?: boolean;
 };
 
 const GROUP_TONE: Record<string, string> = {
@@ -279,6 +281,15 @@ export function ActivityList({
                 >
                   {a.status === "published" ? "Xuất bản" : "Nháp"}
                 </span>
+                {a.changed ? (
+                  <span
+                    className="rounded-full bg-sun-soft px-2 py-0.5 text-xs font-semibold text-[#7A5600]"
+                    title="Đã sửa, học sinh chưa thấy bản sửa"
+                    data-testid="activity-changed"
+                  >
+                    Có sửa chưa xuất bản
+                  </span>
+                ) : null}
               </Link>
               <button
                 type="button"

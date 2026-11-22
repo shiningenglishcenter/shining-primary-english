@@ -104,7 +104,7 @@ test.describe("teacher feedback round 2", () => {
       .first()
       .click();
     const af = teacher.getByTestId("activity-form").locator("visible=true");
-    await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af.getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
     await publishTopic(teacher);

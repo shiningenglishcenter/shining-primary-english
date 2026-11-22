@@ -272,7 +272,7 @@ export async function TopicEditorPage({
               />
               <ActivityList
                 key={topic.activities
-                  .map((a) => a.id + a.status + a.titleVi)
+                  .map((a) => a.id + a.status + a.titleVi + String(a.changed))
                   .sort()
                   .join()}
                 base={base}
@@ -387,6 +387,7 @@ export async function ActivityEditorPage({
       <ActivityEditor
         base={base}
         activity={{ ...activity, topicId: activity.topic.id }}
+        draft={activity.draft}
         topicWords={activity.topic.words.map((w) => ({ word: w.word, emoji: w.emoji }))}
         previewWords={activity.topic.words.map((w) => ({
           word: w.word,

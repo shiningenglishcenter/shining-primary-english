@@ -1,7 +1,7 @@
 "use client";
 
-import { ConfirmSubmit } from "@/components/ui/confirm-dialog";
-import { useActionState, useState } from "react";
+import { ConfirmSubmit, useConfirm } from "@/components/ui/confirm-dialog";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ArrowRight, Check, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Field, FormStatus, SubmitButton, useKeepValues } from "@/components/forms/form-parts";
@@ -11,6 +11,8 @@ import {
   createActivity,
   createTopic,
   deleteActivity,
+  discardActivityDraft,
+  saveActivityDraft,
   deleteWord,
   quickCreateWordActivities,
   saveWord,
@@ -31,6 +33,8 @@ import {
   type VocabWord,
 } from "@/features/practice/model";
 import { ActivityPreview } from "@/features/content-editor/components/activity-preview";
+import type { ActivityDraft } from "@/features/content-editor/queries";
+import { Button } from "@/components/ui/button";
 import {
   ContentFields,
   serializeContent,
@@ -497,14 +501,78 @@ function readSettings(form: HTMLFormElement, prev: PlaySettings): PlaySettings {
  * D56: one form with tabs Câu hỏi / Cài đặt (+ Chia sẻ outside the form),
  * a save bar that stays at the bottom, and a live preview of the draft.
  */
+type EditorActivity = {
+  id: string;
+  kind: PracticeKind;
+  titleEn: string;
+  titleVi: string;
+  status: string;
+  sortOrder: number;
+  content: Record<string, unknown>;
+  settings: PlaySettings;
+  topicId: string;
+};
+
+type EditorValues = Pick<EditorActivity, "titleEn" | "titleVi" | "content" | "settings">;
+
+const AUTOSAVE_MS = 1200;
+
+/**
+ * D59: the editor opens on the teacher's draft when there is one. Changes
+ * are saved automatically into that draft (only the preview shows it);
+ * pupils get them on "Xuất bản" / "Cập nhật cho học sinh".
+ */
 export function ActivityEditor({
+  draft,
+  activity,
+  ...rest
+}: {
+  base: Base;
+  activity: EditorActivity;
+  draft: ActivityDraft | null;
+  topicWords: { word: string; emoji: string | null }[];
+  previewWords: VocabWord[];
+  share: React.ReactNode;
+}) {
+  const [version, setVersion] = useState(0);
+  /** After "Huỷ thay đổi": the published values, from the server's answer. */
+  const [reset, setReset] = useState<EditorValues | null>(null);
+  const values = reset ?? draft;
+  const start = values
+    ? {
+        ...activity,
+        titleEn: values.titleEn,
+        titleVi: values.titleVi,
+        content: values.content,
+        settings: values.settings,
+      }
+    : activity;
+  return (
+    <ActivityEditorForm
+      key={version}
+      {...rest}
+      activity={start}
+      hasDraft={!reset && Boolean(draft)}
+      onDiscarded={(live) => {
+        setReset(live);
+        setVersion((v) => v + 1);
+      }}
+    />
+  );
+}
+
+function ActivityEditorForm({
   base,
   activity,
+  hasDraft,
+  onDiscarded,
   topicWords,
   previewWords,
   share,
 }: {
   base: Base;
+  hasDraft: boolean;
+  onDiscarded: (live: EditorValues) => void;
   activity: {
     id: string;
     kind: PracticeKind;
@@ -528,6 +596,68 @@ export function ActivityEditor({
   const [settings, setSettings] = useState<PlaySettings>(activity.settings);
   const content = serializeContent(activity.kind, draft);
   const published = activity.status === "published";
+  const [titles, setTitles] = useState({ en: activity.titleEn, vi: activity.titleVi });
+  const [save, setSave] = useState<{
+    kind: "idle" | "saving" | "saved" | "error";
+    at?: string;
+    error?: string;
+  }>({
+    kind: "idle",
+  });
+  /** The draft differs from what pupils play. */
+  const [changed, setChanged] = useState(hasDraft);
+  const [confirmDialog, ask] = useConfirm();
+  const timer = useRef<number | null>(null);
+  const snapshot = JSON.stringify({ titles, content, settings });
+  const savedSnapshot = useRef(snapshot);
+  useEffect(() => {
+    if (snapshot === savedSnapshot.current) return;
+    timer.current = window.setTimeout(async () => {
+      const v = JSON.parse(snapshot) as {
+        titles: { en: string; vi: string };
+        content: Record<string, unknown>;
+        settings: PlaySettings;
+      };
+      setSave({ kind: "saving" });
+      const r = await saveActivityDraft({
+        id: activity.id,
+        titleEn: v.titles.en,
+        titleVi: v.titles.vi,
+        content: v.content,
+        settings: v.settings,
+      });
+      if (r.ok) {
+        savedSnapshot.current = snapshot;
+        setSave({ kind: "saved", at: r.savedAt });
+        setChanged(true);
+      } else setSave({ kind: "error", error: r.error });
+    }, AUTOSAVE_MS);
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, [snapshot, activity.id]);
+  // Published: the draft is gone, pupils have this version.
+  const [seen, setSeen] = useState(state);
+  if (seen !== state) {
+    setSeen(state);
+    if (state.ok) {
+      setChanged(false);
+      setSave({ kind: "idle" });
+    }
+  }
+  const discard = async () => {
+    const ok = await ask({
+      title: "Huỷ các thay đổi chưa xuất bản?",
+      body: published
+        ? "Bài quay về đúng bản học sinh đang làm."
+        : "Bài quay về bản đã xuất bản gần nhất (hoặc lúc mới tạo).",
+      okLabel: "Huỷ thay đổi",
+    });
+    if (!ok) return;
+    if (timer.current) window.clearTimeout(timer.current);
+    const r = await discardActivityDraft(activity.id);
+    if (r.ok) onDiscarded(r.live);
+  };
   const tabs: { key: EditorTab; label: string }[] = [
     { key: "questions", label: WORD_KINDS.includes(activity.kind) ? "Nội dung" : "Câu hỏi" },
     { key: "settings", label: "Cài đặt" },
@@ -536,6 +666,7 @@ export function ActivityEditor({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+      {confirmDialog}
       <div className="flex min-w-0 flex-col gap-4">
         <div
           role="tablist"
@@ -563,10 +694,16 @@ export function ActivityEditor({
         </div>
 
         <form
-          onSubmit={keep}
+          onSubmit={(e) => {
+            if (timer.current) window.clearTimeout(timer.current);
+            savedSnapshot.current = snapshot;
+            keep(e);
+          }}
           onChange={(e) => {
             const form = e.currentTarget;
             setSettings((p) => readSettings(form, p));
+            const fd = new FormData(form);
+            setTitles({ en: String(fd.get("titleEn") ?? ""), vi: String(fd.get("titleVi") ?? "") });
           }}
           className="flex flex-col gap-5"
           noValidate
@@ -724,17 +861,42 @@ export function ActivityEditor({
             >
               {published ? "Đang xuất bản" : "Bản nháp"}
             </span>
-            <a
-              href={`${base}/topics/${activity.topicId}?tab=activities`}
-              className="ml-auto inline-flex h-10 items-center rounded-md px-3 text-sm font-semibold text-ink-soft hover:bg-muted"
-            >
-              Huỷ
-            </a>
-            <SubmitButton pending={pending} variant="outline" name="status" value="draft">
-              {published ? "Chuyển về nháp" : "Lưu nháp"}
-            </SubmitButton>
+            <span className="text-xs text-ink-soft" aria-live="polite" data-testid="autosave">
+              {save.kind === "saving" ? (
+                "Đang lưu nháp…"
+              ) : save.kind === "error" ? (
+                <span className="text-berry">{save.error}</span>
+              ) : save.kind === "saved" && save.at ? (
+                `Đã lưu nháp lúc ${new Date(save.at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`
+              ) : changed ? (
+                "Có thay đổi đã lưu nháp"
+              ) : (
+                "Tự lưu nháp khi sửa"
+              )}
+              {published && changed ? (
+                <span className="block font-semibold text-[#7A5600]" data-testid="unpublished-changes">
+                  Học sinh chưa thấy các thay đổi này
+                </span>
+              ) : null}
+            </span>
+            <span className="ml-auto" />
+            {changed ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void discard()}
+                data-testid="discard-draft"
+              >
+                Huỷ thay đổi
+              </Button>
+            ) : null}
+            {published ? (
+              <SubmitButton pending={pending} variant="outline" name="status" value="draft">
+                Chuyển về nháp
+              </SubmitButton>
+            ) : null}
             <SubmitButton pending={pending} name="status" value="published">
-              {published ? "Lưu" : "Lưu & xuất bản"}
+              {published ? "Cập nhật cho học sinh" : "Xuất bản"}
             </SubmitButton>
           </div>
         </form>

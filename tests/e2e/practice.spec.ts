@@ -189,7 +189,7 @@ test.describe("practice content editor", () => {
       .selectOption({ label: "Nhìn hình chọn từ" });
     await teacher.getByRole("button", { name: "Thêm bài" }).locator("visible=true").click();
     await expect(af().getByTestId("word-picker")).toBeVisible();
-    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af().getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
@@ -202,10 +202,10 @@ test.describe("practice content editor", () => {
     await af().getByLabel("Câu 1", { exact: true }).fill("It is sunny today.");
     await af().getByLabel("Đáp án đúng câu 1").fill("sunny");
     await af().getByLabel("Đáp án sai 1 câu 1").fill("rainy");
-    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af().getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af().getByTestId("form-error")).toContainText("Câu 1: Câu phải có chỗ trống ___");
     await af().getByLabel("Câu 1", { exact: true }).fill("It is ___ today.");
-    await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af().getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     // still a draft topic: students don't see it

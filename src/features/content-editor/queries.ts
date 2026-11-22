@@ -125,6 +125,7 @@ export async function getTopicForStaff(id: string) {
     const { data: urls } = await supabase.storage.from("learning-media").createSignedUrls(paths, 3600);
     for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
   }
+  const changed = await draftIds(((data.practice_activities ?? []) as { id: string }[]).map((a) => a.id));
   return {
     id: data.id as string,
     code: data.code as string,
@@ -184,7 +185,42 @@ export async function getTopicForStaff(id: string) {
         sortOrder: a.sort_order,
         summary: activitySummary(a.kind, a.content ?? {}, settingsOf(a.settings)),
         questions: Array.isArray(a.content?.items) ? (a.content.items as unknown[]).length : null,
+        /** Saved changes pupils don't see yet (D59). */
+        changed: changed.has(a.id),
       })),
+  };
+}
+
+/** Activities with an unpublished draft (D59); none before migration 0034. */
+async function draftIds(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const supabase = await createClient();
+  const { data } = await supabase.from("activity_drafts").select("activity_id").in("activity_id", ids);
+  return new Set((data ?? []).map((d) => d.activity_id as string));
+}
+
+export type ActivityDraft = {
+  titleEn: string;
+  titleVi: string;
+  content: Record<string, unknown>;
+  settings: ReturnType<typeof settingsOf>;
+  updatedAt: string;
+};
+
+async function draftOf(id: string): Promise<ActivityDraft | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("activity_drafts")
+    .select("title_en, title_vi, content, settings, updated_at")
+    .eq("activity_id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    titleEn: data.title_en as string,
+    titleVi: data.title_vi as string,
+    content: (data.content ?? {}) as Record<string, unknown>,
+    settings: settingsOf(data.settings),
+    updatedAt: data.updated_at as string,
   };
 }
 
@@ -227,7 +263,7 @@ export async function getActivityForStaff(id: string) {
     .maybeSingle();
   if (error?.code === "42703") return getActivityForStaffWithoutToken(id); // before migration 0022
   if (error || !data) return null;
-  const topic = await getTopicForStaff(data.topic_id as string);
+  const [topic, draft] = await Promise.all([getTopicForStaff(data.topic_id as string), draftOf(id)]);
   if (!topic) return null;
   return {
     id: data.id as string,
@@ -240,6 +276,7 @@ export async function getActivityForStaff(id: string) {
     settings: settingsOf(data.settings),
     publicToken: ((data as { public_token?: string | null }).public_token ?? null) as string | null,
     topic,
+    draft,
   };
 }
 
@@ -252,7 +289,7 @@ async function getActivityForStaffWithoutToken(id: string) {
     .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return null;
-  const topic = await getTopicForStaff(data.topic_id as string);
+  const [topic, draft] = await Promise.all([getTopicForStaff(data.topic_id as string), draftOf(id)]);
   if (!topic) return null;
   return {
     id: data.id as string,
@@ -265,5 +302,6 @@ async function getActivityForStaffWithoutToken(id: string) {
     settings: settingsOf(data.settings),
     publicToken: null as string | null,
     topic,
+    draft,
   };
 }

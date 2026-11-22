@@ -148,6 +148,8 @@ D55–D56, from the approved draft.
   (auto-filled if left empty); "Nhập nhiều từ một lúc"; drag or arrows to order activities.
 - Activity page: tabs Câu hỏi / Cài đặt / Chia sẻ, save bar always visible, live preview.
 - Admin: `/admin/programs` to add programmes (e.g. another textbook series) and levels.
+- Activity editor saves itself as a draft; pupils see changes only after "Xuất bản" / "Cập nhật cho học
+  sinh"; "Huỷ thay đổi" goes back (D59, migration 0034).
 - Listen and write: one more letter shown after each wrong try, e.g. h _ _ _ _ → h _ _ _ y (D58).
 - Every delete asks in an in-app dialog (D57); the "Thao tác" menu closes when clicking elsewhere.
 
@@ -175,6 +177,7 @@ Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 19. `supabase/migrations/20261121000031_round3_content.sql`
 20. `supabase/migrations/20261121000032_topic_comments.sql`
 21. `supabase/migrations/20261122000033_programs.sql` (D55; the app works without it, with the built-in list)
+22. `supabase/migrations/20261122000034_activity_drafts.sql` (D59; without it the editor does not autosave)
 
 **Run 14–20 before deploying Phases 1.5–1.6**: the new code reads `vocabulary.image_path` and
 `progress_records.is_retry`; students' pages fail until those columns exist.
@@ -211,7 +214,7 @@ Phase 1.6 (2026-11-21): DB **300/300**, unit **134/134**, e2e **72/72** on a loc
 building every new kind and a pupil playing them, video gate fallback, GS1 review, remembered username,
 parent message.
 
-Phase 1.7 (2026-11-21): DB **310/310**, unit **134/134**, e2e **74/74** on a local Supabase stack, incl. programme/
+Phase 1.7 (2026-11-22): DB **317/317**, unit **135/135**, e2e **75/75** on a local Supabase stack, incl. programme/
 level tabs, add-topic dialog, many words at once with IPA, activity reorder, live preview, save bar, and an admin
 adding a programme and level that show as tabs.
 
@@ -230,7 +233,7 @@ Still not run against a hosted Supabase project — required before production (
   organization repos, and forbids commercial use): sample data only, no real students until Vercel Pro.
 
 ## Technical decisions
-See `ARCHITECTURE.md` §2 (D1–D58; Phase 1.7: D55–D58; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
+See `ARCHITECTURE.md` §2 (D1–D59; Phase 1.7: D55–D59; Phase 1.6: D46–D54; Phase 1.5: D42–D45; Phase 1.4: D40–D41; Phase 1.1: D25–D28; Phase 1.2: D29–D34; Phase 1.3: D35–D39). New in M1: D18 (Cache Components + proxy/guard split), D19 (profile
 provisioning), D20 (Vietnamese UI, self-hosted font). New in M2: D21 (reduced scope), D22 (levels, codes,
 usernames, passwords).
 

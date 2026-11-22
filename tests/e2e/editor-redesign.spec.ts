@@ -98,9 +98,42 @@ test.describe("practice editor (D56)", () => {
     await activityTab(teacher, "Cài đặt");
     await expect(teacher.getByTestId("play-settings").locator("visible=true")).toBeVisible();
     const af = teacher.getByTestId("activity-form").locator("visible=true");
-    await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af.getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     await expect(af.getByTestId("save-bar")).toContainText("Đang xuất bản");
+
+    // D59: edits save themselves as a draft; pupils keep the published version
+    await activityTab(teacher, "Nội dung");
+    const titleVi = af.getByLabel("Tên bài (tiếng Việt)");
+    const published = await titleVi.inputValue();
+    await titleVi.fill(`Bản sửa ${tag}`);
+    await expect(af.getByTestId("autosave")).toContainText("Đã lưu nháp lúc");
+    await expect(af.getByTestId("unpublished-changes")).toBeVisible();
+    await expect(teacher.getByTestId("activity-preview").locator("visible=true")).toBeVisible();
+    // still there after leaving the page
+    await teacher.reload();
+    await expect(titleVi).toHaveValue(`Bản sửa ${tag}`);
+    // "Huỷ thay đổi" goes back to the published version
+    await af.getByTestId("discard-draft").click();
+    await confirmDialog(teacher);
+    await expect(titleVi).toHaveValue(published);
+    await expect(af.getByTestId("unpublished-changes")).toHaveCount(0);
+    // the topic page flags a saved draft until it is published
+    await titleVi.fill(`Bản sửa ${tag}`);
+    await expect(af.getByTestId("autosave")).toContainText("Đã lưu nháp lúc");
+    const editorUrl = teacher.url();
+    await teacher.getByRole("link", { name: topicName }).locator("visible=true").click();
+    await expect(
+      teacher
+        .getByTestId("activity-row")
+        .filter({ hasText: `Bản sửa ${tag}` })
+        .getByTestId("activity-changed"),
+    ).toHaveCount(0); // the list shows the published title…
+    await expect(teacher.getByTestId("activity-changed").locator("visible=true")).toHaveCount(1); // …flagged
+    await teacher.goto(editorUrl);
+    await af.getByRole("button", { name: "Cập nhật cho học sinh" }).click();
+    await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
+    await expect(af.getByTestId("unpublished-changes")).toHaveCount(0);
 
     // bulk delete: the menu closes on a click elsewhere; deleting asks first
     await teacher.goto("/teacher/content?level=movers");

@@ -14,7 +14,9 @@ import {
   levelByCode,
   PRACTICE_KINDS,
   KIND_LABEL_VI,
+  settingsOf,
   WRITE_HINTS,
+  type PlaySettings,
   type PracticeKind,
 } from "@/features/practice/model";
 import { fieldErrorsOf, type FormState } from "@/features/people/schemas";
@@ -482,10 +484,77 @@ export async function updateActivity(_prev: FormState, formData: FormData): Prom
     })
     .eq("id", parsed.data.id);
   if (error) return { error: SAVE_FAILED };
+  // The draft is now what pupils get (D59); before migration 0034 there is none.
+  await supabase.from("activity_drafts").delete().eq("activity_id", parsed.data.id);
   refresh();
   return {
     ok: true,
     message: parsed.data.status === "published" ? "Đã lưu và xuất bản." : "Đã lưu bản nháp.",
+  };
+}
+
+const draftInput = z.object({
+  id: z.uuid(),
+  titleEn: z.string().max(80),
+  titleVi: z.string().max(120),
+  content: z.record(z.string(), z.unknown()),
+  settings: z.record(z.string(), z.unknown()),
+});
+
+/**
+ * Autosave of the activity editor (D59): the teacher's changes, valid or
+ * not yet, kept apart from what pupils play. Only the preview shows them.
+ */
+export async function saveActivityDraft(
+  input: z.input<typeof draftInput>,
+): Promise<{ ok: true; savedAt: string } | { ok: false; error: string }> {
+  await staff();
+  const parsed = draftInput.safeParse(input);
+  if (!parsed.success || JSON.stringify(parsed.data.content).length > 60_000) {
+    return { ok: false, error: "Nội dung quá dài để lưu." };
+  }
+  const supabase = await createClient();
+  const savedAt = new Date().toISOString();
+  const { error } = await supabase.from("activity_drafts").upsert({
+    activity_id: parsed.data.id,
+    title_en: parsed.data.titleEn,
+    title_vi: parsed.data.titleVi,
+    content: parsed.data.content,
+    settings: settingsOf(parsed.data.settings),
+    updated_at: savedAt,
+  });
+  if (error) return { ok: false, error: "Chưa tự lưu được, thử lại sau." };
+  return { ok: true, savedAt };
+}
+
+/** "Huỷ thay đổi": back to the version pupils play, returned for the editor. */
+export async function discardActivityDraft(id: string): Promise<
+  | {
+      ok: true;
+      live: { titleEn: string; titleVi: string; content: Record<string, unknown>; settings: PlaySettings };
+    }
+  | { ok: false }
+> {
+  await staff();
+  const parsed = z.uuid().safeParse(id);
+  if (!parsed.success) return { ok: false };
+  const supabase = await createClient();
+  const { error } = await supabase.from("activity_drafts").delete().eq("activity_id", parsed.data);
+  const { data } = await supabase
+    .from("practice_activities")
+    .select("title_en, title_vi, content, settings")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  refresh();
+  if (error || !data) return { ok: false };
+  return {
+    ok: true,
+    live: {
+      titleEn: data.title_en as string,
+      titleVi: data.title_vi as string,
+      content: (data.content ?? {}) as Record<string, unknown>,
+      settings: settingsOf(data.settings),
+    },
   };
 }
 

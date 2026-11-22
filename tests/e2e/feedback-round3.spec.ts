@@ -63,7 +63,7 @@ test.describe("teacher feedback round 3", () => {
       await expect(af()).toBeVisible();
     };
     const publish = async () => {
-      await af().getByRole("button", { name: "Lưu & xuất bản" }).click();
+      await af().getByRole("button", { name: "Xuất bản", exact: true }).click();
       await expect(af().getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     };
 
@@ -156,7 +156,7 @@ test.describe("teacher feedback round 3", () => {
     await af.getByTestId("listening-gate").locator("input").check();
     await af.getByRole("button", { name: "Thêm câu Đúng/Sai" }).click();
     await af.getByLabel("Câu 1", { exact: true }).fill("The song is happy.");
-    await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
+    await af.getByRole("button", { name: "Xuất bản", exact: true }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
 
     const kid = await (await browser.newContext()).newPage();
