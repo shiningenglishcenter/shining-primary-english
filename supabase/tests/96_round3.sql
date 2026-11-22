@@ -13,7 +13,8 @@ select tests.throws($$update public.topics set patterns = '{"en":"x"}' where cod
 
 -- a guest link on a review word game gets the words of its units
 update public.practice_activities p set public_token = 'ReviewToken_0123456789'
-from public.topics t where t.id = p.topic_id and t.code = 'review-1' and p.kind = 'look_choose';
+from public.topics t where t.id = p.topic_id and t.code = 'review-1' and p.kind = 'look_choose'
+  and t.level_id = (select id from public.levels where code = 'GS1');
 set local role anon;
 select tests.ok(jsonb_array_length(public.get_public_activity('ReviewToken_0123456789') -> 'words') >= 30,
   'guest review games get the words of units 1–8');

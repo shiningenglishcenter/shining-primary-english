@@ -45,4 +45,34 @@ test.describe("new activity kinds", () => {
     await page.getByTestId("check").click();
     await expect(page.getByTestId("feedback-right")).toBeVisible();
   });
+
+  test("D64–D65: a missed word comes back in 'Ôn lại từ hay sai'; activities show how hard they are", async ({
+    page,
+  }) => {
+    await loginFromScratch(page, "hs.an");
+    await page.goto("/learn?level=movers");
+    await page.getByTestId("topic").filter({ hasText: "Animal world" }).first().click();
+    await expect(page.getByTestId("activity").first().getByTestId("difficulty")).toHaveText(/Easy|Dễ/);
+    await expect(
+      page.locator("[data-testid=activity][data-kind=mixed]").first().getByTestId("difficulty"),
+    ).toHaveText(/Challenge|Thử thách/);
+    await page.getByTestId("activity").filter({ hasText: "Look and choose" }).first().click();
+    // first question: a wrong answer before the right one; then the rest right
+    let first = true;
+    for (let guard = 0; guard < 20; guard++) {
+      if (await page.getByTestId("finish").isVisible()) break;
+      if (first) {
+        await page.locator("[data-testid=option]:not([data-correct])").first().click();
+        await expect(page.getByTestId("feedback-wrong")).toBeVisible();
+        first = false;
+      }
+      await page.locator("[data-testid=option][data-correct=true]").click();
+      await expect(page.getByTestId("feedback-right")).toBeVisible();
+      await page.getByTestId("next").click();
+    }
+    await expect(page.getByTestId("finish")).toBeVisible();
+    await page.goto("/learn?level=movers");
+    await page.getByTestId("review-card").click();
+    await expect(page.getByTestId("player")).toBeVisible();
+  });
 });

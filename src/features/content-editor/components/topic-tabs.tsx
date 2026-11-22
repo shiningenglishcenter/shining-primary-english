@@ -13,7 +13,13 @@ import {
   setTopicStatus,
 } from "@/features/content-editor/actions";
 import { CopyLinkIcon } from "@/features/content-editor/components/copy-link";
-import { KIND_LABEL_VI, kindGroupOf, type PracticeKind } from "@/features/practice/model";
+import {
+  DIFFICULTY_OF,
+  DIFFICULTY_VI,
+  KIND_LABEL_VI,
+  kindGroupOf,
+  type PracticeKind,
+} from "@/features/practice/model";
 import type { FormState } from "@/features/people/schemas";
 import { cn } from "@/lib/utils";
 
@@ -261,7 +267,7 @@ export function ActivityList({
                     {a.titleVi}
                   </span>
                   <span className="block truncate text-xs text-ink-soft">
-                    {KIND_LABEL_VI[a.kind]}
+                    {KIND_LABEL_VI[a.kind]} · {DIFFICULTY_VI[DIFFICULTY_OF[a.kind]]}
                     {a.summary ? ` · ${a.summary}` : ""}
                   </span>
                 </span>

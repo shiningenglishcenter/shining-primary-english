@@ -64,7 +64,7 @@ test.describe("student practice library", () => {
     await expect(page.getByTestId("topic")).toHaveCount(12);
     await page.getByRole("link", { name: "Flyers" }).click();
     await expect(page.locator("[data-level=flyers]")).toBeVisible();
-    await expect(page.getByTestId("no-topics")).toBeVisible();
+    await expect(page.getByTestId("topic")).toHaveCount(24); // D60: 14 topics, 4 reviews, 4 grammar, 2 exam
     await page.getByRole("link", { name: "Global Success" }).click();
     await expect(page.locator("[data-level=g1]")).toBeVisible();
     await expect(page.getByTestId("topic")).toHaveCount(18); // 16 units + 2 term reviews

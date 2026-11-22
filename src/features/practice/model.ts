@@ -140,6 +140,34 @@ export const KIND_GROUPS: {
   },
   { key: "mixed", label: "Tổng hợp", kinds: ["mixed"] },
 ];
+/** D65: how hard a kind of activity is, shown to pupils and teachers. */
+export type Difficulty = "easy" | "medium" | "hard";
+export const DIFFICULTY_OF: Record<PracticeKind, Difficulty> = {
+  flashcards: "easy",
+  look_choose: "easy",
+  listen_choose: "easy",
+  match: "easy",
+  match_meaning: "easy",
+  spell: "medium",
+  phonics: "medium",
+  true_false: "medium",
+  fill_blank: "medium",
+  translate: "medium",
+  listen_colour: "medium",
+  listen_type: "hard",
+  rearrange: "hard",
+  reading: "hard",
+  listening: "hard",
+  write_answer: "hard",
+  mixed: "hard",
+};
+export const DIFFICULTY_VI: Record<Difficulty, string> = { easy: "Dễ", medium: "Vừa", hard: "Thử thách" };
+export const DIFFICULTY_EN: Record<Difficulty, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Challenge",
+};
+
 export function kindGroupOf(kind: PracticeKind) {
   return KIND_GROUPS.find((g) => g.kinds.includes(kind)) ?? KIND_GROUPS[3]!;
 }

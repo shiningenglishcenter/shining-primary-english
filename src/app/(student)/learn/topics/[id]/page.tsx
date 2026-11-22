@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cn } from "@/lib/utils";
+import { DIFFICULTY_EN, DIFFICULTY_OF, DIFFICULTY_VI } from "@/features/practice/model";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -60,8 +62,21 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
                   <Icon className="size-7" aria-hidden="true" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-xs font-black tracking-wide text-k-soft uppercase">
+                  <span className="flex items-center gap-2 text-xs font-black tracking-wide text-k-soft uppercase">
                     {t.activityN(i + 1)}
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 tracking-normal normal-case",
+                        DIFFICULTY_OF[a.kind] === "easy"
+                          ? "bg-k-good-soft text-k-good"
+                          : DIFFICULTY_OF[a.kind] === "medium"
+                            ? "bg-k-accent-soft text-k-accent-ink"
+                            : "bg-k-bad-soft text-k-bad",
+                      )}
+                      data-testid="difficulty"
+                    >
+                      {(lang === "vi" ? DIFFICULTY_VI : DIFFICULTY_EN)[DIFFICULTY_OF[a.kind]]}
+                    </span>
                   </span>
                   <span className="text-lg leading-tight font-black">
                     {lang === "vi" ? a.titleVi : a.titleEn}

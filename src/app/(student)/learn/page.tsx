@@ -10,6 +10,7 @@ import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
 import { levelByCode, levelBySlug, topicNoun, type LevelCatalog } from "@/features/practice/model";
 import { getLevelCatalog } from "@/features/practice/catalog";
 import { listTopics } from "@/features/practice/queries";
+import { missedWords } from "@/features/practice/review";
 
 export const metadata: Metadata = { title: "Học bài" };
 
@@ -37,7 +38,11 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
   const cat = await getLevelCatalog();
   const [user, slug] = await Promise.all([requireRole("student"), requested ?? defaultLevelSlug(cat)]);
   const level = levelBySlug(slug, cat);
-  const [topics, { lang, t: m }] = await Promise.all([listTopics(level), getMessages()]);
+  const [topics, { lang, t: m }, missed] = await Promise.all([
+    listTopics(level),
+    getMessages(),
+    missedWords(),
+  ]);
   const name = user.displayName ?? user.fullName;
   const totalStars = topics.reduce((n, t) => n + t.stars, 0);
   const done = topics.reduce((n, t) => n + t.done, 0);
@@ -62,6 +67,23 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
       <div className="mt-4">
         <LevelTabs current={level} />
       </div>
+
+      {missed.length > 0 ? (
+        <Link
+          href="/learn/review"
+          className="kid-press mt-4 flex items-center gap-3 rounded-3xl bg-k-accent-soft px-4 py-3"
+          data-testid="review-card"
+        >
+          <Sunny mood="think" size={48} className="shrink-0" />
+          <span className="flex-1">
+            <span className="block font-kid-display text-lg font-bold">{m.missedCard(missed.length)}</span>
+            <span className="text-sm font-bold text-k-soft">{m.missedCardHint}</span>
+          </span>
+          <span aria-hidden="true" className="text-2xl">
+            →
+          </span>
+        </Link>
+      ) : null}
 
       <div className="mt-5 flex items-baseline justify-between gap-3">
         <h2 className="font-kid-display text-[22px] font-bold">
