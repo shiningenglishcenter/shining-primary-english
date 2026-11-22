@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmSubmit } from "@/components/ui/confirm-dialog";
 import { useActionState, useMemo, useState } from "react";
 import { Search, UserMinus } from "lucide-react";
 import { Field, FormStatus, SubmitButton, useKeepValues } from "@/components/forms/form-parts";
@@ -225,20 +226,18 @@ export function RemoveMemberButton({
     <form action={formAction} className="inline">
       <input type="hidden" name="classId" value={classId} />
       <input type="hidden" name="memberId" value={memberId} />
-      <SubmitButton
+      <ConfirmSubmit
         pending={pending}
         pendingText="…"
         variant="ghost"
         size="sm"
         className="text-berry"
         aria-label={kind === "student" ? `Cho ${name} rời lớp` : `Gỡ ${name} khỏi lớp`}
-        onClick={(e) => {
-          if (!confirm(question)) e.preventDefault();
-        }}
+        confirm={{ title: question, okLabel: kind === "student" ? "Cho rời lớp" : "Gỡ khỏi lớp" }}
       >
         <UserMinus aria-hidden="true" />
         {kind === "student" ? "Rời lớp" : "Gỡ"}
-      </SubmitButton>
+      </ConfirmSubmit>
       {state.error ? <span className="ml-2 text-sm text-berry">{state.error}</span> : null}
     </form>
   );

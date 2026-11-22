@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Image from "next/image";
 import { CheckCircle2, ChevronRight, Loader2, Paperclip, Plus, Send, Star, Trash2, X } from "lucide-react";
@@ -361,6 +362,7 @@ function EntryList({
   idea?: boolean;
   placeholder: string;
 }) {
+  const [dialog, ask] = useConfirm();
   const update = (key: number, patch: Partial<Entry>) =>
     setList((l) => l.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
@@ -401,122 +403,132 @@ function EntryList({
   };
 
   return (
-    <ol className="flex flex-col gap-3">
-      {list.map((x, i) => (
-        <li key={x.key} className="rounded-lg border border-line bg-surface p-3" data-testid="feedback-item">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-ink-soft">#{i + 1}</span>
-            {idea ? (
-              <span className="text-ink-soft">Liên quan đến</span>
-            ) : (
+    <>
+      {dialog}
+      <ol className="flex flex-col gap-3">
+        {list.map((x, i) => (
+          <li
+            key={x.key}
+            className="rounded-lg border border-line bg-surface p-3"
+            data-testid="feedback-item"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-ink-soft">#{i + 1}</span>
+              {idea ? (
+                <span className="text-ink-soft">Liên quan đến</span>
+              ) : (
+                <select
+                  value={x.kind}
+                  onChange={(e) => update(x.key, { kind: e.target.value as FeedbackKind })}
+                  aria-label="Loại"
+                  className={select}
+                >
+                  {BUG_KINDS.map((k) => (
+                    <option key={k.code} value={k.code}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              )}
               <select
-                value={x.kind}
-                onChange={(e) => update(x.key, { kind: e.target.value as FeedbackKind })}
-                aria-label="Loại"
+                value={x.area}
+                onChange={(e) => update(x.key, { area: e.target.value as FeedbackArea })}
+                aria-label="Phần"
                 className={select}
               >
-                {BUG_KINDS.map((k) => (
-                  <option key={k.code} value={k.code}>
-                    {k.label}
+                {FEEDBACK_AREAS.map((a) => (
+                  <option key={a.code} value={a.code}>
+                    {a.label}
                   </option>
                 ))}
               </select>
-            )}
-            <select
-              value={x.area}
-              onChange={(e) => update(x.key, { area: e.target.value as FeedbackArea })}
-              aria-label="Phần"
-              className={select}
-            >
-              {FEEDBACK_AREAS.map((a) => (
-                <option key={a.code} value={a.code}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
-            {!idea && x.kind === "bug" ? (
-              <select
-                value={x.severity}
-                onChange={(e) => update(x.key, { severity: e.target.value as Severity | "" })}
-                aria-label="Mức độ"
-                className={select}
-              >
-                <option value="">Mức độ…</option>
-                {SEVERITIES.map((s) => (
-                  <option key={s.code} value={s.code}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {list.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => setList(list.filter((y) => y.key !== x.key))}
-                aria-label={`Xoá mục ${i + 1}`}
-                className="ml-auto rounded p-1 text-ink-soft hover:text-berry"
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
-          <textarea
-            value={x.description}
-            onChange={(e) => update(x.key, { description: e.target.value })}
-            rows={3}
-            maxLength={2000}
-            placeholder={placeholder}
-            aria-label={idea ? `Ý tưởng ${i + 1}` : `Mô tả lỗi ${i + 1}`}
-            className={cn(input, "mt-2")}
-            data-testid={idea ? "feedback-idea" : "feedback-description"}
-          />
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {x.shots.map((s, k) => (
-              <span key={s.path} className="relative">
-                <Image
-                  src={s.preview}
-                  alt={`Ảnh ${k + 1}`}
-                  width={56}
-                  height={56}
-                  unoptimized
-                  className="size-14 rounded border border-line object-cover"
-                />
+              {!idea && x.kind === "bug" ? (
+                <select
+                  value={x.severity}
+                  onChange={(e) => update(x.key, { severity: e.target.value as Severity | "" })}
+                  aria-label="Mức độ"
+                  className={select}
+                >
+                  <option value="">Mức độ…</option>
+                  {SEVERITIES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {list.length > 1 ? (
                 <button
                   type="button"
-                  onClick={() => update(x.key, { shots: x.shots.filter((_, j) => j !== k) })}
-                  aria-label={`Bỏ ảnh ${k + 1}`}
-                  className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-ink text-white"
-                >
-                  <X className="size-3" aria-hidden="true" />
-                </button>
-              </span>
-            ))}
-            {x.shots.length < 3 ? (
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-sm text-ink-soft hover:bg-muted">
-                {x.uploading ? (
-                  <Loader2 className="size-4 animate-spin" aria-label="Đang tải ảnh" />
-                ) : (
-                  <Paperclip className="size-4" aria-hidden="true" />
-                )}
-                Ảnh (không bắt buộc)
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/*"
-                  multiple
-                  className="sr-only"
-                  disabled={x.uploading}
-                  onChange={(e) => {
-                    if (e.target.files) void attach(x.key, e.target.files);
-                    e.target.value = "";
+                  onClick={async () => {
+                    if (await ask({ title: `Xoá mục ${i + 1}?` }))
+                      setList((l) => l.filter((y) => y.key !== x.key));
                   }}
-                  data-testid="feedback-image"
-                />
-              </label>
-            ) : null}
-            {x.uploadError ? <span className="text-sm text-berry">{x.uploadError}</span> : null}
-          </div>
-        </li>
-      ))}
-    </ol>
+                  aria-label={`Xoá mục ${i + 1}`}
+                  className="ml-auto rounded p-1 text-ink-soft hover:text-berry"
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            <textarea
+              value={x.description}
+              onChange={(e) => update(x.key, { description: e.target.value })}
+              rows={3}
+              maxLength={2000}
+              placeholder={placeholder}
+              aria-label={idea ? `Ý tưởng ${i + 1}` : `Mô tả lỗi ${i + 1}`}
+              className={cn(input, "mt-2")}
+              data-testid={idea ? "feedback-idea" : "feedback-description"}
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {x.shots.map((s, k) => (
+                <span key={s.path} className="relative">
+                  <Image
+                    src={s.preview}
+                    alt={`Ảnh ${k + 1}`}
+                    width={56}
+                    height={56}
+                    unoptimized
+                    className="size-14 rounded border border-line object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => update(x.key, { shots: x.shots.filter((_, j) => j !== k) })}
+                    aria-label={`Bỏ ảnh ${k + 1}`}
+                    className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-ink text-white"
+                  >
+                    <X className="size-3" aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+              {x.shots.length < 3 ? (
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-sm text-ink-soft hover:bg-muted">
+                  {x.uploading ? (
+                    <Loader2 className="size-4 animate-spin" aria-label="Đang tải ảnh" />
+                  ) : (
+                    <Paperclip className="size-4" aria-hidden="true" />
+                  )}
+                  Ảnh (không bắt buộc)
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/*"
+                    multiple
+                    className="sr-only"
+                    disabled={x.uploading}
+                    onChange={(e) => {
+                      if (e.target.files) void attach(x.key, e.target.files);
+                      e.target.value = "";
+                    }}
+                    data-testid="feedback-image"
+                  />
+                </label>
+              ) : null}
+              {x.uploadError ? <span className="text-sm text-berry">{x.uploadError}</span> : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }

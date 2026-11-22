@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { loginFromScratch, signInAs } from "./helpers";
+import { confirmDialog, loginFromScratch, signInAs } from "./helpers";
 
 /**
  * Milestone 2: admin manages students, teachers and classes. Each run uses
@@ -181,9 +181,9 @@ test.describe.serial("class, student and teacher lifecycle", () => {
 
   test("locking an account stops sign-in; unlocking restores it", async ({ browser }) => {
     const page = await adminPage(browser);
-    page.on("dialog", (d) => d.accept());
     await page.goto(studentUrl);
     await page.getByRole("button", { name: "Khoá tài khoản" }).click();
+    await confirmDialog(page);
     await expect(page.getByTestId("account-locked")).toBeVisible();
 
     const kid = await signInFresh(browser, student.login, student.password);
@@ -245,7 +245,6 @@ test.describe.serial("class, student and teacher lifecycle", () => {
 
   test("enrol from the class page, then remove from the class", async ({ browser }) => {
     const page = await adminPage(browser);
-    page.on("dialog", (d) => d.accept());
     await page.goto(classUrl);
     const enrol = page.getByTestId("enrol-form");
     await enrol.getByLabel("Lọc học sinh").fill(`Võ Minh Khang ${run}`);
@@ -255,6 +254,7 @@ test.describe.serial("class, student and teacher lifecycle", () => {
     await expect(roster).toContainText(`Võ Minh Khang ${run}`);
 
     await roster.getByRole("button", { name: `Cho Võ Minh Khang ${run} rời lớp` }).click();
+    await confirmDialog(page);
     await expect(roster).not.toContainText(`Võ Minh Khang ${run}`);
     await expect(roster).toContainText(`${studentName} Mới`);
   });

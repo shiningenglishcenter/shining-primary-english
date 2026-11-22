@@ -54,3 +54,11 @@ export async function publishTopic(page: Page) {
 export async function activityTab(page: Page, name: RegExp | string) {
   await page.getByTestId("activity-tabs").locator("visible=true").getByRole("tab", { name }).click();
 }
+
+/** Answers the app's confirmation dialog (deletions and the like). */
+export async function confirmDialog(page: Page, ok = true) {
+  const d = page.locator("dialog[open][data-testid=confirm-dialog]");
+  await expect(d).toBeVisible();
+  await (ok ? d.getByTestId("confirm-ok") : d.getByRole("button", { name: "Huỷ" })).click();
+  await expect(d).toBeHidden();
+}

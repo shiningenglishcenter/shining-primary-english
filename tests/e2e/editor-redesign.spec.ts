@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { activityTab, loginFromScratch, openNewTopicForm, topicTab } from "./helpers";
+import { activityTab, confirmDialog, loginFromScratch, openNewTopicForm, topicTab } from "./helpers";
 
 /** D55 (programmes in the database) and D56 (the new practice editor). */
 
@@ -68,8 +68,11 @@ test.describe("practice editor (D56)", () => {
     await expect(teacher.getByLabel("Phiên âm của cat")).toHaveValue("kæt");
     await expect(teacher.getByTestId("tab-words")).toContainText("4");
     // remove it again: a level holds each word once, and the test runs again
-    teacher.once("dialog", (d) => void d.accept());
     await teacher.getByRole("button", { name: "Xoá từ cat" }).click();
+    await confirmDialog(teacher, false); // "Huỷ" keeps it
+    await expect(teacher.getByTestId("word-row")).toHaveCount(4);
+    await teacher.getByRole("button", { name: "Xoá từ cat" }).click();
+    await confirmDialog(teacher);
     await expect(teacher.getByTestId("word-row")).toHaveCount(3);
 
     // activities: quick create, then reorder with the arrows
@@ -98,6 +101,27 @@ test.describe("practice editor (D56)", () => {
     await af.getByRole("button", { name: "Lưu & xuất bản" }).click();
     await expect(af.getByTestId("form-success")).toHaveText("Đã lưu và xuất bản.");
     await expect(af.getByTestId("save-bar")).toContainText("Đang xuất bản");
+
+    // bulk delete: the menu closes on a click elsewhere; deleting asks first
+    await teacher.goto("/teacher/content?level=movers");
+    await teacher.getByTestId("topic-search").fill(topicName);
+    const row = teacher.getByTestId("topic-row").filter({ hasText: topicName });
+    await row.getByRole("checkbox").check();
+    const bulkMenu = teacher.getByTestId("bulk-menu");
+    await bulkMenu.getByRole("button", { name: /Thao tác \(1\)/ }).click();
+    await expect(bulkMenu.getByRole("menu")).toBeVisible();
+    await teacher.getByTestId("page-title").click();
+    await expect(bulkMenu.getByRole("menu")).toBeHidden();
+    await bulkMenu.getByRole("button", { name: /Thao tác/ }).click();
+    await bulkMenu.getByRole("menuitem", { name: "Xoá" }).click();
+    await expect(bulkMenu.getByRole("menu")).toBeHidden();
+    await confirmDialog(teacher, false);
+    await expect(row).toBeVisible();
+    await bulkMenu.getByRole("button", { name: /Thao tác/ }).click();
+    await bulkMenu.getByRole("menuitem", { name: "Xoá" }).click();
+    await confirmDialog(teacher);
+    await expect(teacher.getByText("Đã xoá 1 chủ đề.")).toBeVisible();
+    await expect(row).toHaveCount(0);
   });
 });
 

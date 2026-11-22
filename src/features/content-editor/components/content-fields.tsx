@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useState } from "react";
 import Image from "next/image";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload } from "lucide-react";
@@ -693,6 +694,7 @@ function MixedSteps({
   topicWords: TopicWord[];
 }) {
   const [nextKind, setNextKind] = useState<StepDraft["kind"]>("listen_choose");
+  const [dialog, ask] = useConfirm();
   const move = (i: number, d: -1 | 1) => {
     const j = i + d;
     if (j < 0 || j >= steps.length) return;
@@ -702,6 +704,7 @@ function MixedSteps({
   };
   return (
     <div className="flex flex-col gap-4" data-testid="mixed-editor">
+      {dialog}
       <p className="text-sm text-ink-soft">
         Ghép 2–{MIXED_MAX_STEPS} chặng thành một bài, ví dụ: Nghe chọn hình → Đọc hiểu → Sắp xếp câu → Nghe và
         viết từ. Mỗi chặng lấy tối đa 3 câu (dạng Nối: 1 lượt). Sao tính chung cho cả bài.
@@ -725,7 +728,15 @@ function MixedSteps({
                   variant="ghost"
                   size="sm"
                   className="text-berry"
-                  onClick={() => onChange(steps.filter((_, k) => k !== i))}
+                  onClick={async () => {
+                    if (
+                      await ask({
+                        title: `Xoá chặng ${i + 1}?`,
+                        body: "Chặng và các câu của nó bị xoá khi bấm Lưu.",
+                      })
+                    )
+                      onChange(steps.filter((_, k) => k !== i));
+                  }}
                   aria-label={`Xoá chặng ${i + 1}`}
                 >
                   <Trash2 aria-hidden="true" />
@@ -776,8 +787,10 @@ function ItemHeader({
   onRemove: () => void;
   children: React.ReactNode;
 }) {
+  const [dialog, ask] = useConfirm();
   return (
     <div className="flex items-center gap-2">
+      {dialog}
       <span className="text-sm font-semibold text-ink-soft">Câu {n}</span>
       {children}
       <Button
@@ -785,7 +798,9 @@ function ItemHeader({
         variant="ghost"
         size="sm"
         className="ml-auto text-berry"
-        onClick={onRemove}
+        onClick={async () => {
+          if (await ask({ title: `Xoá câu ${n}?`, body: "Câu bị xoá khi bấm Lưu." })) onRemove();
+        }}
         aria-label={`Xoá câu ${n}`}
       >
         <Trash2 aria-hidden="true" />

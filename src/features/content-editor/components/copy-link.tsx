@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore, useTransition } from "react";
 import { Check, Copy, Link2, MessageSquareText, RefreshCw } from "lucide-react";
 import { setGuestLink } from "@/features/guest/actions";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 /** This site's address, known only in the browser. */
@@ -228,6 +229,7 @@ export function GuestLinkPanel({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [dialog, ask] = useConfirm();
   const run = (mode: "on" | "off" | "renew") =>
     start(async () => {
       setError(null);
@@ -240,6 +242,7 @@ export function GuestLinkPanel({
       className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
       data-testid="guest-link"
     >
+      {dialog}
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold">Cho làm không cần đăng nhập</p>
@@ -288,8 +291,15 @@ export function GuestLinkPanel({
               variant="ghost"
               size="sm"
               disabled={pending}
-              onClick={() => {
-                if (confirm("Tạo link mới? Link cũ sẽ không mở được nữa.")) run("renew");
+              onClick={async () => {
+                if (
+                  await ask({
+                    title: "Tạo link mới?",
+                    body: "Link cũ sẽ không mở được nữa. Gửi lại link mới cho học sinh.",
+                    okLabel: "Tạo link mới",
+                  })
+                )
+                  run("renew");
               }}
               data-testid="guest-renew"
             >

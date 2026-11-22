@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
@@ -53,12 +54,14 @@ export function PatternsEditor({
 }) {
   const [rows, setRows] = useState(patterns.length ? patterns : [{ en: "", vi: "" }]);
   const [state, action, pending] = useActionState(savePatterns, initial);
+  const [dialog, ask] = useConfirm();
   const set = (i: number, k: "en" | "vi", v: string) =>
     setRows((r) => r.map((p, j) => (j === i ? { ...p, [k]: v } : p)));
   return (
     <form action={action} className="flex flex-col gap-3" data-testid="patterns-editor">
       <input type="hidden" name="topicId" value={topicId} />
       <input type="hidden" name="patterns" value={JSON.stringify(rows)} />
+      {dialog}
       <p className="text-sm text-ink-soft">
         Học sinh thấy các mẫu câu ở đầu trang chủ đề, có giọng đọc. Bài “Câu” dùng mẫu câu để gợi ý. Tối đa
         10.
@@ -87,7 +90,17 @@ export function PatternsEditor({
             />
             <button
               type="button"
-              onClick={() => setRows((r) => r.filter((_, j) => j !== i))}
+              onClick={async () => {
+                if (
+                  (p.en || p.vi) &&
+                  !(await ask({
+                    title: `Xoá mẫu câu ${i + 1}?`,
+                    body: "Mẫu câu bị xoá khi bấm “Lưu mẫu câu”.",
+                  }))
+                )
+                  return;
+                setRows((r) => r.filter((_, j) => j !== i));
+              }}
               className="row-start-1 flex size-10 items-center justify-center rounded-md text-berry hover:bg-berry-soft sm:row-start-auto"
               aria-label={`Xoá mẫu câu ${i + 1}`}
             >

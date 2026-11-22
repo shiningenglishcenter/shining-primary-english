@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmSubmit } from "@/components/ui/confirm-dialog";
 import { useActionState, useState } from "react";
 import Image from "next/image";
 import { ArrowRight, Check, Plus, Sparkles, Trash2 } from "lucide-react";
@@ -216,20 +217,21 @@ function WordRow({ topicId, word }: { topicId: string; word: WordItem }) {
         ) : null}
         <form action={delAction} className="ml-auto">
           <input type="hidden" name="id" value={word.id} />
-          <SubmitButton
+          <ConfirmSubmit
             pending={delPending}
             pendingText="…"
             variant="ghost"
             size="sm"
             className="text-berry"
             aria-label={`Xoá từ ${word.word}`}
-            onClick={(ev) => {
-              if (!confirm(`Xoá từ “${word.word}”?`)) ev.preventDefault();
+            confirm={{
+              title: `Xoá từ “${word.word}”?`,
+              body: "Từ sẽ không còn trong các bài luyện của chủ đề này.",
             }}
           >
             <Trash2 aria-hidden="true" />
             Xoá
-          </SubmitButton>
+          </ConfirmSubmit>
         </form>
         {delState.error ? <p className="text-sm text-berry">{delState.error}</p> : null}
       </div>
@@ -751,17 +753,15 @@ export function ActivityEditor({
           <input type="hidden" name="id" value={activity.id} />
           <input type="hidden" name="topicId" value={activity.topicId} />
           <input type="hidden" name="base" value={base} />
-          <SubmitButton
+          <ConfirmSubmit
             pending={delPending}
             variant="ghost"
             className="text-berry"
-            onClick={(ev) => {
-              if (!confirm("Xoá bài này? Học sinh sẽ không thấy bài nữa.")) ev.preventDefault();
-            }}
+            confirm={{ title: `Xoá bài “${activity.titleVi}”?`, body: "Học sinh sẽ không thấy bài này nữa." }}
           >
             <Trash2 aria-hidden="true" />
             Xoá bài
-          </SubmitButton>
+          </ConfirmSubmit>
           {delState.error ? <p className="mt-2 text-sm text-berry">{delState.error}</p> : null}
         </form>
       </div>

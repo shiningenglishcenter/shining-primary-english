@@ -14,6 +14,7 @@ import { fold } from "@/features/content-editor/emoji-search";
 import type { TopicRow } from "@/features/content-editor/queries";
 import { emojiSrc } from "@/features/practice/emoji";
 import type { FormState } from "@/features/people/schemas";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const initial: FormState = {};
@@ -83,15 +84,40 @@ export function TopicList({
   const allOn = shown.length > 0 && shown.every((r) => selected.includes(r.id));
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  const run = (op: "publish" | "draft" | "delete") => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+  const [confirmDialog, ask] = useConfirm();
+  // The "Thao tác" menu closes on a click elsewhere or Esc.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const away = (e: PointerEvent) => {
+      if (!menu.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [menuOpen]);
+  const run = async (op: "publish" | "draft" | "delete") => {
+    setMenuOpen(false);
     if (!selected.length) return;
+    const n = `${selected.length} ${noun.toLowerCase()}`;
     if (
       op === "delete" &&
-      !confirm(`Xoá ${selected.length} ${noun.toLowerCase()}? Học sinh sẽ không thấy nữa.`)
+      !(await ask({
+        title: `Xoá ${n}?`,
+        body: "Học sinh sẽ không thấy các chủ đề này và bài luyện của chúng nữa.",
+      }))
     )
       return;
     opInput.current!.value = op;
     bulkForm.current!.requestSubmit();
+    if (op === "delete") setSelected([]);
   };
 
   return (
@@ -106,38 +132,52 @@ export function TopicList({
           <Plus aria-hidden="true" />
           Thêm {noun.toLowerCase()}
         </Button>
-        <details className="relative" data-testid="bulk-menu">
-          <summary
+        <div ref={menu} className="relative" data-testid="bulk-menu">
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
             className={cn(
-              "flex h-10 cursor-pointer list-none items-center gap-1 rounded-md border border-line bg-surface px-4 text-sm font-semibold",
+              "flex h-10 items-center gap-1 rounded-md border border-line bg-surface px-4 text-sm font-semibold",
               !selected.length && "opacity-60",
             )}
           >
             Thao tác{selected.length ? ` (${selected.length})` : ""}
-            <ChevronDown className="size-4" aria-hidden="true" />
-          </summary>
-          <div className="absolute z-10 mt-1 flex w-48 flex-col rounded-md border border-line bg-surface p-1 shadow-lg">
+            <ChevronDown
+              className={cn("size-4 transition-transform", menuOpen && "rotate-180")}
+              aria-hidden="true"
+            />
+          </button>
+          <div
+            role="menu"
+            hidden={!menuOpen}
+            className="absolute z-10 mt-1 flex w-48 flex-col rounded-md border border-line bg-surface p-1 shadow-lg"
+          >
             {selected.length === 0 ? (
               <p className="px-3 py-2 text-sm text-ink-soft">Tích chọn ở cột đầu bảng trước.</p>
             ) : (
               <>
                 <button
                   type="button"
-                  onClick={() => run("publish")}
+                  role="menuitem"
+                  onClick={() => void run("publish")}
                   className="rounded px-3 py-2 text-left text-sm hover:bg-muted"
                 >
                   Xuất bản
                 </button>
                 <button
                   type="button"
-                  onClick={() => run("draft")}
+                  role="menuitem"
+                  onClick={() => void run("draft")}
                   className="rounded px-3 py-2 text-left text-sm hover:bg-muted"
                 >
                   Chuyển về nháp
                 </button>
                 <button
                   type="button"
-                  onClick={() => run("delete")}
+                  role="menuitem"
+                  onClick={() => void run("delete")}
                   className="rounded px-3 py-2 text-left text-sm text-berry hover:bg-berry-soft"
                 >
                   Xoá
@@ -145,7 +185,7 @@ export function TopicList({
               </>
             )}
           </div>
-        </details>
+        </div>
         <span className="hidden h-7 w-px bg-line sm:block" aria-hidden="true" />
         <Input
           value={q}
@@ -330,6 +370,7 @@ export function TopicList({
           <NewTopicForm levelCode={levelCode} base={base} />
         </div>
       </dialog>
+      {confirmDialog}
     </section>
   );
 }

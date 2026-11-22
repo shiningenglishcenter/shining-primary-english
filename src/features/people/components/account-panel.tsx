@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmSubmit } from "@/components/ui/confirm-dialog";
 import { useActionState, useState } from "react";
 import { Lock, LockOpen } from "lucide-react";
 import {
@@ -86,23 +87,24 @@ export function AccountPanel({
         <form action={lockAction}>
           <input type="hidden" name="profileId" value={account.profileId} />
           <input type="hidden" name="active" value={account.isActive ? "false" : "true"} />
-          <SubmitButton
+          <ConfirmSubmit
             pending={lockPending}
             pendingText="Đang lưu…"
             variant={account.isActive ? "outline" : "secondary"}
             size="sm"
-            onClick={(ev) => {
-              if (
-                account.isActive &&
-                !confirm(`Khoá tài khoản của ${account.name}? Người này sẽ không đăng nhập được.`)
-              ) {
-                ev.preventDefault();
-              }
-            }}
+            confirm={
+              account.isActive
+                ? {
+                    title: `Khoá tài khoản của ${account.name}?`,
+                    body: "Người này sẽ không đăng nhập được cho đến khi mở khoá.",
+                    okLabel: "Khoá tài khoản",
+                  }
+                : null
+            }
           >
             {account.isActive ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
             {account.isActive ? "Khoá tài khoản" : "Mở khoá tài khoản"}
-          </SubmitButton>
+          </ConfirmSubmit>
         </form>
       </div>
     </div>

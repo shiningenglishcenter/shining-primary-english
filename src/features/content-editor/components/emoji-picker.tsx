@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ImageUp, LoaderCircle, Search, Smile, Trash2, X } from "lucide-react";
@@ -222,6 +223,7 @@ export function WordImageField({
   defaultUrl?: string | null;
 }) {
   const [path, setPath] = useState(defaultPath ?? "");
+  const [dialog, ask] = useConfirm();
   const [url, setUrl] = useState(defaultUrl ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -260,6 +262,7 @@ export function WordImageField({
     <span className="flex flex-col gap-1">
       <span className="flex items-center gap-2">
         <input type="hidden" name="imagePath" value={path} />
+        {dialog}
         <input
           ref={input}
           type="file"
@@ -290,7 +293,9 @@ export function WordImageField({
               variant="ghost"
               size="sm"
               className="text-berry"
-              onClick={() => {
+              onClick={async () => {
+                if (!(await ask({ title: "Bỏ ảnh này?", body: "Ảnh bị bỏ khi bấm Lưu.", okLabel: "Bỏ ảnh" })))
+                  return;
                 setPath("");
                 setUrl(null);
               }}
