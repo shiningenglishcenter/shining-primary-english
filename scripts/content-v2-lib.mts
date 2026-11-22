@@ -41,11 +41,14 @@ const split = (line: string) => line.split("|").map((s) => s.trim());
 type Act = { kind: string; en: string; vi: string; content: unknown; settings?: unknown };
 
 const MIN = 8;
+/** vocabulary.part_of_speech check constraint (migration 0004). */
+const POS = ["noun", "verb", "adjective", "adverb", "preposition", "pronoun", "determiner", "conjunction", "interjection", "phrase", "number"];
 
 function words(u: Unit) {
   return u.words.map((line) => {
     const [word = "", vi = "", emoji = "", pos = ""] = split(line);
     if (!word || !vi) fail(`${u.code}/words`, `"${line}" needs word|nghĩa`);
+    if (pos && !POS.includes(pos)) fail(`${u.code}/words`, `"${line}": part of speech must be one of ${POS.join(", ")}`);
     return { word, vi, emoji: code(emoji, `${u.code}/${word}`), pos: pos || null };
   });
 }
