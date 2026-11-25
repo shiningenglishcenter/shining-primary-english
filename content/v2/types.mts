@@ -42,6 +42,12 @@ export type Unit = {
   };
   /** Sounds of the unit (Global Success phonics; Cambridge: chosen sounds), see D61. */
   phonics?: Phonics;
+  /**
+   * The book's own exercises (D66), stored like exam activities: emoji are
+   * written as characters, and a listening activity's media may be
+   * `{ track: 14 }` — the book's audio track, see Pack.book.
+   */
+  acts?: Exam["acts"];
 };
 
 /**
@@ -90,4 +96,12 @@ export type Pack = {
   exams?: Exam[];
   /** Phonics for topics that already exist (packs written before v2: Starters, GS1). */
   phonicsFor?: { code: string; phonics: Phonics }[];
+  /**
+   * A coursebook pack (D66, kept out of the public repo): the level's units
+   * follow the book. Its tracks are stored as practice/<uuid>.mp3, the uuid
+   * made from `audio` and the track number (scripts/upload-book-audio.mts).
+   * The level's other topics become drafts and their words move to the
+   * book's units.
+   */
+  book?: { name: string; audio: string };
 };

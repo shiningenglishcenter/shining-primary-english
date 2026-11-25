@@ -160,6 +160,11 @@ D60–D65. All content published.
 - Starters: phonics in every topic, 2 grammar topics, exam practice. GS1: phonics in every unit.
 - New kinds: phonics, look/listen and write, listen and colour. Pupils: "Ôn lại từ hay sai"; difficulty labels.
 
+### Phase 1.9 — Cambridge levels from the coursebooks (2026-11-25, same branch)
+D66. Starters follows **Start!** (17 units, book order and names, 4 revisions, the practice test; 68 book
+tracks). Movers (**Move!**) and Flyers (**Fly!**) follow. The packs and their SQL are private (not in the repo);
+the older Cambridge topics become drafts when the SQL runs. Global Success waits for the owner's materials.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`

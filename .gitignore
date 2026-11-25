@@ -18,3 +18,7 @@ next-env.d.ts
 
 # Fluent Emoji images, copied from node_modules at build time (scripts/copy-emoji.mjs)
 /public/emoji/
+
+# Coursebook content (D66): licensed material, never in the public repo
+/content/private/
+/supabase/private/
