@@ -161,9 +161,15 @@ D60–D65. All content published.
 - New kinds: phonics, look/listen and write, listen and colour. Pupils: "Ôn lại từ hay sai"; difficulty labels.
 
 ### Phase 1.9 — Cambridge levels from the coursebooks (2026-11-25, same branch)
-D66. Starters follows **Start!** (17 units, book order and names, 4 revisions, the practice test; 68 book
-tracks). Movers (**Move!**) and Flyers (**Fly!**) follow. The packs and their SQL are private (not in the repo);
-the older Cambridge topics become drafts when the SQL runs. Global Success waits for the owner's materials.
+D66. Each Cambridge level follows its coursebook: 17 units in book order and names, 4 revisions, phonics,
+the book's exercises and listening. **Start!** (Starters): 68 book tracks and the practice test. **Move!**
+(Movers): 80 tracks and the practice test. **Fly!** (Flyers): the Drive copy of the audio zip is truncated,
+so 19 tracks are used and the other listening tasks are read aloud by the app until the full audio is
+uploaded. The packs and their SQL are private (not in the repo); the older Cambridge topics become drafts
+when the SQL runs. Global Success waits for the owner's materials.
+
+To deploy a book (owner): upload its tracks with `scripts/upload-book-audio.mts` (service key), then run
+`supabase/private/<level>_<book>_book.sql` in the SQL Editor. Re-running either is safe.
 
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
