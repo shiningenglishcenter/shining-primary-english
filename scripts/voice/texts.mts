@@ -99,16 +99,22 @@ if (mode === "list") {
 } else {
   const files = readdirSync(arg).filter((f) => /^[0-9a-f]{28}\.mp3$/.test(f));
   let done = 0;
-  for (const f of files) {
-    const { error } = await bucket.upload(`${DEFAULT_VOICE}/${f}`, readFileSync(join(arg, f)), {
-      contentType: "audio/mpeg",
-      upsert: true,
-    });
-    if (error) {
-      console.error(`${f}: ${error.message}`);
-      process.exit(1);
-    }
-    done++;
-  }
+  // A few uploads at a time.
+  const queue = [...files];
+  await Promise.all(
+    Array.from({ length: 8 }, async () => {
+      for (let f = queue.shift(); f; f = queue.shift()) {
+        const { error } = await bucket.upload(`${DEFAULT_VOICE}/${f}`, readFileSync(join(arg, f)), {
+          contentType: "audio/mpeg",
+          upsert: true,
+        });
+        if (error) {
+          console.error(`${f}: ${error.message}`);
+          process.exit(1);
+        }
+        done++;
+      }
+    }),
+  );
   process.stdout.write(`${done} voice files uploaded.\n`);
 }

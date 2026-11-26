@@ -1,11 +1,10 @@
-# Recorded voice (ARCHITECTURE D67): every night, make the voice files of
-# sentences added or changed since the last run, and upload them.
+# Recorded voice (ARCHITECTURE D67): run by hand (Actions → voice → Run
+# workflow) to make and upload the voice files of sentences added or changed
+# since the last run.
 # Needs two repository secrets: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
 name: voice
 
 on:
-  schedule:
-    - cron: "17 19 * * *" # 02:17 in Vietnam
   workflow_dispatch:
 
 permissions:

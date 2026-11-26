@@ -182,7 +182,7 @@ To deploy a book (owner): upload its tracks with `scripts/upload-book-audio.mts`
 ### Phase 1.11 — Recorded voice (2026-11-26, same branch)
 D67. The app reads aloud with Kokoro's British "emma" voice from pre-made files (migration 0044: public
 `voice` bucket, `voices` on topics and activities). `scripts/voice/` lists the sentences, makes the mp3s and
-uploads them; the `voice` workflow does it nightly once the repo has the SUPABASE_URL and
+uploads them; the `voice` workflow (run by hand: Actions → voice) does it once the repo has the SUPABASE_URL and
 SUPABASE_SERVICE_ROLE_KEY secrets. Teachers: "Giọng đọc" panel on the activity page and the topic's
 "Mẫu câu" tab — listen, record, upload, back to default. Leaving a game stops its recording and voice.
 
