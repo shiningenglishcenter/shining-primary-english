@@ -1,4 +1,8 @@
 import Image from "next/image";
+import { VoicePanel } from "@/features/content-editor/components/voice-panel";
+import { activityTexts, topicTexts } from "@/features/practice/voice";
+import { unitsOf } from "@/features/practice/round";
+import { getTopicWords } from "@/features/practice/queries";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -19,6 +23,7 @@ import {
   getTopicForStaff,
   listTopicsForStaff,
   topicCountsByLevel,
+  voicesFor,
 } from "@/features/content-editor/queries";
 import { TopicList } from "@/features/content-editor/components/topic-list";
 import {
@@ -262,6 +267,18 @@ export async function TopicEditorPage({
           ) : tab === "patterns" ? (
             <div className="max-w-4xl">
               <PatternsEditor topicId={topic.id} patterns={topic.patterns} />
+              <div className="mt-6">
+                <VoicePanel
+                  target="topic"
+                  id={topic.id}
+                  texts={topicTexts(
+                    topic.words.map((w) => ({ word: w.word, meaningVi: w.meaningVi, emoji: w.emoji })),
+                    topic.patterns,
+                  )}
+                  voices={await voicesFor("topics", topic.id)}
+                  title="Giọng đọc của từ vựng và mẫu câu"
+                />
+              </div>
             </div>
           ) : tab === "activities" ? (
             <div className="flex flex-col gap-6" id="topic-activities" data-testid="topic-activities">
@@ -354,8 +371,21 @@ export async function ActivityEditorPage({
   await requireRole(roleOf(base));
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
-  const activity = await getActivityForStaff(id);
+  const [activity, voices] = await Promise.all([
+    getActivityForStaff(id),
+    voicesFor("practice_activities", id),
+  ]);
   if (!activity) notFound();
+  const units = unitsOf(activity.content);
+  const [topicVoices, voiceWords] = await Promise.all([
+    voicesFor("topics", activity.topic.id),
+    units.length ? getTopicWords(activity.topic.id, units, activity.topic.levelCode) : null,
+  ]);
+  const texts = activityTexts(
+    activity.kind,
+    activity.content,
+    voiceWords ?? activity.topic.words.map((w) => ({ word: w.word, meaningVi: w.meaningVi, emoji: w.emoji })),
+  );
 
   const playable = activity.status === "published" && activity.topic.status === "published";
   const share = (
@@ -398,6 +428,15 @@ export async function ActivityEditorPage({
         }))}
         share={share}
       />
+      <div className="mt-6">
+        <VoicePanel
+          target="activity"
+          id={activity.id}
+          texts={texts}
+          voices={{ ...topicVoices, ...voices }}
+          title="Giọng đọc của bài"
+        />
+      </div>
     </>
   );
 }

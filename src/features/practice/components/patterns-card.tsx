@@ -4,12 +4,20 @@ import { useState } from "react";
 import { Languages, Volume2 } from "lucide-react";
 import { useLang, useT } from "@/features/i18n/client";
 import { useSound } from "@/features/practice/use-sound";
+import type { Voices } from "@/features/practice/voice";
 
 /** A topic's key sentences with a voice; the Vietnamese meaning on request (D51). */
-export function PatternsCard({ patterns }: { patterns: { en: string; vi: string }[] }) {
+export function PatternsCard({
+  patterns,
+  voices,
+}: {
+  patterns: { en: string; vi: string }[];
+  /** The topic's own recordings (D67). */
+  voices?: Voices;
+}) {
   const t = useT();
   const lang = useLang();
-  const sound = useSound();
+  const sound = useSound({ voices });
   const [showVi, setShowVi] = useState(lang === "vi");
   if (patterns.length === 0) return null;
   return (

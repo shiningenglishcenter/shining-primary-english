@@ -40,6 +40,7 @@ import {
   type Question,
 } from "@/features/practice/round";
 import { useSound, type SoundTip } from "@/features/practice/use-sound";
+import type { Voices } from "@/features/practice/voice";
 import { useLang, useT } from "@/features/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +114,7 @@ export function Player({
   maxScore,
   topicHref,
   nextHref,
+  voices,
 }: {
   activityId: string;
   kind: PracticeKind;
@@ -129,10 +131,12 @@ export function Player({
   maxScore: number;
   topicHref: string;
   nextHref: string | null;
+  /** A teacher's own recordings for this activity and topic (D67). */
+  voices?: Voices;
 }) {
   const t = useT();
   const [soundTip, setSoundTip] = useState<SoundTip | null>(null);
-  const sound = useSound({ onTip: setSoundTip });
+  const sound = useSound({ onTip: setSoundTip, voices });
   const wide = useWideScreen();
   // Match screens hold 4 pairs on phones, up to 6 on tablets/desktops (C5).
   const fullQuestions = useMemo(

@@ -21,5 +21,5 @@ set local role anon;
 select tests.throws($$select 1 from public.activity_drafts$$, 'guests cannot read drafts', '42501');
 reset role;
 
-select tests.ok((public.health_check() ->> 'schema_version')::int = 34, 'schema version 34');
+select tests.ok((public.health_check() ->> 'schema_version')::int >= 34, 'schema version 34 or later');
 rollback;

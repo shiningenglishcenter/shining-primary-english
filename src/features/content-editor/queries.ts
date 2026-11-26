@@ -1,4 +1,5 @@
 import "server-only";
+import { voicesOf, type Voices } from "@/features/practice/voice";
 import { createClient } from "@/lib/supabase/server";
 import { settingsOf, type PracticeKind, type PracticeLevel } from "@/features/practice/model";
 
@@ -304,4 +305,11 @@ async function getActivityForStaffWithoutToken(id: string) {
     topic,
     draft,
   };
+}
+
+/** A topic's or activity's teacher recordings (D67); {} before migration 0044. */
+export async function voicesFor(table: "topics" | "practice_activities", id: string): Promise<Voices> {
+  const supabase = await createClient();
+  const { data } = await supabase.from(table).select("voices").eq("id", id).maybeSingle();
+  return voicesOf((data as { voices?: unknown } | null)?.voices);
 }

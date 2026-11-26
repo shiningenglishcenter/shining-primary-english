@@ -1,6 +1,10 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { voicesOf } from "@/features/practice/voice";
+import { unitsOf } from "@/features/practice/round";
+
+export { unitsOf };
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { getLevelCatalog } from "@/features/practice/catalog";
 import type { PlayerContext, RoundContext } from "@/features/practice/round";
@@ -107,7 +111,7 @@ export async function getTopic(topicId: string) {
     supabase
       .from("topics")
       .select(
-        "id, code, title_en, title_vi, emoji, patterns, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at)",
+        "id, code, title_en, title_vi, emoji, patterns, voices, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at)",
       )
       .eq("id", topicId)
       .eq("status", "published")
@@ -135,6 +139,7 @@ export async function getTopic(topicId: string) {
     titleVi: data.title_vi as string,
     emoji: (data.emoji as string | null) ?? null,
     patterns: patternsOf(data.patterns),
+    voices: voicesOf(data.voices),
     level,
     activities: rows.map((a): ActivitySummary => ({
       id: a.id,
@@ -154,22 +159,6 @@ export function patternsOf(raw: unknown): Pattern[] {
       ? [{ en: (p as Pattern).en, vi: typeof (p as Pattern).vi === "string" ? (p as Pattern).vi : "" }]
       : [],
   );
-}
-
-/** Topic codes a review activity draws its words from (D51), anywhere in its content. */
-export function unitsOf(content: unknown): string[] {
-  const out = new Set<string>();
-  const walk = (v: unknown) => {
-    if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === "object") {
-      for (const [k, x] of Object.entries(v)) {
-        if (k === "units" && Array.isArray(x)) x.forEach((u) => typeof u === "string" && out.add(u));
-        else walk(x);
-      }
-    }
-  };
-  walk(content);
-  return [...out];
 }
 
 /** Words of a topic, or (review activities) of other topics of the same level. */
@@ -235,7 +224,7 @@ export async function getActivity(activityId: string) {
   const { data, error } = await supabase
     .from("practice_activities")
     .select(
-      "id, kind, title_en, title_vi, content, settings, topic_id, topic:topics!inner(level:levels!inner(code))",
+      "id, kind, title_en, title_vi, content, settings, voices, topic_id, topic:topics!inner(level:levels!inner(code))",
     )
     .eq("id", activityId)
     .eq("status", "published")
@@ -257,6 +246,8 @@ export async function getActivity(activityId: string) {
     titleVi: data.title_vi as string,
     content: data.content as unknown,
     settings: settingsOf(data.settings),
+    /** The topic's recordings, then the activity's own (D67). */
+    voices: { ...topic.voices, ...voicesOf(data.voices) },
     topic,
     words,
     nextActivityId: topic.activities[index + 1]?.id ?? null,

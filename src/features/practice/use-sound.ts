@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { voicePath, voiceUrl, type Voices } from "@/features/practice/voice";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+/** Voice files found missing this visit: read those with the device voice at once. */
+const missingVoices = new Set<string>();
 
 const MUTE_KEY = "shining-sound-off";
 /** Set once the iPhone/iPad "silent switch" tip was shown on this device (C4). */
@@ -29,11 +34,14 @@ function isIos(): boolean {
 }
 
 /**
- * Reads English aloud with the device's own voice (free; owner decision
- * 2026-11-10 — pre-recorded voices may come later) and plays short
- * soft effect sounds generated with Web Audio (no sound files, D34).
+ * Reads English aloud — the recorded voice file of the text (D67: a teacher's
+ * recording from `voices`, else the default voice), or the device's own voice
+ * when there is none — and plays short soft effect sounds generated with
+ * Web Audio (no sound files, D34).
  */
-export function useSound(opts: { onTip?: (tip: SoundTip) => void } = {}) {
+export function useSound(opts: { onTip?: (tip: SoundTip) => void; voices?: Voices | null } = {}) {
+  const voices = opts.voices;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [muted, setMuted] = useState(false);
   const tipDone = useRef(false);
   const onTip = useRef(opts.onTip);
@@ -81,15 +89,46 @@ export function useSound(opts: { onTip?: (tip: SoundTip) => void } = {}) {
     };
   }, []);
 
-  const speak = useCallback((text: string, rate = 0.85) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+  const synth = useCallback((text: string, rate: number) => {
+    if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = voiceRef.current?.lang ?? "en-GB";
     if (voiceRef.current) u.voice = voiceRef.current;
     u.rate = rate;
     window.speechSynthesis.speak(u);
   }, []);
+
+  const speak = useCallback(
+    (text: string, rate = 0.85) => {
+      if (typeof window === "undefined") return;
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      audioRef.current?.pause();
+      const path = voicePath(text, voices);
+      if (!SUPABASE_URL || missingVoices.has(path) || typeof Audio === "undefined") return synth(text, rate);
+      // One element, reused: once a tap has played it, iOS lets it play again.
+      const el = (audioRef.current ??= new Audio());
+      let done = false;
+      const fallback = () => {
+        if (done || el.dataset.path !== path) return;
+        done = true;
+        missingVoices.add(path);
+        synth(text, rate);
+      };
+      el.dataset.path = path;
+      el.onerror = fallback;
+      el.src = voiceUrl(SUPABASE_URL, path);
+      el.play().catch((e: unknown) => {
+        const name = (e as { name?: string } | null)?.name;
+        if (name === "AbortError") return; // replaced by the next sentence
+        if (name === "NotAllowedError")
+          synth(text, rate); // autoplay blocked: the device voice may still work
+        else fallback();
+      });
+    },
+    [voices, synth],
+  );
+  // Leaving the game: stop the voice file too.
+  useEffect(() => () => audioRef.current?.pause(), []);
 
   /** Shows the "turn the sound on" tip at most once per round (and the iOS one once per device). */
   const checkTip = useCallback((ctxState: AudioContextState | "unavailable") => {

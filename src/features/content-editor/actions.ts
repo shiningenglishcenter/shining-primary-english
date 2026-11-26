@@ -21,6 +21,7 @@ import {
 } from "@/features/practice/model";
 import { fieldErrorsOf, type FormState } from "@/features/people/schemas";
 import { getLevelCatalog } from "@/features/practice/catalog";
+import { CUSTOM_VOICE_PATH, VOICE_BUCKET, VOICE_KEY, voicesOf } from "@/features/practice/voice";
 import { IPA } from "../../../content/ipa.mts";
 
 /**
@@ -697,4 +698,41 @@ export async function reorderActivities(topicId: string, ids: string[]): Promise
   );
   refresh();
   return { ok: results.every((r) => !r.error) };
+}
+
+const voiceInput = z.object({
+  target: z.enum(["topic", "activity"]),
+  id: z.uuid(),
+  key: z.string().regex(VOICE_KEY),
+  path: z.string().regex(CUSTOM_VOICE_PATH).nullable(),
+});
+
+/**
+ * A teacher's own recording for one sentence of one topic or activity (D67),
+ * or `path: null` to go back to the default voice. The replaced recording's
+ * file is removed.
+ */
+export async function saveVoice(input: z.infer<typeof voiceInput>): Promise<{ ok: boolean; error?: string }> {
+  await staff();
+  const parsed = voiceInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Yêu cầu không hợp lệ." };
+  const { target, id, key, path } = parsed.data;
+  const table = target === "topic" ? "topics" : "practice_activities";
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from(table)
+    .select("voices")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: SAVE_FAILED };
+  const voices = voicesOf(data.voices);
+  const old = voices[key];
+  if (path) voices[key] = path;
+  else delete voices[key];
+  const { error: saveError } = await supabase.from(table).update({ voices }).eq("id", id);
+  if (saveError) return { ok: false, error: SAVE_FAILED };
+  if (old && old !== path) await supabase.storage.from(VOICE_BUCKET).remove([old]);
+  refresh();
+  return { ok: true };
 }

@@ -48,7 +48,7 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </section>
 
-      <PatternsCard patterns={topic.patterns} />
+      <PatternsCard patterns={topic.patterns} voices={topic.voices} />
 
       <ActivityFilter counts={filterCounts(topic.activities)}>
         <ol className="mt-3 flex flex-col gap-3" data-testid="activity-list">

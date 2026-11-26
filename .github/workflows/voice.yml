@@ -1,0 +1,53 @@
+# Recorded voice (ARCHITECTURE D67): every night, make the voice files of
+# sentences added or changed since the last run, and upload them.
+# Needs two repository secrets: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+name: voice
+
+on:
+  schedule:
+    - cron: "17 19 * * *" # 02:17 in Vietnam
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Skip without secrets
+        if: env.SUPABASE_SERVICE_ROLE_KEY == ''
+        run: echo "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to make voice files." && exit 0
+      - uses: actions/checkout@v4
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+      - uses: actions/setup-node@v4
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        with:
+          python-version: "3.12"
+      - name: Install
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        run: |
+          npm ci
+          sudo apt-get install -y ffmpeg
+          pip install -r scripts/voice/requirements.txt
+          mkdir -p model
+          curl -sL -o model/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+          curl -sL -o model/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+      - name: List new sentences
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        run: node --no-warnings --import ./scripts/voice/alias-hooks.mjs scripts/voice/texts.mts list todo.json
+      - name: Make the voice files
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        run: python scripts/voice/generate.py todo.json model out
+      - name: Upload
+        if: env.SUPABASE_SERVICE_ROLE_KEY != ''
+        run: node --no-warnings --import ./scripts/voice/alias-hooks.mjs scripts/voice/texts.mts upload out

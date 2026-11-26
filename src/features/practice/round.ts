@@ -628,3 +628,19 @@ export function toYesNoQuestion(sentence: string): YesNoForm | null {
   }
   return null;
 }
+
+/** Topic codes a review activity draws its words from (D51), anywhere in its content. */
+export function unitsOf(content: unknown): string[] {
+  const out = new Set<string>();
+  const walk = (v: unknown) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") {
+      for (const [k, x] of Object.entries(v)) {
+        if (k === "units" && Array.isArray(x)) x.forEach((u) => typeof u === "string" && out.add(u));
+        else walk(x);
+      }
+    }
+  };
+  walk(content);
+  return [...out];
+}

@@ -40,6 +40,7 @@ async function PlayView({
         maxScore={round.maxScore}
         topicHref={`/learn/topics/${activity.topic.id}`}
         nextHref={activity.nextActivityId ? `/learn/play/${activity.nextActivityId}` : null}
+        voices={activity.voices}
       />
     </KidPage>
   );
