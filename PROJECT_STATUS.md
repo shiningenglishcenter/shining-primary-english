@@ -1,6 +1,6 @@
 # Project Status
 
-_Last updated: 2026-11-20_
+_Last updated: 2026-11-26_
 
 ## Completed milestones
 **Milestone 0 — Discovery & architecture** ✅
@@ -170,6 +170,14 @@ when the SQL runs. Global Success waits for the owner's materials.
 
 To deploy a book (owner): upload its tracks with `scripts/upload-book-audio.mts` (service key), then run
 `supabase/private/<level>_<book>_book.sql` in the SQL Editor. Re-running either is safe.
+
+### Phase 1.10 — Student pages: speed and feedback (2026-11-26, same branch)
+- Unit list and unit page read the pupil's stars in one flat query instead of embedding progress in every
+  activity (that embed cost ~0.6–1 s per page).
+- Tapping a programme, level, unit or activity: the link pulses with a spinner, the others fade and a bar
+  runs along the top until the page arrives (`useLinkStatus`, `LinkPending`).
+- Unit page: a "Show" dropdown (all / easy / medium / challenge / not done / done), remembered per device.
+- Book listening questions get pictures (private packs, `addPictures`); no app change needed.
 
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):

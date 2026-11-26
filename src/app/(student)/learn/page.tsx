@@ -7,6 +7,7 @@ import { KidPage, LevelTabs } from "@/features/practice/components/kid-page";
 import { Pic, StarBadge, Stars, Sunny } from "@/features/practice/components/kid-ui";
 import { getMessages } from "@/features/i18n/server";
 import { KidSkeleton } from "@/features/practice/components/kid-skeleton";
+import { LinkPending } from "@/features/practice/components/link-pending";
 import { levelByCode, levelBySlug, topicNoun, type LevelCatalog } from "@/features/practice/model";
 import { getLevelCatalog } from "@/features/practice/catalog";
 import { listTopics } from "@/features/practice/queries";
@@ -82,6 +83,7 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
           <span aria-hidden="true" className="text-2xl">
             →
           </span>
+          <LinkPending />
         </Link>
       ) : null}
 
@@ -134,6 +136,7 @@ async function StudentHome({ searchParams }: { searchParams: SearchParams }) {
                 <span className="text-xs font-bold text-k-soft">
                   {m.activitiesOf(t.done, t.activityCount)}
                 </span>
+                <LinkPending />
               </Link>
             </li>
           ))}

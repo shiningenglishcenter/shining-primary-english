@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { cn } from "@/lib/utils";
-import { DIFFICULTY_EN, DIFFICULTY_OF, DIFFICULTY_VI } from "@/features/practice/model";
+import { DIFFICULTY_EN, DIFFICULTY_OF, DIFFICULTY_VI, type PracticeKind } from "@/features/practice/model";
+import { ActivityFilter, type ActivityFilterKey } from "@/features/practice/components/activity-filter";
+import { LinkPending } from "@/features/practice/components/link-pending";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -31,6 +33,7 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
       >
         <ChevronLeft className="size-5" aria-hidden="true" />
         {t.back}
+        <LinkPending />
       </Link>
 
       <section className="mt-4 flex items-center gap-4">
@@ -47,55 +50,79 @@ async function TopicView({ params }: { params: Promise<{ id: string }> }) {
 
       <PatternsCard patterns={topic.patterns} />
 
-      <ol className="mt-6 flex flex-col gap-3" data-testid="activity-list">
-        {topic.activities.map((a, i) => {
-          const Icon = KIND_ICON[a.kind];
-          return (
-            <li key={a.id}>
-              <Link
-                href={`/learn/play/${a.id}`}
-                className="kid-press flex items-center gap-4 rounded-3xl bg-k-surface p-3 pr-4"
-                data-testid="activity"
-                data-kind={a.kind}
+      <ActivityFilter counts={filterCounts(topic.activities)}>
+        <ol className="mt-3 flex flex-col gap-3" data-testid="activity-list">
+          {topic.activities.map((a, i) => {
+            const Icon = KIND_ICON[a.kind];
+            return (
+              <li
+                key={a.id}
+                data-activity
+                data-difficulty={DIFFICULTY_OF[a.kind]}
+                data-done={a.stars > 0 ? "" : undefined}
               >
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-k-accent-soft text-k-accent-ink">
-                  <Icon className="size-7" aria-hidden="true" />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex items-center gap-2 text-xs font-black tracking-wide text-k-soft uppercase">
-                    {t.activityN(i + 1)}
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 tracking-normal normal-case",
-                        DIFFICULTY_OF[a.kind] === "easy"
-                          ? "bg-k-good-soft text-k-good"
-                          : DIFFICULTY_OF[a.kind] === "medium"
-                            ? "bg-k-accent-soft text-k-accent-ink"
-                            : "bg-k-bad-soft text-k-bad",
-                      )}
-                      data-testid="difficulty"
-                    >
-                      {(lang === "vi" ? DIFFICULTY_VI : DIFFICULTY_EN)[DIFFICULTY_OF[a.kind]]}
+                <Link
+                  href={`/learn/play/${a.id}`}
+                  className="kid-press flex items-center gap-4 rounded-3xl bg-k-surface p-3 pr-4"
+                  data-testid="activity"
+                  data-kind={a.kind}
+                >
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-k-accent-soft text-k-accent-ink">
+                    <Icon className="size-7" aria-hidden="true" />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex items-center gap-2 text-xs font-black tracking-wide text-k-soft uppercase">
+                      {t.activityN(i + 1)}
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 tracking-normal normal-case",
+                          DIFFICULTY_OF[a.kind] === "easy"
+                            ? "bg-k-good-soft text-k-good"
+                            : DIFFICULTY_OF[a.kind] === "medium"
+                              ? "bg-k-accent-soft text-k-accent-ink"
+                              : "bg-k-bad-soft text-k-bad",
+                        )}
+                        data-testid="difficulty"
+                      >
+                        {(lang === "vi" ? DIFFICULTY_VI : DIFFICULTY_EN)[DIFFICULTY_OF[a.kind]]}
+                      </span>
+                    </span>
+                    <span className="text-lg leading-tight font-black">
+                      {lang === "vi" ? a.titleVi : a.titleEn}
+                    </span>
+                    {lang === "vi" ? (
+                      <span className="text-sm font-bold text-k-soft">{a.titleEn}</span>
+                    ) : null}
+                  </span>
+                  <span className="flex flex-col items-end gap-1">
+                    <Stars value={a.stars} label={t.starsOf(a.stars)} />
+                    <span className="rounded-xl bg-k-primary px-3 py-1 text-sm font-black text-k-primary-ink">
+                      {a.stars > 0 ? t.playAgain : t.play}
                     </span>
                   </span>
-                  <span className="text-lg leading-tight font-black">
-                    {lang === "vi" ? a.titleVi : a.titleEn}
-                  </span>
-                  {lang === "vi" ? <span className="text-sm font-bold text-k-soft">{a.titleEn}</span> : null}
-                </span>
-                <span className="flex flex-col items-end gap-1">
-                  <Stars value={a.stars} label={t.starsOf(a.stars)} />
-                  <span className="rounded-xl bg-k-primary px-3 py-1 text-sm font-black text-k-primary-ink">
-                    {a.stars > 0 ? t.playAgain : t.play}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+                  <LinkPending />
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </ActivityFilter>
     </KidPage>
   );
+}
+
+function filterCounts(
+  activities: { kind: PracticeKind; stars: number }[],
+): Record<ActivityFilterKey, number> {
+  const n = (f: (a: { kind: PracticeKind; stars: number }) => boolean) => activities.filter(f).length;
+  return {
+    all: activities.length,
+    easy: n((a) => DIFFICULTY_OF[a.kind] === "easy"),
+    medium: n((a) => DIFFICULTY_OF[a.kind] === "medium"),
+    hard: n((a) => DIFFICULTY_OF[a.kind] === "hard"),
+    todo: n((a) => a.stars === 0),
+    done: n((a) => a.stars > 0),
+  };
 }
 
 export default function TopicPage({ params }: PageProps<"/learn/topics/[id]">) {

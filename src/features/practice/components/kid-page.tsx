@@ -6,6 +6,7 @@ import { getMessages } from "@/features/i18n/server";
 import { Wordmark } from "@/features/practice/components/kid-ui";
 import { levelsOf, type PracticeLevel } from "@/features/practice/model";
 import { getLevelCatalog } from "@/features/practice/catalog";
+import { LinkPending, TopBar } from "@/features/practice/components/link-pending";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,6 +29,7 @@ export async function KidPage({
   return (
     <LangProvider lang={lang}>
       <div className="min-h-dvh bg-k-bg font-kid text-k-ink" data-level={level.slug} lang={lang}>
+        <TopBar />
         <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 pb-8 sm:px-6">
           {header ? (
             <header className="flex items-center justify-between gap-3 pt-4 pb-2">
@@ -88,11 +90,12 @@ export async function LevelTabs({ current }: { current: PracticeLevel }) {
               aria-current={active ? "page" : undefined}
               data-testid="program-tab"
               className={cn(
-                "flex h-11 flex-1 items-center justify-center rounded-full text-[16px] font-black transition-colors",
-                active ? "bg-k-primary text-k-primary-ink" : "text-k-soft",
+                "flex h-11 flex-1 items-center justify-center rounded-full text-[16px] font-black transition-colors active:scale-95",
+                active ? "bg-k-primary text-k-primary-ink" : "text-k-soft hover:bg-k-tile",
               )}
             >
               {p.name}
+              <LinkPending />
             </Link>
           );
         })}
@@ -110,10 +113,11 @@ export async function LevelTabs({ current }: { current: PracticeLevel }) {
                 "flex h-12 flex-1 items-center justify-center rounded-full text-[17px] font-black transition-colors",
                 active
                   ? "kid-press bg-k-accent text-k-ink [--press:var(--k-accent-shadow)]"
-                  : "border-2 border-k-line bg-k-surface text-k-ink",
+                  : "kid-press border-2 border-k-line bg-k-surface text-k-ink",
               )}
             >
               {l.short}
+              <LinkPending />
             </Link>
           );
         })}

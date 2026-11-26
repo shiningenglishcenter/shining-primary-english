@@ -187,6 +187,78 @@
   transform: translateY(4px);
   box-shadow: 0 1px 0 var(--press, var(--k-line));
 }
+/* Link feedback while the next page loads (LinkPending, TopBar). */
+.kid-link-pending {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.kid-link-pending[data-pending] {
+  opacity: 0.8;
+  animation: kid-spin 700ms linear infinite;
+}
+a:has(> .kid-link-pending) {
+  position: relative;
+}
+a:has(> .kid-link-pending[data-pending]) {
+  animation: kid-pending 900ms ease-in-out infinite;
+  outline: 3px solid var(--k-primary);
+  outline-offset: 2px;
+}
+:is(nav, ul, ol):has(.kid-link-pending[data-pending]) a:not(:has(.kid-link-pending[data-pending])) {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+@keyframes kid-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kid-pending {
+  50% {
+    transform: scale(0.97);
+  }
+}
+.kid-topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  height: 4px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--k-primary), var(--k-accent), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  transition: opacity 150ms ease;
+}
+body:has(.kid-link-pending[data-pending]) .kid-topbar {
+  opacity: 1;
+  animation: kid-topbar 1s ease-in-out infinite;
+}
+@keyframes kid-topbar {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+/* Unit activity filter (ActivityFilter): hide what doesn't match. */
+[data-filter="easy"] [data-activity]:not([data-difficulty="easy"]),
+[data-filter="medium"] [data-activity]:not([data-difficulty="medium"]),
+[data-filter="hard"] [data-activity]:not([data-difficulty="hard"]),
+[data-filter="todo"] [data-activity][data-done],
+[data-filter="done"] [data-activity]:not([data-done]) {
+  display: none;
+}
 @keyframes kid-pop {
   0% {
     transform: scale(1);
@@ -336,7 +408,9 @@
   .animate-kid-pop,
   .animate-kid-shake,
   .animate-kid-float,
-  .kid-confetti {
+  .kid-confetti,
+  .kid-topbar,
+  a:has(> .kid-link-pending) {
     animation: none !important;
   }
   .kid-confetti {

@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/session";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { getLevelCatalog } from "@/features/practice/catalog";
 import type { PlayerContext, RoundContext } from "@/features/practice/round";
@@ -17,28 +18,30 @@ import {
  * content of every level, and the student's own progress.
  */
 
-type ActivityRow = {
-  id: string;
-  status: string;
-  deleted_at: string | null;
-  progress_records?:
-    { score: number | null; max_score: number | null; recorded_at: string; is_retry?: boolean }[] | null;
-};
-
-/** Embedded with each activity: RLS returns only the student's own rows. */
-const PROGRESS_EMBED = "progress_records(score, max_score, recorded_at, is_retry)";
+type ActivityRow = { id: string; status: string; deleted_at: string | null };
 
 /**
- * Stars (0–3) of the student's LATEST attempt at an activity (owner decision
- * 2026-11-12, D29), from its embedded progress rows.
+ * Stars (0–3) of the student's LATEST attempt at each activity (owner decision
+ * 2026-11-12, D29). Read flat, in one query on the (student, activity) index,
+ * instead of embedded per activity: embedding made the unit list ~1 s slower.
+ * "Practise the mistakes" rounds never set stars (C2).
  */
-function latestStarsOf(a: ActivityRow): number {
-  let latest: { score: number | null; max_score: number | null; recorded_at: string } | null = null;
-  for (const r of a.progress_records ?? []) {
-    if (r.is_retry) continue; // "practise the mistakes" rounds never set stars (C2)
-    if (!latest || r.recorded_at > latest.recorded_at) latest = r;
+async function myStars(): Promise<Map<string, number>> {
+  const [supabase, user] = await Promise.all([createClient(), getCurrentUser()]);
+  const stars = new Map<string, number>();
+  if (!user) return stars;
+  const { data } = await supabase
+    .from("progress_records")
+    .select("practice_activity_id, score, max_score, student:students!inner(profile_id)")
+    .eq("student.profile_id", user.id)
+    .eq("is_retry", false)
+    .not("practice_activity_id", "is", null)
+    .order("recorded_at", { ascending: false });
+  for (const r of data ?? []) {
+    const id = r.practice_activity_id as string;
+    if (!stars.has(id)) stars.set(id, starsFor(Number(r.score ?? 0), Number(r.max_score ?? 0)));
   }
-  return latest ? starsFor(Number(latest.score ?? 0), Number(latest.max_score ?? 0)) : 0;
+  return stars;
 }
 
 const isLive = (a: ActivityRow) => a.status === "published" && !a.deleted_at;
@@ -57,20 +60,25 @@ export type TopicSummary = {
 
 export async function listTopics(level: PracticeLevel): Promise<TopicSummary[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("topics")
-    .select(
-      `id, code, title_en, title_vi, emoji, sort_order, level:levels!inner(code), practice_activities(id, status, deleted_at, ${PROGRESS_EMBED})`,
-    )
-    .eq("level.code", level.code)
-    .eq("status", "published")
-    .is("deleted_at", null)
-    .order("sort_order")
-    .order("title_en");
+  const [{ data, error }, mine] = await Promise.all([
+    supabase
+      .from("topics")
+      .select(
+        "id, code, title_en, title_vi, emoji, sort_order, level:levels!inner(code), practice_activities(id, status, deleted_at)",
+      )
+      .eq("level.code", level.code)
+      .eq("status", "published")
+      .is("deleted_at", null)
+      .order("sort_order")
+      .order("title_en"),
+    myStars(),
+  ]);
   if (error) throw new Error(`listTopics: ${error.code}`);
 
   return (data ?? []).map((t) => {
-    const stars = ((t.practice_activities ?? []) as ActivityRow[]).filter(isLive).map(latestStarsOf);
+    const stars = ((t.practice_activities ?? []) as ActivityRow[])
+      .filter(isLive)
+      .map((a) => mine.get(a.id) ?? 0);
     return {
       id: t.id as string,
       code: t.code as string,
@@ -95,15 +103,18 @@ export type ActivitySummary = {
 
 export async function getTopic(topicId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("topics")
-    .select(
-      `id, code, title_en, title_vi, emoji, patterns, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at, ${PROGRESS_EMBED})`,
-    )
-    .eq("id", topicId)
-    .eq("status", "published")
-    .is("deleted_at", null)
-    .maybeSingle();
+  const [{ data, error }, mine] = await Promise.all([
+    supabase
+      .from("topics")
+      .select(
+        "id, code, title_en, title_vi, emoji, patterns, level:levels!inner(code), practice_activities(id, kind, title_en, title_vi, sort_order, status, deleted_at)",
+      )
+      .eq("id", topicId)
+      .eq("status", "published")
+      .is("deleted_at", null)
+      .maybeSingle(),
+    myStars(),
+  ]);
   if (error || !data) return null;
   const level = levelByCode((data.level as unknown as { code: string }).code, await getLevelCatalog());
   if (!level) return null;
@@ -130,7 +141,7 @@ export async function getTopic(topicId: string) {
       kind: a.kind,
       titleEn: a.title_en,
       titleVi: a.title_vi,
-      stars: latestStarsOf(a),
+      stars: mine.get(a.id) ?? 0,
     })),
   };
 }

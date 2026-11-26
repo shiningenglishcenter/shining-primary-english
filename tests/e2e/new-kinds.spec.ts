@@ -56,6 +56,15 @@ test.describe("new activity kinds", () => {
     await expect(
       page.locator("[data-testid=activity][data-kind=mixed]").first().getByTestId("difficulty"),
     ).toHaveText(/Challenge|Thử thách/);
+    // filter dropdown: only challenge activities, nothing done yet, then all again
+    await page.getByTestId("activity-filter-select").selectOption("hard");
+    for (const d of await page
+      .locator("[data-testid=activity]:visible [data-testid=difficulty]")
+      .allTextContents())
+      expect(d).toMatch(/Challenge|Thử thách/);
+    await page.getByTestId("activity-filter-select").selectOption("done");
+    await expect(page.getByTestId("filter-empty")).toBeVisible();
+    await page.getByTestId("activity-filter-select").selectOption("all");
     await page.getByTestId("activity").filter({ hasText: "Look and choose" }).first().click();
     // first question: a wrong answer before the right one; then the rest right
     let first = true;
