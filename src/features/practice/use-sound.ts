@@ -75,7 +75,10 @@ export function useSound(opts: { onTip?: (tip: SoundTip) => void } = {}) {
     };
     pick();
     window.speechSynthesis.addEventListener("voiceschanged", pick);
-    return () => window.speechSynthesis.removeEventListener("voiceschanged", pick);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", pick);
+      window.speechSynthesis.cancel(); // leaving the game: stop reading aloud
+    };
   }, []);
 
   const speak = useCallback((text: string, rate = 0.85) => {

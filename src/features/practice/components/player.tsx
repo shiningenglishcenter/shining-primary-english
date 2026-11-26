@@ -2109,6 +2109,19 @@ function ContextPanel({
   const t = useT();
   const listening = ctx.type === "listening";
   const { frame, listen, onTimeUpdate, onEnded } = useMediaProgress(onProgress);
+  const audio = useRef<HTMLAudioElement>(null);
+  // Leaving the page (Back, or the router keeping it hidden) stops the recording.
+  useEffect(() => {
+    const a = audio.current;
+    const f = frame.current;
+    return () => {
+      a?.pause();
+      f?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+        "https://www.youtube-nocookie.com",
+      );
+    };
+  }, [frame]);
   return (
     <section
       className={cn(
@@ -2151,6 +2164,7 @@ function ContextPanel({
             </div>
           ) : ctx.audioUrl ? (
             <audio
+              ref={audio}
               controls
               preload="metadata"
               src={ctx.audioUrl}
