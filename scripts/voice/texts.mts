@@ -97,17 +97,24 @@ if (mode === "list") {
     `${texts.size} texts, ${have.size} files already there, ${todo.length} to make → ${arg}\n`,
   );
 } else {
-  const files = readdirSync(arg).filter((f) => /^[0-9a-f]{28}\.mp3$/.test(f));
+  // Files already in the bucket are skipped, so a failed run can simply be re-run.
+  const have = await existing();
+  const files = readdirSync(arg).filter((f) => /^[0-9a-f]{28}\.mp3$/.test(f) && !have.has(f.slice(0, 28)));
   let done = 0;
   // A few uploads at a time.
   const queue = [...files];
   await Promise.all(
     Array.from({ length: 8 }, async () => {
       for (let f = queue.shift(); f; f = queue.shift()) {
-        const { error } = await bucket.upload(`${DEFAULT_VOICE}/${f}`, readFileSync(join(arg, f)), {
-          contentType: "audio/mpeg",
-          upsert: true,
-        });
+        let error: { message: string } | null = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          ({ error } = await bucket.upload(`${DEFAULT_VOICE}/${f}`, readFileSync(join(arg, f)), {
+            contentType: "audio/mpeg",
+            upsert: true,
+          }));
+          if (!error) break;
+          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        }
         if (error) {
           console.error(`${f}: ${error.message}`);
           process.exit(1);
