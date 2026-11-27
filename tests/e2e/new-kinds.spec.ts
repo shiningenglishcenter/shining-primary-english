@@ -62,8 +62,13 @@ test.describe("new activity kinds", () => {
       .locator("[data-testid=activity]:visible [data-testid=difficulty]")
       .allTextContents())
       expect(d).toMatch(/Challenge|Thử thách/);
+    // "done": only finished activities (none on a fresh database, then the empty note)
     await page.getByTestId("activity-filter-select").selectOption("done");
-    await expect(page.getByTestId("filter-empty")).toBeVisible();
+    const done = await page
+      .locator("li[data-activity]:visible")
+      .evaluateAll((els) => els.map((e) => e.hasAttribute("data-done")));
+    expect(done.every(Boolean)).toBe(true);
+    if (done.length === 0) await expect(page.getByTestId("filter-empty")).toBeVisible();
     await page.getByTestId("activity-filter-select").selectOption("all");
     await page.getByTestId("activity").filter({ hasText: "Look and choose" }).first().click();
     // first question: a wrong answer before the right one; then the rest right

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BarChart3, BookOpenCheck, GraduationCap, Lightbulb, LogIn, Send, Star } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { BarChart3, BookOpenCheck, GraduationCap, Lightbulb, Send, Star } from "lucide-react";
+import { GuideHeader } from "@/features/guide/header";
 import { GuideOverview } from "@/features/guide/overview";
 import { KIND_LABEL_VI, PRACTICE_KINDS, type PracticeKind } from "@/features/practice/model";
 
@@ -20,14 +20,16 @@ export const metadata: Metadata = {
 const SIZES: Record<string, [number, number]> = {
   "t1-content": [1400, 941],
   "t2-topic": [1400, 941],
-  "t5-settings": [1400, 316],
-  "t6-items": [1400, 868],
-  "t7-media": [1400, 503],
-  "t8-share": [1400, 468],
-  "t9-guest": [1400, 764],
+  "t3-words": [1400, 941],
+  "t5-settings": [1400, 941],
+  "t6-items": [1400, 941],
+  "t7-media": [1400, 941],
+  "t8-share": [1400, 941],
+  "t10-voice": [896, 639],
   "r1-students": [1400, 941],
   "r2-matrix": [1400, 941],
   "r3-student": [1400, 941],
+  "r4-hard": [1400, 941],
   "r5-activities": [1400, 941],
   "r6-guests": [1400, 941],
   "s1-login": [560, 953],
@@ -159,37 +161,7 @@ const KIND_HELP: Record<PracticeKind, string> = {
 export default function GuidePage() {
   return (
     <div className="min-h-dvh bg-paper">
-      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/huong-dan" aria-label="Hướng dẫn sử dụng">
-            <Logo subtitle={false} />
-          </Link>
-          <nav aria-label="Mục lục" className="hidden gap-1 text-sm font-semibold md:flex">
-            <a href="#soan-bai" className="rounded-md px-3 py-2 hover:bg-muted">
-              Soạn & gửi bài
-            </a>
-            <a href="#ket-qua" className="rounded-md px-3 py-2 hover:bg-muted">
-              Xem kết quả
-            </a>
-            <a href="#hoc-sinh" className="rounded-md px-3 py-2 hover:bg-muted">
-              Học sinh làm bài
-            </a>
-            <a href="#hoi-dap" className="rounded-md px-3 py-2 hover:bg-muted">
-              Hỏi đáp
-            </a>
-            <Link href="/gop-y" className="rounded-md bg-sun-soft px-3 py-2 hover:bg-sun/40">
-              💬 Góp ý
-            </Link>
-          </nav>
-          <Link
-            href="/login"
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3 text-sm font-semibold text-white"
-          >
-            <LogIn className="size-4" aria-hidden="true" />
-            Đăng nhập
-          </Link>
-        </div>
-      </header>
+      <GuideHeader />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-14 px-4 py-10 sm:px-6">
         <div>
@@ -232,68 +204,77 @@ export default function GuidePage() {
           id="soan-bai"
           icon={BookOpenCheck}
           title="1. Giáo viên: soạn bài và gửi cho học sinh"
-          intro="Bài luyện được sắp theo Chương trình → Trình độ → Chủ đề (Unit) → Bài. Học sinh chỉ thấy những gì đã Xuất bản."
+          intro="Bài luyện sắp theo Chương trình → Trình độ → Unit / Chủ đề → Bài. Học sinh chỉ thấy những gì đã Xuất bản. Sơ đồ các chương trình xem ở trang Giáo trình."
         >
           <Step
             n={1}
-            title="Mở “Bài luyện” và chọn trình độ"
-            shot={<Shot name="t1-content" alt="Danh sách chủ đề của Starters" />}
+            title="Mở “Bài luyện”, chọn chương trình và trình độ"
+            shot={<Shot name="t1-content" alt="Bảng unit của Global Success 1" />}
           >
             <p>
               Đăng nhập → tab <b>Bài luyện</b>. Chọn <b>Cambridge</b> hoặc <b>Global Success</b>, rồi chọn
-              trình độ (Starters, G1…).
+              trình độ (Starters, G1…). Bảng cho biết mỗi unit có bao nhiêu từ, mẫu câu, bài luyện và trạng
+              thái.
             </p>
             <ul>
               <li>
-                Bấm tên một chủ đề để sửa, hoặc kéo xuống cuối trang để <b>thêm chủ đề mới</b>.
+                Ô <b>Tìm</b> tìm theo tên unit hoặc theo từ (ví dụ “cat”).
               </li>
-              <li>Chủ đề mới là bản nháp — học sinh chưa thấy cho đến khi Xuất bản.</li>
+              <li>
+                Bộ lọc <b>Cần hoàn thiện</b>: unit có từ thiếu hình, bài dưới 6 câu, chưa có mẫu câu hoặc chưa
+                có bài.
+              </li>
+              <li>
+                Tích chọn nhiều unit → <b>Thao tác</b> để xuất bản hoặc chuyển về nháp cùng lúc.{" "}
+                <b>Thêm unit</b> tạo unit mới ở dạng nháp.
+              </li>
             </ul>
           </Step>
 
           <Step
             n={2}
-            title="Trong chủ đề: từ vựng và danh sách bài"
-            shot={<Shot name="t2-topic" alt="Trang chủ đề: từ vựng, thông tin chủ đề, bài luyện" />}
+            title="Trong unit: 5 bước theo thứ tự"
+            shot={<Shot name="t3-words" alt="Tab Từ vựng của Unit 9" />}
+          >
+            <p>
+              <b>Thông tin → Từ vựng → Mẫu câu → Bài luyện → Chia sẻ.</b> Dấu ✓ cho biết bước đã xong; nút{" "}
+              <b>Tiếp</b> ở cuối mỗi tab dẫn sang bước sau.
+            </p>
+            <ul>
+              <li>
+                <b>Từ vựng:</b> mỗi từ có nghĩa, hình và phiên âm. Bấm <b>Chọn hình</b> để tìm hình bằng tiếng
+                Anh hoặc tiếng Việt, hoặc <b>Tải ảnh</b> (JPG/PNG, tối đa 2 MB). Mục{" "}
+                <b>Nhập nhiều từ một lúc</b> để dán cả danh sách.
+              </li>
+              <li>
+                <b>Mẫu câu:</b> câu tiếng Anh kèm nghĩa; học sinh thấy ở đầu trang unit, có giọng đọc.
+              </li>
+            </ul>
+            <Tip>Chỉ từ có hình mới vào các trò chơi nhìn hình; từ thiếu hình vẫn có trong trò nối nghĩa.</Tip>
+          </Step>
+
+          <Step
+            n={3}
+            title="Danh sách bài của unit"
+            shot={<Shot name="t2-topic" alt="Tab Bài luyện: danh sách bài, mức độ, trạng thái" />}
           >
             <ul>
               <li>
-                <b>Từ vựng:</b> nhập từ, nghĩa và dán một emoji làm hình (ví dụ 🐈). Các trò chơi từ vựng lấy
-                từ ở đây.
+                Mỗi bài ghi dạng bài, mức độ <b>Dễ / Vừa / Thử thách</b>, kỹ năng và trạng thái. Học sinh lọc
+                được bài theo mức độ.
               </li>
               <li>
-                <b>Thông tin chủ đề:</b> tên, hình, thứ tự và trạng thái <b>Xuất bản</b>.
+                Kéo <b>⋮⋮</b> hoặc bấm mũi tên để đổi thứ tự học sinh thấy. Nút <b>Link</b> chép nhanh link
+                gửi học sinh.
               </li>
               <li>
-                <b>Bài luyện:</b> danh sách bài của chủ đề; chọn <b>Dạng bài mới</b> → <b>Thêm bài</b>.
+                Unit mới có từ vựng: bấm <b>Tạo nhanh</b> để có ngay các trò chơi từ vựng. Muốn thêm từng bài:
+                chọn <b>Dạng bài mới</b> → <b>Thêm bài</b>.
               </li>
             </ul>
-            <Tip>
-              Lấy emoji: mở{" "}
-              <a
-                href="https://emojipedia.org"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-sky underline"
-              >
-                emojipedia.org
-              </a>{" "}
-              hoặc{" "}
-              <a
-                href="https://getemoji.com"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-sky underline"
-              >
-                getemoji.com
-              </a>
-              , tìm bằng từ tiếng Anh (ví dụ “cat”), bấm Copy rồi dán vào ô Hình. Trên điện thoại dùng bàn
-              phím emoji; trên Windows bấm Win + dấu chấm.
-            </Tip>
-            <Tip>Mỗi bài trong danh sách có nút 🔗 Link để chép nhanh link gửi học sinh.</Tip>
           </Step>
 
-          <Step n={3} title={`Chọn dạng bài (${PRACTICE_KINDS.length} dạng)`}>
+          <Step n={4} title={`Các dạng bài (${PRACTICE_KINDS.length} dạng)`}>
             <ul className="grid gap-1 sm:grid-cols-2">
               {PRACTICE_KINDS.map((k) => (
                 <li key={k}>
@@ -307,84 +288,104 @@ export default function GuidePage() {
           </Step>
 
           <Step
-            n={4}
-            title="Soạn nội dung, gợi ý và xuất bản"
-            shot={
-              <>
-                <Shot name="t6-items" alt="Soạn câu hỏi: câu, đáp án, gợi ý" />
-                <Shot name="t5-settings" alt="Cài đặt khi học sinh trả lời sai" />
-              </>
-            }
-          >
-            <ul>
-              <li>
-                Mỗi câu: hình (emoji), câu tiếng Anh, đáp án; ô <b>💡 Gợi ý</b> không bắt buộc (bỏ trống thì
-                hệ thống tự gợi ý).
-              </li>
-              <li>
-                <b>Khi học sinh trả lời sai:</b> bật/tắt gợi ý và chọn sai mấy lần thì hiện đáp án rồi sang
-                câu (mặc định 3).
-              </li>
-              <li>
-                Điểm: đúng ngay <b>2 điểm</b>, đúng sau khi sai <b>1 điểm</b>, hết lượt <b>0</b>.
-              </li>
-              <li>
-                Chọn trạng thái <b>Xuất bản</b> → <b>Lưu bài</b>.
-              </li>
-            </ul>
-          </Step>
-
-          <Step
             n={5}
-            title="Bài nghe: video YouTube hoặc audio của thầy cô"
-            shot={<Shot name="t7-media" alt="Dán link YouTube hoặc tải file audio" />}
+            title="Soạn câu hỏi, xem trước và xuất bản"
+            important
+            shot={<Shot name="t6-items" alt="Trang soạn bài: tab Câu hỏi và khung xem trước" />}
           >
+            <p>
+              Trang bài có 3 tab: <b>Câu hỏi</b>, <b>Cài đặt</b>, <b>Chia sẻ</b>. Bên phải là khung{" "}
+              <b>Xem trước</b>: bấm <b>Xem thử</b> để làm bài như học sinh (không ghi điểm).
+            </p>
             <ul>
               <li>
-                Dán link YouTube (youtube.com/watch?v=… hoặc youtu.be/…), <b>hoặc</b> tải file mp3/m4a/wav
-                (tối đa 10 MB).
+                Mỗi câu: hình, câu tiếng Anh, đáp án. Ô <b>💡 Gợi ý</b> và <b>📘 Giải thích</b> không bắt buộc.
               </li>
-              <li>Thêm câu Đúng/Sai hoặc chọn đáp án về nội dung bài nghe.</li>
+              <li>
+                Sửa đến đâu <b>tự lưu nháp</b> đến đó; học sinh chưa thấy thay đổi.
+              </li>
+              <li>
+                Bấm <b>Xuất bản</b> (bài mới) hoặc <b>Cập nhật cho học sinh</b> (bài đang dùng) để học sinh thấy
+                bản mới. <b>Chuyển về nháp</b> để tạm ẩn bài.
+              </li>
             </ul>
           </Step>
 
           <Step
             n={6}
-            title="Gửi bài cho học sinh qua Zalo"
-            important
-            shot={<Shot name="t8-share" alt="Ô link gửi phụ huynh / học sinh và lời nhắn" />}
+            title="Cài đặt khi học sinh trả lời sai"
+            shot={<Shot name="t5-settings" alt="Tab Cài đặt: gợi ý, giải thích, số lần sai" />}
           >
-            <p>
-              Ở đầu trang của bài (đã xuất bản) có ô <b>Link gửi phụ huynh / học sinh</b>:
-            </p>
             <ul>
               <li>
-                <b>Sao chép link</b> — gửi link cho phụ huynh.
+                Bật/tắt <b>gợi ý 💡</b> và <b>giải thích 📘</b> sau mỗi câu.
               </li>
               <li>
-                Hoặc sửa <b>lời nhắn</b> rồi bấm <b>Sao chép lời nhắn</b> → dán vào Zalo. Lời nhắn được nhớ
-                cho các bài sau; tên bài và link tự đổi.
+                Chọn sai mấy lần (1–5) thì hiện đáp án và sang câu tiếp. Câu Đúng/Sai chỉ được chọn 1 lần.
               </li>
-              <li>Học sinh mở link → đăng nhập (nếu chưa) → vào thẳng bài.</li>
+              <li>
+                Bài Đúng/Sai có thể dùng kiểu trả lời đầy đủ: <i>Is this a dog? → Yes, it is.</i>
+              </li>
+              <li>
+                Điểm: đúng ngay <b>2 điểm</b>, đúng sau khi sai <b>1 điểm</b>, hết lượt <b>0</b>.
+              </li>
             </ul>
-            <Tip>Trang chủ đề cũng có ô này để gửi cả chủ đề.</Tip>
           </Step>
 
           <Step
             n={7}
-            title="Cho làm không cần đăng nhập"
-            important
-            shot={<Shot name="t9-guest" alt="Công tắc cho làm không cần đăng nhập và link công khai" />}
+            title="Bài nghe: video YouTube hoặc audio"
+            shot={<Shot name="t7-media" alt="Bài nghe: link YouTube hoặc file audio" />}
           >
             <ul>
               <li>
-                Bật công tắc <b>Cho làm không cần đăng nhập</b> (mặc định tắt) → có link công khai, ai mở cũng
-                làm được, chỉ cần nhập tên.
+                Dán link YouTube <b>hoặc</b> tải file mp3/m4a/wav (tối đa 10 MB). Bài nghe theo sách Cambridge
+                đã có sẵn audio gốc.
               </li>
               <li>
-                Link không hết hạn. Tắt công tắc hoặc bấm <b>Tạo link mới</b> là link cũ dừng ngay.
+                Có thể cho câu hỏi mở sau khi học sinh nghe hết, hoặc từ một mốc thời gian.
               </li>
-              <li>Điểm không vào tài khoản học sinh; xem ở Kết quả → “Link không cần đăng nhập”.</li>
+            </ul>
+          </Step>
+
+          <Step
+            n={8}
+            title="Giọng đọc: nghe, tự thu hoặc tải file"
+            shot={<Shot name="t10-voice" alt="Bảng giọng đọc: Nghe, Thu âm, Tải file cho từng câu" />}
+          >
+            <p>
+              App đọc từ và câu bằng giọng Emma (Anh–Anh). Mở mục <b>🔊 Giọng đọc</b> ở tab Mẫu câu (cả unit)
+              hoặc ở cuối trang bài (riêng bài đó):
+            </p>
+            <ul>
+              <li>
+                <b>Nghe</b> thử từng câu. <b>Thu âm</b> giọng thầy cô (tối đa 60 giây), nghe lại rồi bấm{" "}
+                <b>Lưu bản thu</b>, hoặc <b>Tải file</b> audio (tối đa 2 MB).
+              </li>
+              <li>
+                Câu đã thay có nhãn <b>Giọng thầy cô</b>; bấm <b>Mặc định</b> để quay về giọng Emma.
+              </li>
+            </ul>
+          </Step>
+
+          <Step
+            n={9}
+            title="Gửi bài cho học sinh qua Zalo"
+            important
+            shot={<Shot name="t8-share" alt="Tab Chia sẻ: link, lời nhắn, làm không cần đăng nhập" />}
+          >
+            <p>
+              Tab <b>Chia sẻ</b> của bài (hoặc của cả unit):
+            </p>
+            <ul>
+              <li>
+                <b>Sao chép link</b>, hoặc sửa <b>lời nhắn</b> rồi bấm <b>Sao chép lời nhắn</b> → dán vào
+                Zalo. Lời nhắn được nhớ cho các bài sau; tên bài và link tự đổi.
+              </li>
+              <li>
+                Bật <b>Cho làm không cần đăng nhập</b> để có link công khai: ai mở cũng làm được, chỉ cần nhập
+                tên. Tắt công tắc hoặc tạo link mới là link cũ dừng ngay.
+              </li>
             </ul>
           </Step>
         </Section>
@@ -394,7 +395,7 @@ export default function GuidePage() {
           id="ket-qua"
           icon={BarChart3}
           title="2. Giáo viên: xem kết quả bài làm"
-          intro="Tab Kết quả. Chọn Lớp, Xem theo, Thời gian, Trình độ — đổi là lọc ngay. Bấm tiêu đề cột để sắp xếp. Điểm tính theo lần làm gần nhất."
+          intro="Tab Kết quả. Chọn Lớp, Xem theo, Thời gian (7 ngày, 30 ngày, tất cả) và Trình độ — đổi là lọc ngay. Bấm tiêu đề cột để sắp xếp. Điểm tính theo lần làm gần nhất; thẻ từ không tính điểm."
         >
           <Step
             n={1}
@@ -402,25 +403,30 @@ export default function GuidePage() {
             shot={<Shot name="r1-students" alt="Bảng kết quả theo học sinh" />}
           >
             <ul>
-              <li>Số bài đã làm (số lượt, sao), điểm trung bình, thời gian học, lần học gần nhất.</li>
+              <li>
+                Ô <b>Cả lớp hay sai</b> ở đầu trang: những từ/câu nhiều em sai nhất.
+              </li>
+              <li>Số bài đã làm (kèm sao), điểm trung bình, thời gian học, lần học gần nhất.</li>
               <li>
                 <b>⚠ Cần chú ý:</b> 7 ngày không làm bài hoặc điểm trung bình dưới 50%.
               </li>
-              <li>Bấm tên học sinh để xem chi tiết.</li>
+              <li>
+                Bấm <b>Xem chi tiết</b> để mở trang của từng em.
+              </li>
             </ul>
           </Step>
           <Step
             n={2}
             title="Theo chủ đề: bảng màu cả lớp"
             important
-            shot={<Shot name="r2-matrix" alt="Bảng màu học sinh x chủ đề" />}
+            shot={<Shot name="r2-matrix" alt="Bảng màu học sinh × chủ đề" />}
           >
             <ul>
-              <li>Mỗi ô: điểm của học sinh ở chủ đề đó và số bài đã làm.</li>
+              <li>Mỗi ô: điểm của học sinh ở unit đó và số bài đã làm.</li>
               <li>
                 <b>Xanh</b> từ 80%, <b>vàng</b> 50–79%, <b>đỏ</b> dưới 50%, xám là chưa làm.
               </li>
-              <li>Hàng cuối là trung bình lớp → chủ đề đỏ/vàng nên dạy lại.</li>
+              <li>Hàng cuối là trung bình lớp → unit đỏ/vàng nên dạy lại. Bấm vào ô để xem chi tiết.</li>
             </ul>
           </Step>
           <Step
@@ -431,25 +437,42 @@ export default function GuidePage() {
           >
             <ul>
               <li>
-                <b>Kỹ năng:</b> Từ vựng, Nghe, Đọc, Viết — kỹ năng yếu nhất được đánh dấu.
+                <b>Kỹ năng:</b> Từ vựng, Nghe, Đọc, Viết.
               </li>
               <li>
-                <b>Cần ôn lại:</b> các bài dưới 70%. <b>Từ / câu hay sai:</b> ví dụ “giraffe – sai 2/3 lần”.
+                <b>Cần ôn lại:</b> các bài dưới 70%. <b>Từ / câu hay sai:</b> ví dụ “bear – sai 1/1 lần”, kèm
+                dấu ✓ khi em đã luyện lại.
               </li>
               <li>
-                <b>Theo chủ đề:</b> bấm để mở từng bài, kể cả bài chưa làm, với điểm lần đầu → gần nhất.
+                <b>Lượt làm gần đây:</b> 10 lượt mới nhất, kèm câu em làm sai.
+              </li>
+              <li>
+                <b>Theo chủ đề:</b> mở từng unit để xem mọi bài, kể cả bài chưa làm.
               </li>
             </ul>
           </Step>
           <Step n={4} title="Theo bài" shot={<Shot name="r5-activities" alt="Bảng kết quả theo bài" />}>
-            <p>Bài khó nhất ở trên cùng: bao nhiêu em đã làm và điểm trung bình.</p>
+            <p>Bài khó nhất (điểm trung bình thấp nhất) ở trên cùng: bao nhiêu em đã làm và điểm trung bình.</p>
           </Step>
           <Step
             n={5}
+            title="Từ / câu cả lớp hay sai"
+            shot={<Shot name="r4-hard" alt="Danh sách từ và câu cả lớp hay sai" />}
+          >
+            <p>
+              Xếp theo số học sinh làm sai. “Sai” là chưa đúng ngay lần đầu; “hết lượt” là phải xem đáp án. Dùng
+              danh sách này để chọn từ/câu cần dạy lại.
+            </p>
+          </Step>
+          <Step
+            n={6}
             title="Link không cần đăng nhập"
             shot={<Shot name="r6-guests" alt="Bài làm qua link công khai" />}
           >
-            <p>Tên trẻ tự nhập, bài, điểm, thời gian và lúc làm qua link công khai.</p>
+            <p>
+              Tên trẻ tự nhập, bài, điểm, thời gian và lúc làm qua link công khai. Mục này không theo lớp; kết
+              quả không vào tài khoản học sinh.
+            </p>
           </Step>
         </Section>
 

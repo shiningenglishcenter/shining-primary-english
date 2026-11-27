@@ -287,6 +287,13 @@ test.describe("user guide", () => {
     await expect(page.getByTestId("guide-overview")).toContainText("Starters");
     await expect(page.getByTestId("guide-overview")).toContainText("16 chủ đề");
   });
+
+  test("curriculum map page opens without logging in", async ({ page }) => {
+    await page.goto("/huong-dan");
+    await page.getByRole("link", { name: "Giáo trình" }).click();
+    await expect(page).toHaveURL(/\/huong-dan\/giao-trinh$/);
+    await expect(page.getByRole("img", { name: /Sơ đồ giáo trình/ })).toBeVisible();
+  });
 });
 
 test.describe("login screen", () => {

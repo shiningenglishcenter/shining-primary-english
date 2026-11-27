@@ -186,6 +186,12 @@ uploads them; the `voice` workflow (run by hand: Actions → voice) does it once
 SUPABASE_SERVICE_ROLE_KEY secrets. Teachers: "Giọng đọc" panel on the activity page and the topic's
 "Mẫu câu" tab — listen, record, upload, back to default. Leaving a game stops its recording and voice.
 
+### Phase 1.12 — Guide refresh, curriculum map (2026-11-27, same branch)
+GS1 follows the Tiếng Anh 1 book map (private SQL, run on shining-dev: words, book patterns, "Sentences from
+the book" per unit). Guide: new public page `/huong-dan/giao-trinh` (curriculum tree picture); teacher sections
+"Soạn & gửi bài" and "Xem kết quả" rewritten for the current editor (unit tabs, drafts and "Cập nhật cho học
+sinh", settings, voice panel, share) and results (5 views incl. "Từ/câu cả lớp hay sai"), with new screenshots.
+
 ### To deploy to the preview (owner)
 Supabase `shining-dev` → SQL Editor, in order (skip any already run):
 1. `supabase/migrations/20261110000013_practice.sql`
